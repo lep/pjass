@@ -266,13 +266,14 @@ funcend: ENDFUNCTION { clear(&params); clear(&locals); curtab = &globals; }
 ;
 
 funcbegin: FUNCTION rid TAKES optparam_list RETURNS opttype  {
+  struct typeandname *tan;
   curtab = &locals;
 $$.fd = newfuncdecl(); 
   $$.fd->name = strdup($2.str);
   $$.fd->p = $4.pl;
   $$.fd->ret = $6.ty;
   put(&functions, $$.fd->name, $$.fd);
-  struct typeandname *tan = $4.pl->head;
+  tan = $4.pl->head;
   for (;tan; tan=tan->next)
     put(&params, strdup(tan->name), newtypeandname(tan->ty, tan->name));
   retval = $$.fd->ret;

@@ -317,11 +317,12 @@ void checkeqtest(const struct typenode *a, const struct typenode *b)
 void dofile(FILE *fp, const char *name)
 {
 	void *cur;
+  int olderrs;
   lineno = 1;
-  int olderrs = haderrors;
-	cur = yy_create_buffer(fp, BUFSIZE);
+  olderrs = haderrors;
+	cur = (void *) yy_create_buffer(fp, BUFSIZE);
   yy_switch_to_buffer(cur);
-  curfile = name;
+  curfile = (char *) name;
 	while (yyparse())
     ;
   if (olderrs == haderrors)
@@ -338,6 +339,7 @@ void printversion()
 
 void doparse(int argc, char **argv)
 {
+  FILE *fp;
 	int i;
 	for (i = 1; i < argc; ++i) {
 		if (argv[i][0] == '-' && argv[i][1] == 0) {
@@ -367,7 +369,6 @@ printf(
 			exit(0);
 			continue;
 		}
-		FILE *fp;
 		fp = fopen(argv[i], "rb");
 		if (fp == NULL) {
 			printf("Error: Cannot open %s\n", argv[i]);
