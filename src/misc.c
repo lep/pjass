@@ -5,13 +5,15 @@
 #include "grammar.tab.h"
 #include "misc.h"
 
-int lineno = 1;
+int lineno;
 int haderrors = 0;
+int totlines = 0;
 
 int hashfunc(const char *name);
 struct hashtable functions, globals, locals, params, types;
 struct hashtable *curtab;
 struct typenode *retval;
+char *curfile;
 struct typenode *gInteger, *gReal, *gBoolean, *gString, *gCode, *gHandle, *gNothing, *gNull;
 
 void addPrimitiveType(const char *name, struct typenode **toSave)
@@ -19,7 +21,7 @@ void addPrimitiveType(const char *name, struct typenode **toSave)
   put(&types, name, *toSave = newtypenode(name, NULL));
 }
 
-void init()
+void init(int argc, char **argv)
 {
   addPrimitiveType("handle", &gHandle);
   addPrimitiveType("integer", &gInteger);
@@ -301,4 +303,37 @@ void checkcomparison(const struct typenode *a, const struct typenode *b)
 void checkeqtest(const struct typenode *a, const struct typenode *b)
 {
   checkcomparison(a, b);
+}
+
+void dofile(FILE *fp, const char *name)
+{
+	void *cur;
+  lineno = 1;
+  int olderrs = haderrors;
+	cur = yy_create_buffer(fp, BUFSIZE);
+  yy_switch_to_buffer(cur);
+  curfile = name;
+	while (yyparse())
+    ;
+  if (olderrs == haderrors)
+		printf("%s parse successful, %d lines\n", curfile, lineno);
+  else
+		printf("%s failed with %d error%s\n", curfile, haderrors - olderrs,(haderrors == olderrs + 1) ? "s" : "");
+	totlines += lineno;
+}
+
+void doparse(int argc, char **argv)
+{
+	int i;
+	for (i = 1; i < argc; ++i)
+		if (argv[i][0] == '-' && argv[i][1] == 0)
+			dofile(stdin, "<stdin>");
+		else {
+			FILE *fp;
+			fp = fopen(argv[i], "rb");
+			dofile(fp, argv[i]);
+			fclose(fp);
+		}
+  if (argc == 1)
+		dofile(stdin, "<stdin>");
 }

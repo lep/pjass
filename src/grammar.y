@@ -12,18 +12,15 @@
 int yyerror (char *s)  /* Called by yyparse on error */
 {
   haderrors++;
-  printf ("%d: %s\n", lineno, s);
+  printf ("%s:%d: %s\n", curfile, lineno, s);
   return 0;
 }
 
 int main(int argc, char **argv)
 {
-  init();
+  init(argc, argv);
   if (1)  {
-    for (;;) {
-      int result = yyparse();
-      if (result == 0) break;
-    }
+		doparse(argc, argv);
   }
   else {
     for (;;) {
@@ -33,11 +30,13 @@ int main(int argc, char **argv)
     }
   }
   if (!haderrors) {
-    printf("Parse successful, no errors\n");
+    printf("Total parse successful: %d lines, no errors\n", totlines);
     return 0;
   }
-  else
+  else {
+		printf("Parse failed: %d total errors\n", haderrors);
     return 1;
+	}
 }
 
 #define YYSTYPE union node

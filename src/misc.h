@@ -1,6 +1,8 @@
 #include <stdio.h>
 #define YYDEBUG 1
 
+#define BUFSIZE 8192
+
 
 struct typenode {
   char *typename;
@@ -63,9 +65,9 @@ struct typenode *binop(const struct typenode *a, const struct typenode *b);
 int canconvert(const struct typenode *from, const struct typenode *to);
 void checkParameters(const struct paramlist *func, const struct paramlist *inp);
 
-extern int lineno;
+extern int lineno, totlines;
 extern int haderrors;
-extern char *yytext;
+extern char *yytext, *curfile;
 extern int yydebug;
 extern struct hashtable functions, globals, locals, params, types, *curtab;
 extern struct typenode *gInteger, *gReal, *gBoolean, *gString, *gCode, *gHandle, *gNothing, *gNull;
@@ -74,3 +76,5 @@ const struct typeandname *getVariable(const char *varname);
 void isnumeric(const struct typenode *ty);
 void checkcomparison(const struct typenode *a, const struct typenode *b);
 void checkeqtest(const struct typenode *a, const struct typenode *b);
+void init(int argc, char **argv);
+void doparse(int argc, char **argv);
