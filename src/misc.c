@@ -377,6 +377,8 @@ printf(
 		didparse = 1;
 		fclose(fp);
 	}
-  if (argc == 1)
+  if (argc == 1) {
+		didparse = 1;
 		dofile(stdin, "<stdin>");
+  }
 }
