@@ -1,7 +1,7 @@
 all:  sc
 
 sc: lex.yy.c grammar.tab.c grammar.tab.h misc.o
-	gcc lex.yy.c grammar.tab.c misc.c -lfl -o $@ -g
+	gcc lex.yy.c grammar.tab.c misc.c -lfl -o $@ -g -mno-cygwin
 
 lex.yy.c: token.l
 	flex $<
