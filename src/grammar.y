@@ -287,7 +287,11 @@ codeblock: /* empty */
 statement:  NEWLINE
        | CALL funccall
        | IF expr THEN codeblock elsifseq elseseq ENDIF { canconvert($2.ty, gBoolean); }
-       | SET rid EQUALS expr NEWLINE { canconvert($4.ty, getVariable($2.str)->ty); }
+       | SET rid EQUALS expr NEWLINE { canconvert($4.ty, getVariable($2.str)->ty); if (getVariable($2.str)->isconst) { char ebuf[1024];
+                  sprintf(ebuf, "Cannot assign to constant %s\n", $2.str);
+                  yyerror(ebuf);
+									}
+}
        | SET rid LBRACKET expr RBRACKET EQUALS expr { 
            canconvert($4.ty, gInteger);
            canconvert($7.ty, getVariable($2.str)->ty); }
