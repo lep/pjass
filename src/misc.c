@@ -233,6 +233,10 @@ int canconvert(const struct typenode *ufrom, const struct typenode *uto)
   if (from == NULL || to == NULL) return 0;
   if (isDerivedFrom(from, to))
     return 1;
+  /* Blizzard bug: allows downcasting erroneously */
+  /* TODO: get Blizzard to fix this in Blizzard.j and the language */
+  if (isDerivedFrom(to, from))
+    return 1;
   if (from->typename == NULL || to->typename == NULL) return 0;
   from = getPrimitiveAncestor(from);
   to = getPrimitiveAncestor(to);
@@ -240,10 +244,6 @@ int canconvert(const struct typenode *ufrom, const struct typenode *uto)
     return 1;
   if ((from == gInteger || from == gReal) &&
       (to == gInteger || to == gReal))
-    return 1;
-  /* Blizzard bug: allows downcasting erroneously */
-  /* TODO: get Blizzard to fix this in Blizzard.j and the language */
-  if (from == to)
     return 1;
   sprintf(ebuf, "Cannot convert %s to %s", ufrom->typename, uto->typename);
   yyerror(ebuf);
