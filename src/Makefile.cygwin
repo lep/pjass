@@ -1,7 +1,7 @@
-all:  sc
+all:  pjass
 
-sc: lex.yy.c grammar.tab.c grammar.tab.h misc.o
-	gcc lex.yy.c grammar.tab.c misc.c -lfl -o $@ -g -mno-cygwin
+pjass: lex.yy.c grammar.tab.c grammar.tab.h misc.o
+	gcc lex.yy.c grammar.tab.c misc.c -lfl -o $@ -O2 -mno-cygwin
 
 lex.yy.c: token.l
 	flex $<
@@ -13,10 +13,13 @@ grammar.tab.h: grammar.y
 	bison -d $<
 
 clean:
-	rm grammar.tab.h grammar.tab.c lex.yy.c sc
+	rm grammar.tab.h grammar.tab.c lex.yy.c pjass.exe pjass
 
 t:
-	./sc <t.txt
+	./pjass <t.txt
 
 package:
 	tar Ccvfz ../ jass2.tar.gz  jass2/Makefile jass2/grammar.y jass2/token.l jass2/misc.c jass2/misc.h jass2/readme.txt
+
+binpackage:
+	rm -f PJASS.zip ; pkzip -a pjass.zip ../doc/readme.txt ./pjass.exe ; mv -f PJASS.zip pjass-bin-091.zip

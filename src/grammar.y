@@ -29,12 +29,15 @@ int main(int argc, char **argv)
       printf("Got result %d, %s\n", result, yytext);
     }
   }
-  if (!haderrors) {
-    printf("Total parse successful: %d lines, no errors\n", totlines);
+  if (!haderrors && didparse) {
+		printf("Parse successful: %8d lines: %s\n", totlines, "<total>");
     return 0;
   }
   else {
-		printf("Parse failed: %d total errors\n", haderrors);
+		if (haderrors)
+			printf("Parse failed: %d error%s total\n", haderrors, haderrors == 1 ? "" : "s");
+		else
+			printf("Parse failed\n");
     return 1;
 	}
 }
@@ -240,9 +243,6 @@ intexpr:   INTLIT { $$.ty = gInteger; }
          | UNITTYPEINT { $$.ty = gInteger; }
 ;
 
-
-funccall: rid LPAREN exprlist RPAREN
-;
 
 funcdecl: nativefuncdecl { $$.fd = $1.fd; }
          | CONSTANT nativefuncdecl { $$.fd = $2.fd; }

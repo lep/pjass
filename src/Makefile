@@ -1,7 +1,7 @@
-all:  sc
+all:  pjass
 
-sc: lex.yy.c grammar.tab.c grammar.tab.h misc.o
-	gcc lex.yy.c grammar.tab.c misc.c -lfl -o $@ -g
+pjass: lex.yy.c grammar.tab.c grammar.tab.h misc.o
+	gcc -O2 lex.yy.c grammar.tab.c misc.c -lfl -o $@
 
 lex.yy.c: token.l
 	flex $<
@@ -13,10 +13,10 @@ grammar.tab.h: grammar.y
 	bison -d $<
 
 clean:
-	rm grammar.tab.h grammar.tab.c lex.yy.c sc
+	rm grammar.tab.h grammar.tab.c lex.yy.c pjass
 
 t:
-	./sc <t.txt
+	./pjass <t.txt
 
 package:
 	tar Ccvfz ../ jass2.tar.gz  jass2/Makefile jass2/grammar.y jass2/token.l jass2/misc.c jass2/misc.h jass2/readme.txt

@@ -1,3 +1,9 @@
+// Jass2 parser for bison/yacc
+// by Rudi Cilibrasi
+// Sun Jun  8 00:51:53 CEST 2003
+// thanks to Jeff Pang for the handy documentation that this was based
+// on at http://jass.sourceforge.net
+// Released under the BSD license
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
@@ -5,9 +11,12 @@
 #include "grammar.tab.h"
 #include "misc.h"
 
+#define VERSIONSTR "0.91"
+
 int lineno;
-int haderrors = 0;
-int totlines = 0;
+int haderrors;
+int totlines;
+int didparse;
 
 int hashfunc(const char *name);
 struct hashtable functions, globals, locals, params, types;
@@ -316,24 +325,58 @@ void dofile(FILE *fp, const char *name)
 	while (yyparse())
     ;
   if (olderrs == haderrors)
-		printf("%s parse successful, %d lines\n", curfile, lineno);
+		printf("Parse successful: %8d lines: %s\n", lineno, curfile);
   else
-		printf("%s failed with %d error%s\n", curfile, haderrors - olderrs,(haderrors == olderrs + 1) ? "s" : "");
+		printf("%s failed with %d error%s\n", curfile, haderrors - olderrs,(haderrors == olderrs + 1) ? "" : "s");
 	totlines += lineno;
+}
+
+void printversion()
+{
+	printf("pjass version %s by Rudi Cilibrasi\n", VERSIONSTR);
 }
 
 void doparse(int argc, char **argv)
 {
 	int i;
-	for (i = 1; i < argc; ++i)
-		if (argv[i][0] == '-' && argv[i][1] == 0)
+	for (i = 1; i < argc; ++i) {
+		if (argv[i][0] == '-' && argv[i][1] == 0) {
 			dofile(stdin, "<stdin>");
-		else {
-			FILE *fp;
-			fp = fopen(argv[i], "rb");
-			dofile(fp, argv[i]);
-			fclose(fp);
+			didparse = 1;
+			continue;
 		}
+		if (strcmp(argv[i], "-h") == 0) {
+			printversion();
+printf(
+"To use this program, list the files you would like to parse in order.\n"
+"If you would like to parse from standard input (the keyboard), then\n"
+"use - as an argument.  If you supply no arguments to pjass, it will\n"
+"parse the console standard input by default.\n"
+"To test this program, go into your Scripts directory, and type:\n"
+"pjass common.j common.ai Blizzard.j\n"
+"pjass accepts some options:\n"
+"pjass -h           Display this help\n"
+"pjass -v           Display version information and exit\n"
+"pjass -            Read from standard input (may appear in a list)\n"
+);
+			exit(0);
+			continue;
+		}
+		if (strcmp(argv[i], "-v") == 0) {
+			printf("%s version %s\n", argv[0], VERSIONSTR);
+			exit(0);
+			continue;
+		}
+		FILE *fp;
+		fp = fopen(argv[i], "rb");
+		if (fp == NULL) {
+			printf("Error: Cannot open %s\n", argv[i]);
+			continue;
+		}
+		dofile(fp, argv[i]);
+		didparse = 1;
+		fclose(fp);
+	}
   if (argc == 1)
 		dofile(stdin, "<stdin>");
 }
