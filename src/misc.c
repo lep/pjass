@@ -219,6 +219,14 @@ int canconvert(const struct typenode *ufrom, const struct typenode *uto)
 {
   const struct typenode *from = ufrom, *to = uto;
   char ebuf[1024];
+#if 0
+  if (lineno > 2400 && lineno < 2500) {
+    yydebug = 1;
+    fprintf(stderr, "LINE: %d\n", lineno);
+  }
+  else
+    yydebug = 0;
+#endif
   if (from == NULL || to == NULL) return 0;
   if (isDerivedFrom(from, to))
     return 1;
@@ -229,6 +237,10 @@ int canconvert(const struct typenode *ufrom, const struct typenode *uto)
     return 1;
   if ((from == gInteger || from == gReal) &&
       (to == gInteger || to == gReal))
+    return 1;
+  /* Blizzard bug: allows downcasting erroneously */
+  /* TODO: get Blizzard to fix this in Blizzard.j and the language */
+  if (from == to)
     return 1;
   sprintf(ebuf, "Cannot convert %s to %s", ufrom->typename, uto->typename);
   yyerror(ebuf);

@@ -102,10 +102,10 @@ int main(int argc, char **argv)
 %token UNITTYPEINT
 %token EQUALS
 
+%right EQUALS
 %left AND OR
 %left NOT
 %left LESS GREATER EQCOMP NEQ LEQ GEQ
-%right EQUALS
 %left MINUS PLUS
 %left TIMES DIV
 
@@ -150,10 +150,10 @@ td:      NEWLINE
 ;
 
 // Returns a typenode
-expr: intexpr
-      | realexpr
-      | stringexpr
-      | boolexpr
+expr: intexpr      { $$.ty = gInteger; }
+      | realexpr   { $$.ty = gReal; }
+      | stringexpr { $$.ty = gString; }
+      | boolexpr   { $$.ty = gBoolean; }
       | FUNCTION rid { if (lookup(&functions, $2.str) == NULL)
                          yyerror("Undefined function.");
                        $$.ty = gCode;
@@ -171,7 +171,8 @@ expr: intexpr
       | expr TIMES expr { $$.ty = binop($1.ty, $3.ty); }
       | expr DIV expr { $$.ty = binop($1.ty, $3.ty); }
       | expr MINUS expr { $$.ty = binop($1.ty, $3.ty); }
-      | expr PLUS expr { if ($1.ty == gString && $3.ty == gString)
+      | expr PLUS expr { 
+                         if ($1.ty == gString && $3.ty == gString)
                            $$.ty = gString;
                          else
                            $$.ty = binop($1.ty, $3.ty); }
@@ -218,7 +219,6 @@ exprlist: /* empty */ { $$.pl = newparamlist(); }
 
 
 stringexpr: STRINGLIT { $$.ty = gString; }
-      | stringexpr PLUS stringexpr { $$.ty = gString; }
 ;
 
 realexpr: REALLIT { $$.ty = gReal; }
@@ -282,7 +282,7 @@ codeblock: /* empty */
 statement:  NEWLINE
        | CALL funccall
        | IF expr THEN codeblock elsifseq elseseq ENDIF { canconvert($2.ty, gBoolean); }
-       | SET rid EQUALS expr { canconvert($4.ty, getVariable($2.str)->ty); }
+       | SET rid EQUALS expr NEWLINE { canconvert($4.ty, getVariable($2.str)->ty); }
        | SET rid LBRACKET expr RBRACKET EQUALS expr { 
            canconvert($4.ty, gInteger);
            canconvert($7.ty, getVariable($2.str)->ty); }

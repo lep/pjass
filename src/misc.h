@@ -65,6 +65,7 @@ void checkParameters(const struct paramlist *func, const struct paramlist *inp);
 
 extern int lineno;
 extern char *yytext;
+extern int yydebug;
 extern struct hashtable functions, globals, locals, params, types, *curtab;
 extern struct typenode *gInteger, *gReal, *gBoolean, *gString, *gCode, *gHandle, *gNothing, *gNull;
 extern struct typenode *retval;

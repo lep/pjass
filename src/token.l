@@ -81,9 +81,9 @@ UNITTYPEINT ['][a-zA-Z0-9][a-zA-Z0-9][a-zA-Z0-9][a-zA-Z0-9][']
 "]" return RBRACKET;
 "<" return LESS;
 ">" return GREATER;
+"==" return EQCOMP;
 "<=" return LEQ;
 ">=" return GEQ;
-"==" return EQCOMP;
 "!=" return NEQ;
 
 {ID}        return ID;
