@@ -22,4 +22,4 @@ package:
 	tar Ccvfz ../ jass2.tar.gz  jass2/Makefile jass2/grammar.y jass2/token.l jass2/misc.c jass2/misc.h jass2/readme.txt
 
 binpackage:
-	rm -f PJASS.zip ; pkzip -a pjass.zip ../doc/readme.txt ./pjass.exe ; mv -f PJASS.zip pjass-bin-091.zip
+	rm -f PJASS.zip ; pkzip -a pjass.zip ../doc/readme.txt ./pjass.exe ; mv -f PJASS.zip pjass-bin-091-win32.zip
