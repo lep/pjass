@@ -1,0 +1,22 @@
+all:  sc
+
+sc: lex.yy.c grammar.tab.c grammar.tab.h misc.o
+	gcc lex.yy.c grammar.tab.c misc.o -lfl -o $@ -g
+
+lex.yy.c: token.l
+	flex $<
+
+grammar.tab.c: grammar.y
+	bison $<
+
+grammar.tab.h: grammar.y
+	bison -d $<
+
+clean:
+	rm grammar.tab.h grammar.tab.c lex.yy.c sc
+
+t:
+	./sc <t.txt
+
+package:
+	tar Ccvfz ../ jass2.tar.gz  jass2/Makefile jass2/grammar.y jass2/token.l jass2/misc.c jass2/misc.h jass2/readme.txt
