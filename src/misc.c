@@ -225,7 +225,7 @@ int canconvert(const struct typenode *ufrom, const struct typenode *uto)
   if (from->typename == NULL || to->typename == NULL) return 0;
   from = getPrimitiveAncestor(from);
   to = getPrimitiveAncestor(to);
-  if (from == gNull && to == gHandle)
+  if (from == gNull && (to == gHandle || to == gString || to == gCode))
     return 1;
   if ((from == gInteger || from == gReal) &&
       (to == gInteger || to == gReal))
@@ -264,8 +264,8 @@ void checkcomparison(const struct typenode *a, const struct typenode *b)
   const struct typenode *pa, *pb;
   pa = getPrimitiveAncestor(a);
   pb = getPrimitiveAncestor(b);
-  if (((pa == gHandle || pa == gCode) && pb == gNull) ||
-      (pa == gNull && (pb == gCode || pb == gHandle)) ||
+  if (((pa == gString || pa == gHandle || pa == gCode) && pb == gNull) ||
+      (pa == gNull && (pb == gString || pb == gCode || pb == gHandle)) ||
       (pa == gNull && pb == gNull))
     return;
   if ((pa == gReal || pa == gInteger) &&
