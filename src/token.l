@@ -7,6 +7,12 @@
 
 %{
 /* need this for the call to atof() below */
+#undef yywrap
+int yywrap()
+{
+	return 1;
+}
+
 #include "grammar.tab.h" 
 #include "misc.h"
 
