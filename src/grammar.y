@@ -22,7 +22,6 @@ int main(int argc, char **argv)
     for (;;) {
       int result = yyparse();
       if (result == 0) break;
-      printf("Got result %d, %s\n", result, yytext);
     }
   }
   else {

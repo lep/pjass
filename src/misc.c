@@ -57,6 +57,9 @@ const struct typeandname *getVariable(const char *varname)
   if (result) return result;
   sprintf(ebuf, "Undeclared variable: %s\n", varname);
   yyerror(ebuf);
+  // Assume it's an int
+  put(curtab, varname, newtypeandname(gInteger, varname));
+  return getVariable(varname);
 }
 
 struct typeandname *newtypeandname(const struct typenode *ty, const char *name)
