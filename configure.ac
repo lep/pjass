@@ -8,7 +8,7 @@ AC_CANONICAL_HOST
 printenv | grep -i host
 echo "hostos is $host_os"
 case $host_os in
- cygwin ) CYGOPTS=-mnocygwin ;;
+ cygwin ) CYGOPTS=-mno-cygwin ;;
       * ) CYGOPTS=;;
 esac
 echo "CYGOPTS is $CYGOPTS"
