@@ -6,6 +6,7 @@
 #include "misc.h"
 
 int lineno = 1;
+int haderrors = 0;
 
 int hashfunc(const char *name);
 struct hashtable functions, globals, locals, params, types;
@@ -181,7 +182,13 @@ void put(struct hashtable *h, const char *name, void *val)
 {
   struct hashnode *hn;
   int hf;
-  assert(lookup(h, name) == NULL);
+  
+  if (lookup(h, name) != NULL) {
+    char ebuf[1024];
+    sprintf(ebuf, "Symbol %s multiply defined", name);
+    yyerror(ebuf);
+    return;
+  }
   hf = hashfunc(name);
   hn = calloc(sizeof(struct hashnode), 1);
   hn->name = strdup(name);

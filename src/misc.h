@@ -64,6 +64,7 @@ int canconvert(const struct typenode *from, const struct typenode *to);
 void checkParameters(const struct paramlist *func, const struct paramlist *inp);
 
 extern int lineno;
+extern int haderrors;
 extern char *yytext;
 extern int yydebug;
 extern struct hashtable functions, globals, locals, params, types, *curtab;

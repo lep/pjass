@@ -16,7 +16,7 @@ CSTART  [/][*]
 CEND    [*][/]
 STRINGSTART ["]
 STILLSTRINGA [^"\\]
-STILLSTRINGB [\\]["]
+STILLSTRINGB [\\]["nrt]
 STILLSTRINGC [\\][\\]
 STRINGDONE ["]
 UNITTYPEINT ['][a-zA-Z0-9][a-zA-Z0-9][a-zA-Z0-9][a-zA-Z0-9][']
@@ -89,7 +89,7 @@ UNITTYPEINT ['][a-zA-Z0-9][a-zA-Z0-9][a-zA-Z0-9][a-zA-Z0-9][']
 {ID}        return ID;
 {UNITTYPEINT}        return UNITTYPEINT;
 
-"<"|">"|"!"|"["|"]"|"("|")"|"+"|"-"|"*"|"/"|"."  return DEBUG;
+"<"|">"|"!"|"["|"]"|"("|")"|"+"|"-"|"*"|"/"|"."  return TNULL;
 
 [ \t]+          /* eat up whitespace */
 

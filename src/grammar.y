@@ -11,6 +11,7 @@
 
 int yyerror (char *s)  /* Called by yyparse on error */
 {
+  haderrors++;
   printf ("%d: %s\n", lineno, s);
   return 0;
 }
@@ -31,6 +32,12 @@ int main(int argc, char **argv)
       printf("Got result %d, %s\n", result, yytext);
     }
   }
+  if (!haderrors) {
+    printf("Parse successful, no errors\n");
+    return 0;
+  }
+  else
+    return 1;
 }
 
 #define YYSTYPE union node
@@ -288,6 +295,7 @@ statement:  NEWLINE
        | LOOP loopbody ENDLOOP
        | RETURN expr { canconvert($2.ty, retval); }
        | RETURN { if (retval != gNothing) yyerror("Cannot return value from function that returns nothing"); }
+       | DEBUG statement
        | error
 ;
 
