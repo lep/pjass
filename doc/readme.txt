@@ -19,5 +19,5 @@ http://jass.sourceforge.net/
 
 Please send comments to
 Rudi Cilibrasi
-cilibrar@ofb.net
+cilibrar@gmail.com
 

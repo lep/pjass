@@ -1,0 +1,10 @@
+.cvsignore
+o
+.deps
+Makefile.in
+config.h
+grammar.c
+grammar.tab.c
+grammar.tab.h
+stamp-h1
+token.c
