@@ -11,19 +11,30 @@
 #include "grammar.tab.h"
 #include "misc.h"
 
-#define VERSIONSTR "0.91"
+#define VERSIONSTR "1.0f"
+#define ERRORLEVELNUM 4
 
+int fno;
 int lineno;
 int haderrors;
+int ignorederrors;
 int totlines;
+int islinebreak;
+int isconstant;
+int inconstant;
+int inblock;
+int strict;
 int didparse;
+int inloop;
+int afterendglobals;
+int *showerrorlevel;
 
 int hashfunc(const char *name);
 struct hashtable functions, globals, locals, params, types;
 struct hashtable *curtab;
-struct typenode *retval;
+struct typenode *retval, *retcheck;
 char *curfile;
-struct typenode *gInteger, *gReal, *gBoolean, *gString, *gCode, *gHandle, *gNothing, *gNull;
+struct typenode *gInteger, *gReal, *gBoolean, *gString, *gCode, *gHandle, *gNothing, *gNull, *gAny, *gNone;
 
 void addPrimitiveType(const char *name, struct typenode **toSave)
 {
@@ -32,6 +43,7 @@ void addPrimitiveType(const char *name, struct typenode **toSave)
 
 void init(int argc, char **argv)
 {
+  int i;
   addPrimitiveType("handle", &gHandle);
   addPrimitiveType("integer", &gInteger);
   addPrimitiveType("real", &gReal);
@@ -40,7 +52,20 @@ void init(int argc, char **argv)
   addPrimitiveType("code", &gCode);
   gNothing = newtypenode("nothing", NULL);
   gNull = newtypenode("null", NULL);
+  gAny = newtypenode("any", NULL);
+  gNone = newtypenode("none", NULL);
   curtab = &globals;
+  fno = 0;
+  strict = 0;
+  haderrors = 0;
+  ignorederrors = 0;
+  islinebreak = 1;
+  inblock = 0;
+  isconstant = 0;
+  inconstant = 0;
+  showerrorlevel = malloc(ERRORLEVELNUM*sizeof(int));
+  for(i=0;i<ERRORLEVELNUM;i++)
+    showerrorlevel[i] = 1;
   if (lookup(&functions, "ConvertRace") != NULL) {
      printf("Major error!!\n");
      exit(0);
@@ -53,8 +78,8 @@ struct typenode *getFunctionType(const char *funcname)
   struct funcdecl *result;
   result = lookup(&functions, funcname);
   if (result) return result->ret;
-  sprintf(ebuf, "Undeclared function: %s\n", funcname);
-  yyerror(ebuf);
+  sprintf(ebuf, "Undeclared function: %s", funcname);
+  yyerrorline(3, islinebreak ? lineno - 1 : lineno, ebuf);
 }
 
 const struct typeandname *getVariable(const char *varname)
@@ -67,11 +92,21 @@ const struct typeandname *getVariable(const char *varname)
   if (result) return result;
   result = lookup(&globals, varname);
   if (result) return result;
-  sprintf(ebuf, "Undeclared variable: %s\n", varname);
-  yyerror(ebuf);
-  // Assume it's an int
-  put(curtab, varname, newtypeandname(gInteger, varname));
+  sprintf(ebuf, "Undeclared variable %s", varname);
+  yyerrorline(2, islinebreak ? lineno - 1 : lineno, ebuf);
+  // Store it as unidentified variable
+  put(curtab, varname, newtypeandname(gAny, varname));
   return getVariable(varname);
+}
+
+void validateGlobalAssignment(const char *varname) {
+  char ebuf[1024];
+  struct typeandname *result;
+  result = lookup(&globals, varname);
+  if (result) {
+    sprintf(ebuf, "Assignment to global variable %s in constant function", varname);
+    yyerrorline(2, lineno - 1, ebuf);
+  }
 }
 
 struct typeandname *newtypeandname(const struct typenode *ty, const char *name)
@@ -197,7 +232,7 @@ void put(struct hashtable *h, const char *name, void *val)
   if (lookup(h, name) != NULL) {
     char ebuf[1024];
     sprintf(ebuf, "Symbol %s multiply defined", name);
-    yyerror(ebuf);
+    yyerrorline(3, islinebreak ? lineno - 1 : lineno, ebuf);
     return;
   }
   hf = hashfunc(name);
@@ -230,41 +265,108 @@ struct typenode *binop(const struct typenode *a, const struct typenode *b)
   b = getPrimitiveAncestor(b);
   if (a == gInteger && b == gInteger)
     return gInteger;
+  if (a == gAny)
+    return b;
+  if (b == gAny)
+    return a;
   if ((a != gInteger && a != gReal) || (b != gInteger && b != gReal)) {
-    yyerror("Bad types for binary operator");
+    yyerrorline(3, islinebreak ? lineno - 1 : lineno, "Bad types for binary operator");
   }
   return gReal;
 }
 
-int canconvert(const struct typenode *ufrom, const struct typenode *uto)
+int canconvert(const struct typenode *ufrom, const struct typenode *uto, const int linemod)
 {
   const struct typenode *from = ufrom, *to = uto;
   char ebuf[1024];
-#if 0
-  if (lineno > 2400 && lineno < 2500) {
-    yydebug = 1;
-    fprintf(stderr, "LINE: %d\n", lineno);
-  }
-  else
-    yydebug = 0;
-#endif
+  
   if (from == NULL || to == NULL) return 0;
+  if (from == gAny || to == gAny) return 1;
+  if (isDerivedFrom(from, to))
+    return 1;
+  //bug allows downcasting erroneously
+  //if (isDerivedFrom(to, from))
+  //  return 1;
+  if (from->typename == NULL || to->typename == NULL) return 0;
+  if (from == gNone || to == gNone) return 0;
+  from = getPrimitiveAncestor(from);
+  to = getPrimitiveAncestor(to);
+  if ((from == gNull) && (to != gInteger) && (to != gReal) && (to != gBoolean))
+    return 1;
+  if (strict) {
+    if (ufrom == gInteger && (to == gReal || to == gInteger))
+      return 1;
+    if (ufrom == to && (ufrom == gBoolean || ufrom == gString || ufrom == gReal || ufrom == gInteger || ufrom == gCode))
+      return 1;
+  } else {
+    if (from == gInteger && (to == gReal || to == gInteger))
+      return 1;
+    if (from == to && (from == gBoolean || from == gString || from == gReal || from == gInteger || from == gCode))
+      return 1;
+  }
+
+  sprintf(ebuf, "Cannot convert %s to %s", ufrom->typename, uto->typename);
+  yyerrorline(3, lineno + linemod, ebuf);
+}
+
+int canconvertreturn(const struct typenode *ufrom, const struct typenode *uto, const int linemod)
+{
+  const struct typenode *from = ufrom, *to = uto;
+  char ebuf[1024];
+  if (from == NULL || to == NULL) return 0;
+  if (from == gAny || to == gAny) return 1;
   if (isDerivedFrom(from, to))
     return 1;
   /* Blizzard bug: allows downcasting erroneously */
   /* TODO: get Blizzard to fix this in Blizzard.j and the language */
-  if (isDerivedFrom(to, from))
-    return 1;
+  //  if (isDerivedFrom(to, from))
+  //    return 1;
   if (from->typename == NULL || to->typename == NULL) return 0;
+  if (from == gNone || to == gNone) return 0;
   from = getPrimitiveAncestor(from);
   to = getPrimitiveAncestor(to);
-  if (from == gNull && (to == gHandle || to == gString || to == gCode))
+  
+  // can't return integer when it expects a real (added 9.5.2005)
+  if ((to == gReal) && (from == gInteger)) {
+    sprintf(ebuf, "Cannot convert returned value from %s to %s", from->typename, to->typename);
+    yyerrorline(1, lineno + linemod, ebuf);
+    return 0;
+  }
+  
+  // can't return null when it expects integer, real or boolean (added 9.5.2005)
+  if ((from == gNull) && (to != gInteger) && (to != gReal) && (to != gBoolean))
     return 1;
-  if ((from == gInteger || from == gReal) &&
-      (to == gInteger || to == gReal))
+  
+  if (strict) {
+    if (isDerivedFrom(uto, ufrom))
+      return 1;
+  } else if (from == to)
     return 1;
-  sprintf(ebuf, "Cannot convert %s to %s", ufrom->typename, uto->typename);
-  yyerror(ebuf);
+    
+  sprintf(ebuf, "Cannot convert returned value from %s to %s", ufrom->typename, uto->typename);
+  yyerrorline(1, lineno + linemod, ebuf);
+}
+
+struct typenode *combinetype(struct typenode *n1, struct typenode *n2) {
+  if ((n1 == gNone) || (n2 == gNone)) return gNone;
+  if (n1 == n2) return n1;
+  if (n1 == gNull)
+    return n2;
+  if (n2 == gNull)
+    return n1;
+  n1 = getPrimitiveAncestor(n1);
+  n2 = getPrimitiveAncestor(n2);
+  if (n1 == n2) return n1;
+  if (n1 == gNull)
+    return n2;
+  if (n2 == gNull)
+    return n1;
+  if ((n1 == gInteger) && (n2 == gReal))
+    return gReal;
+  if ((n1 == gReal) && (n2 == gInteger))
+    return gInteger;
+//  printf("Cannot convert %s to %s", n1->typename, n2->typename);
+  return gNone;
 }
 
 void checkParameters(const struct paramlist *func, const struct paramlist *inp)
@@ -275,11 +377,15 @@ void checkParameters(const struct paramlist *func, const struct paramlist *inp)
   for (;;) {
     if (fi == NULL && pi == NULL)
       return;
-    if (fi == NULL && pi != NULL)
-      yyerror("Too many arguments passed to function");
-    if (fi != NULL && pi == NULL)
-      yyerror("Not enough arguments passed to function");
-    canconvert(pi->ty, fi->ty);
+    if (fi == NULL && pi != NULL) {
+      yyerrorex(3, "Too many arguments passed to function");
+      return;
+    }
+    if (fi != NULL && pi == NULL) {
+      yyerrorex(3, "Not enough arguments passed to function");
+      return;
+    }
+    canconvert(pi->ty, fi->ty, 0);
     pi = pi->next;
     fi = fi->next;
   }
@@ -288,8 +394,19 @@ void checkParameters(const struct paramlist *func, const struct paramlist *inp)
 void isnumeric(const struct typenode *ty)
 {
   ty = getPrimitiveAncestor(ty);
-  if (!(ty == gInteger || ty == gReal))
-    yyerror("Cannot be converted to numeric type");
+  if (!(ty == gInteger || ty == gReal || ty == gAny))
+    yyerrorline(3, islinebreak ? lineno - 1 : lineno, "Cannot be converted to numeric type");
+}
+
+void checkcomparisonsimple(const struct typenode *a) {
+  const struct typenode *pa;
+  pa = getPrimitiveAncestor(a);
+  if (pa == gString || pa == gHandle || pa == gCode || pa == gBoolean) {
+    yyerrorex(3, "Comparing the order/size of 2 variables only works on reals and integers");
+    return;
+  }
+  if (pa == gNull)
+    yyerrorex(3, "Comparing null is not allowed");
 }
 
 void checkcomparison(const struct typenode *a, const struct typenode *b)
@@ -297,49 +414,59 @@ void checkcomparison(const struct typenode *a, const struct typenode *b)
   const struct typenode *pa, *pb;
   pa = getPrimitiveAncestor(a);
   pb = getPrimitiveAncestor(b);
-  if (((pa == gString || pa == gHandle || pa == gCode) && pb == gNull) ||
-      (pa == gNull && (pb == gString || pb == gCode || pb == gHandle)) ||
-      (pa == gNull && pb == gNull))
+  if (pa == gString || pa == gHandle || pa == gCode || pa == gBoolean || pb == gString || pb == gCode || pb == gHandle || pb == gBoolean) {
+    yyerrorex(3, "Comparing the order/size of 2 variables only works on reals and integers");
     return;
-  if ((pa == gReal || pa == gInteger) &&
-      (pb == gReal || pb == gInteger))
-    return;
-  if (a != b) {
-    yyerror("Objects being compared are not the same type.");
   }
+  if (pa == gNull && pb == gNull)
+    yyerrorex(3, "Comparing null is not allowed");
 }
 
 void checkeqtest(const struct typenode *a, const struct typenode *b)
 {
-  checkcomparison(a, b);
+  const struct typenode *pa, *pb;
+  pa = getPrimitiveAncestor(a);
+  pb = getPrimitiveAncestor(b);
+  if ((pa == gInteger || pa == gReal) && (pb == gInteger || pb == gReal))
+    return;
+  if (pa == gNull || pb == gNull)
+    return;
+  if (pa != pb) {
+    yyerrorex(3, "Comparing two variables of different primitive types (except real and integer) is not allowed");
+    return;
+  }
 }
 
 void dofile(FILE *fp, const char *name)
 {
 	void *cur;
-  int olderrs;
   lineno = 1;
-  olderrs = haderrors;
-	cur = (void *) yy_create_buffer(fp, BUFSIZE);
+  islinebreak = 1;
+  isconstant = 0;
+  inconstant = 0;
+  inblock = 0;
+  afterendglobals = 0;
+  int olderrs = haderrors;
+	cur = yy_create_buffer(fp, BUFSIZE);
   yy_switch_to_buffer(cur);
-  curfile = (char *) name;
+  curfile = name;
 	while (yyparse())
     ;
   if (olderrs == haderrors)
 		printf("Parse successful: %8d lines: %s\n", lineno, curfile);
   else
 		printf("%s failed with %d error%s\n", curfile, haderrors - olderrs,(haderrors == olderrs + 1) ? "" : "s");
-	totlines += lineno;
+  totlines += lineno;
+  fno++;
 }
 
 void printversion()
 {
-	printf("pjass version %s by Rudi Cilibrasi\n", VERSIONSTR);
+	printf("Pjass version %s by Rudi Cilibrasi, modified by AIAndy and PitzerMike\n", VERSIONSTR);
 }
 
 void doparse(int argc, char **argv)
 {
-  FILE *fp;
 	int i;
 	for (i = 1; i < argc; ++i) {
 		if (argv[i][0] == '-' && argv[i][1] == 0) {
@@ -359,6 +486,10 @@ printf(
 "pjass accepts some options:\n"
 "pjass -h           Display this help\n"
 "pjass -v           Display version information and exit\n"
+"pjass -e1          Ignores error level 1\n"
+"pjass +e2          Undo Ignore of error level 2\n"
+"pjass +s           Enable strict downcast evaluation\n"
+"pjass -s           Disable strict downcast evaluation\n"
 "pjass -            Read from standard input (may appear in a list)\n"
 );
 			exit(0);
@@ -369,6 +500,23 @@ printf(
 			exit(0);
 			continue;
 		}
+		if (strcmp(argv[i], "+s") == 0) {
+			strict = 1;
+			continue;
+		}
+		if (strcmp(argv[i], "-s") == 0) {
+			strict = 0;
+			continue;
+		}
+		if (argv[i][0] == '-' && argv[i][1] == 'e' && argv[i][2] >= '0' && argv[i][2] < ('0' + ERRORLEVELNUM)) {
+			showerrorlevel[argv[i][2]-'0'] = 0;
+			continue;
+		}
+		if (argv[i][0] == '+' && argv[i][1] == 'e' && argv[i][2] >= '0' && argv[i][2] < ('0' + ERRORLEVELNUM)) {
+			showerrorlevel[argv[i][2]-'0'] = 1;
+			continue;
+		}
+		FILE *fp;
 		fp = fopen(argv[i], "rb");
 		if (fp == NULL) {
 			printf("Error: Cannot open %s\n", argv[i]);

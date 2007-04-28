@@ -18,7 +18,7 @@ struct typenode {
 struct typeandname {
   const struct typenode *ty;
   const char *name;
-  int isarray, isconst;
+  int isarray, isconst, lineno, fn;
   struct typeandname *next;
 };
 
@@ -29,6 +29,7 @@ struct paramlist {
 
 struct funcdecl {
   char *name;
+  int isconst;
   struct paramlist *p;
   struct typenode *ret;
 };
@@ -68,16 +69,25 @@ void addParam(struct paramlist *tl, struct typeandname *tan);
 struct funcdecl *newfuncdecl();
 void showfuncdecl(struct funcdecl *fd);
 struct typenode *binop(const struct typenode *a, const struct typenode *b);
-int canconvert(const struct typenode *from, const struct typenode *to);
+int canconvert(const struct typenode *from, const struct typenode *to, const int linemod);
+int canconvertreturn(const struct typenode *from, const struct typenode *to, const int linemod);
+struct typenode *combinetype(struct typenode *n1, struct typenode *n2);
 void checkParameters(const struct paramlist *func, const struct paramlist *inp);
-
-extern int lineno, totlines;
+void validateGlobalAssignment(const char *varname);
+void checkcomparisonsimple(const struct typenode *a);
+	
+extern int fno, lineno, totlines, islinebreak, isconstant, inblock, inconstant;
 extern int haderrors;
+extern int ignorederrors;
 extern int didparse;
+extern int inloop;
+extern int strict;
+extern int afterendglobals;
 extern char *yytext, *curfile;
 extern int yydebug;
+int *showerrorlevel;
 extern struct hashtable functions, globals, locals, params, types, *curtab;
-extern struct typenode *gInteger, *gReal, *gBoolean, *gString, *gCode, *gHandle, *gNothing, *gNull;
+extern struct typenode *gInteger, *gReal, *gBoolean, *gString, *gCode, *gHandle, *gNothing, *gNull, *gAny, *gNone;
 extern struct typenode *retval;
 const struct typeandname *getVariable(const char *varname);
 void isnumeric(const struct typenode *ty);
