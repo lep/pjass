@@ -18,7 +18,7 @@ If you're not compiling under Windows, remove the following line from the makefi
 
 $(RESHCK) -addskip $@.exe, $@.exe, resource.res ,,,
 
-Current version is 1.0f, defined in pjass.res.
+Current version is 1.0e, defined in pjass.res.
 
 Additionally UPX is used to pack the executable. You can get it here:
 

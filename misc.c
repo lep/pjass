@@ -11,7 +11,7 @@
 #include "grammar.tab.h"
 #include "misc.h"
 
-#define VERSIONSTR "1.0f"
+#define VERSIONSTR "1.0g"
 #define ERRORLEVELNUM 4
 
 int fno;
@@ -68,7 +68,7 @@ void init(int argc, char **argv)
     showerrorlevel[i] = 1;
   if (lookup(&functions, "ConvertRace") != NULL) {
      printf("Major error!!\n");
-     exit(0);
+     exit(1);
   }
 }
 
@@ -520,6 +520,7 @@ printf(
 		fp = fopen(argv[i], "rb");
 		if (fp == NULL) {
 			printf("Error: Cannot open %s\n", argv[i]);
+			haderrors++;
 			continue;
 		}
 		dofile(fp, argv[i]);
