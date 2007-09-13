@@ -11,7 +11,7 @@
 #include "grammar.tab.h"
 #include "misc.h"
 
-#define VERSIONSTR "1.0g"
+#define VERSIONSTR "1.0h"
 #define ERRORLEVELNUM 4
 
 int fno;
@@ -34,7 +34,8 @@ struct hashtable functions, globals, locals, params, types;
 struct hashtable *curtab;
 struct typenode *retval, *retcheck;
 char *curfile;
-struct typenode *gInteger, *gReal, *gBoolean, *gString, *gCode, *gHandle, *gNothing, *gNull, *gAny, *gNone;
+struct typenode *gInteger, *gReal, *gBoolean, *gString, *gCode, *gHandle, *gNothing, *gNull, *gAny, *gNone, *gCodeReturnsBoolean, *gCodeReturnsNoBoolean;
+struct funcdecl *fFilter, *fCondition;
 
 void addPrimitiveType(const char *name, struct typenode **toSave)
 {
@@ -54,6 +55,8 @@ void init(int argc, char **argv)
   gNull = newtypenode("null", NULL);
   gAny = newtypenode("any", NULL);
   gNone = newtypenode("none", NULL);
+  gCodeReturnsBoolean = newtypenode("codereturnsboolean", gCode);
+  gCodeReturnsNoBoolean = newtypenode("codereturnsnoboolean", gCode);
   curtab = &globals;
   fno = 0;
   strict = 0;
@@ -369,7 +372,7 @@ struct typenode *combinetype(struct typenode *n1, struct typenode *n2) {
   return gNone;
 }
 
-void checkParameters(const struct paramlist *func, const struct paramlist *inp)
+void checkParameters(const struct paramlist *func, const struct paramlist *inp, const int mustretbool)
 {
   const struct typeandname *fi = func->head;
   const struct typeandname *pi = inp->head;
@@ -386,6 +389,10 @@ void checkParameters(const struct paramlist *func, const struct paramlist *inp)
       return;
     }
     canconvert(pi->ty, fi->ty, 0);
+    if (mustretbool && pi->ty != gCodeReturnsBoolean) {
+    	yyerrorex(3, "Functions passed to Filter or Condition must return a boolean");
+    	return;
+    }
     pi = pi->next;
     fi = fi->next;
   }

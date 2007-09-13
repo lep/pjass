@@ -8,10 +8,13 @@
 #define YYDEBUG 1
 
 #define BUFSIZE 8192
-
+#define MAYBE 0
+#define NO 1
+#define YES 2
 
 struct typenode {
   char *typename;
+  
   const struct typenode *superclass;
 };
 
@@ -63,6 +66,7 @@ void init();
 struct typenode *newtypenode(const char *typename, const struct typenode *superclass);
 struct paramlist *newparamlist();
 struct typeandname *newtypeandname(const struct typenode *ty, const char *name);
+struct typeandname *newtypeandnamewithreturn(const struct typenode *ty, const char *name, int retbool);
 const struct typenode *getPrimitiveAncestor(const struct typenode *cur);
 int isDerivedFrom(const struct typenode *cur, const struct typenode *base);
 void addParam(struct paramlist *tl, struct typeandname *tan);
@@ -72,7 +76,7 @@ struct typenode *binop(const struct typenode *a, const struct typenode *b);
 int canconvert(const struct typenode *from, const struct typenode *to, const int linemod);
 int canconvertreturn(const struct typenode *from, const struct typenode *to, const int linemod);
 struct typenode *combinetype(struct typenode *n1, struct typenode *n2);
-void checkParameters(const struct paramlist *func, const struct paramlist *inp);
+void checkParameters(const struct paramlist *func, const struct paramlist *inp, const int mustretbool);
 void validateGlobalAssignment(const char *varname);
 void checkcomparisonsimple(const struct typenode *a);
 	
@@ -87,7 +91,8 @@ extern char *yytext, *curfile;
 extern int yydebug;
 int *showerrorlevel;
 extern struct hashtable functions, globals, locals, params, types, *curtab;
-extern struct typenode *gInteger, *gReal, *gBoolean, *gString, *gCode, *gHandle, *gNothing, *gNull, *gAny, *gNone;
+extern struct typenode *gInteger, *gReal, *gBoolean, *gString, *gCode, *gHandle, *gNothing, *gNull, *gAny, *gNone, *gCodeReturnsBoolean, *gCodeReturnsNoBoolean;
+extern struct funcdecl *fFilter, *fCondition;
 extern struct typenode *retval;
 const struct typeandname *getVariable(const char *varname);
 void isnumeric(const struct typenode *ty);

@@ -114,8 +114,6 @@ int main(int argc, char **argv)
 %token COMMA
 %token AND
 %token OR
-%token NOT
-%token COMMA
 %token EQUALS
 %token TIMES
 %token DIV
@@ -135,7 +133,6 @@ int main(int argc, char **argv)
 %token INTLIT
 %token REALLIT
 %token UNITTYPEINT
-%token EQUALS
 
 %right EQUALS
 %left AND OR
@@ -198,12 +195,23 @@ expr: intexpr      { $$.ty = gInteger; }
       | realexpr   { $$.ty = gReal; }
       | stringexpr { $$.ty = gString; }
       | boolexpr   { $$.ty = gBoolean; }
-      | FUNCTION rid { if (lookup(&functions, $2.str) == NULL) {
+      | FUNCTION rid { struct funcdecl *fd = lookup(&functions, $2.str);
+                       if (fd == NULL) {
                            char ebuf[1024];
                            sprintf(ebuf, "Undefined function %s", $2.str);
                            yyerrorex(3, ebuf);
+                           $$.ty = gCode;
+                       } else {
+                           if (fd->p->head != NULL) {
+                               char ebuf[1024];
+                               sprintf(ebuf, "Function %s must not take any arguments when used as code", $2.str);
+                               yyerrorex(3, ebuf);
+                           }
+                           if (fd->ret == gBoolean)
+                           	$$.ty = gCodeReturnsBoolean;
+                           else
+                              $$.ty = gCodeReturnsNoBoolean;
                        }
-                       $$.ty = gCode;
                      }
       | TNULL { $$.ty = gNull; }
       | expr LEQ expr { checkcomparison($1.ty, $3.ty); $$.ty = gBoolean; }
@@ -285,7 +293,7 @@ funccall: rid LPAREN exprlistcompl RPAREN {
               sprintf(ebuf, "Call to non-constant function %s in constant function", $1.str);
               yyerrorex(3, ebuf);
             }
-            checkParameters(fd->p, $3.pl);
+            checkParameters(fd->p, $3.pl, (fd==fFilter || fd==fCondition));
             $$.ty = fd->ret;
           }
        }
@@ -303,7 +311,7 @@ funccall: rid LPAREN exprlistcompl RPAREN {
             yyerrorex(3, ebuf);
             $$.ty = gNull;
           } else {
-              checkParameters(fd->p, $3.pl);
+              checkParameters(fd->p, $3.pl, (fd==fFilter || fd==fCondition));
               $$.ty = fd->ret;
           }
        }
@@ -358,6 +366,10 @@ nativefuncdecl: NATIVE rid TAKES optparam_list RETURNS opttype
   $$.fd->ret = $6.ty;
   //printf("***** %s = %s\n", $2.str, $$.fd->ret->typename);
   $$.fd->isconst = isconstant;
+  if (strcmp($$.fd->name, "Filter") == 0)
+    fFilter = $$.fd;
+  if (strcmp($$.fd->name, "Condition") == 0)
+    fCondition = $$.fd;
   put(&functions, $$.fd->name, $$.fd);
   //showfuncdecl($$.fd);
 }
