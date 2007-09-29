@@ -11,7 +11,7 @@
 #include "grammar.tab.h"
 #include "misc.h"
 
-#define VERSIONSTR "1.0h"
+#define VERSIONSTR "1.0i"
 #define ERRORLEVELNUM 4
 
 int fno;
@@ -389,7 +389,7 @@ void checkParameters(const struct paramlist *func, const struct paramlist *inp, 
       return;
     }
     canconvert(pi->ty, fi->ty, 0);
-    if (mustretbool && pi->ty != gCodeReturnsBoolean) {
+    if (mustretbool && pi->ty == gCodeReturnsNoBoolean) {
     	yyerrorex(3, "Functions passed to Filter or Condition must return a boolean");
     	return;
     }
