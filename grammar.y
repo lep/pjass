@@ -293,11 +293,13 @@ funccall: rid LPAREN exprlistcompl RPAREN {
               sprintf(ebuf, "Call to non-constant function %s in constant function", $1.str);
               yyerrorex(3, ebuf);
             }
+            if (fd == fCurrent && fCurrent)
+          		yyerrorex(3, "Recursive function calls are not permitted in local declarations");
             checkParameters(fd->p, $3.pl, (fd==fFilter || fd==fCondition));
             $$.ty = fd->ret;
           }
        }
-       |  rid LPAREN exprlistcompl NEWLINE{
+       |  rid LPAREN exprlistcompl NEWLINE {
           yyerrorex(0, "Missing ')'");
           struct funcdecl *fd = lookup(&functions, $1.str);
           if (fd == NULL) {
@@ -311,8 +313,10 @@ funccall: rid LPAREN exprlistcompl RPAREN {
             yyerrorex(3, ebuf);
             $$.ty = gNull;
           } else {
-              checkParameters(fd->p, $3.pl, (fd==fFilter || fd==fCondition));
-              $$.ty = fd->ret;
+          	if (fd == fCurrent && fCurrent)
+          		yyerrorex(3, "Recursive function calls are not permitted in local declarations");
+            checkParameters(fd->p, $3.pl, (fd==fFilter || fd==fCondition));
+            $$.ty = fd->ret;
           }
        }
 ;
@@ -409,6 +413,7 @@ funcbegin: FUNCTION rid TAKES optparam_list returnorreturns opttype {
   $$.fd->ret = $6.ty;
   $$.fd->isconst = 0;
   put(&functions, $$.fd->name, $$.fd);
+  fCurrent = lookup(&functions, $2.str);
   struct typeandname *tan = $4.pl->head;
   for (;tan; tan=tan->next) {
     tan->lineno = lineno;
@@ -706,9 +711,12 @@ vartypedecl: type rid {
   put(curtab, "type", tan); }
 ;
 
-localblock: /* empty */
+localblock: endlocalsmarker
         | lvardecl localblock
         | NEWLINE localblock
+;
+
+endlocalsmarker: /* empty */ { fCurrent = 0; }
 ;
 
 lvardecl: LOCAL vardecl { }

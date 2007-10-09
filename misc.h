@@ -92,7 +92,7 @@ extern int yydebug;
 int *showerrorlevel;
 extern struct hashtable functions, globals, locals, params, types, *curtab;
 extern struct typenode *gInteger, *gReal, *gBoolean, *gString, *gCode, *gHandle, *gNothing, *gNull, *gAny, *gNone, *gCodeReturnsBoolean, *gCodeReturnsNoBoolean;
-extern struct funcdecl *fFilter, *fCondition;
+extern struct funcdecl *fFilter, *fCondition, *fCurrent;
 extern struct typenode *retval;
 const struct typeandname *getVariable(const char *varname);
 void isnumeric(const struct typenode *ty);

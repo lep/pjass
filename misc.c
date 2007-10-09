@@ -11,7 +11,7 @@
 #include "grammar.tab.h"
 #include "misc.h"
 
-#define VERSIONSTR "1.0i"
+#define VERSIONSTR "1.0j"
 #define ERRORLEVELNUM 4
 
 int fno;
@@ -35,7 +35,7 @@ struct hashtable *curtab;
 struct typenode *retval, *retcheck;
 char *curfile;
 struct typenode *gInteger, *gReal, *gBoolean, *gString, *gCode, *gHandle, *gNothing, *gNull, *gAny, *gNone, *gCodeReturnsBoolean, *gCodeReturnsNoBoolean;
-struct funcdecl *fFilter, *fCondition;
+struct funcdecl *fFilter, *fCondition, *fCurrent;
 
 void addPrimitiveType(const char *name, struct typenode **toSave)
 {
@@ -66,6 +66,7 @@ void init(int argc, char **argv)
   inblock = 0;
   isconstant = 0;
   inconstant = 0;
+  fFilter = fCondition = fCurrent = 0;
   showerrorlevel = malloc(ERRORLEVELNUM*sizeof(int));
   for(i=0;i<ERRORLEVELNUM;i++)
     showerrorlevel[i] = 1;
