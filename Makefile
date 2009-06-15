@@ -1,5 +1,5 @@
-CC=C:\MinGW\bin\gcc.exe
-RESHCK=D:\ResHacker\ResHacker.exe
+CC=gcc.exe
+RESHCK=ResHacker.exe
 
 all:  pjass
 
@@ -11,10 +11,10 @@ lex.yy.c: token.l
 	flex $<
 
 grammar.tab.c: grammar.y
-	bison $<
+	bison -o grammar.tab.c $<
 
 grammar.tab.h: grammar.y
-	bison -d $<
+	bison -d -o grammar.tab $<
 
 %.o: %.c
 	$(CC) $< -c
@@ -23,6 +23,7 @@ clean:
 	del grammar.tab.h
 	del grammar.tab.c
 	del lex.yy.c
+	del misc.o
 	del pjass.exe
 
 t:

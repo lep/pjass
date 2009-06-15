@@ -384,7 +384,7 @@ funcdefn: NEWLINE
        | statement { yyerrorex(0, "Statement outside of function"); }
 ;
 
-funcdefncore: funcbegin localblock codeblock funcend { if(retval != gNothing) { if ($3.ty == gAny || $3.ty == gNone) yyerrorline(1, lineno - 1, "Missing return"); else canconvertreturn($3.ty, retval, -1); } }
+funcdefncore: funcbegin localblock codeblock funcend { if(retval != gNothing) { if ($3.ty == gAny || $3.ty == gNone) yyerrorline(1, lineno - 1, "Missing return"); else if (returnbug) canconvertreturn($3.ty, retval, -1); } }
        | funcbegin localblock codeblock {yyerrorex(0, "Missing endfunction"); clear(&params); clear(&locals); curtab = &globals;}
 ;
 
@@ -513,7 +513,7 @@ statement:  NEWLINE {$$.ty = gAny;}
        | loopstart NEWLINE codeblock loopend NEWLINE {$$.ty = $3.ty;}
        | loopstart NEWLINE codeblock {$$.ty = $3.ty; yyerrorex(0, "Missing endloop");}
        | EXITWHEN expr NEWLINE { canconvert($2.ty, gBoolean, -1); if (!inloop) yyerrorline(0, lineno - 1, "Exitwhen outside of loop"); $$.ty = gNone;}
-       | RETURN expr NEWLINE { $$.ty = $2.ty; if(retval == gNothing) yyerrorline(1, lineno - 1, "Cannot return value from function that returns nothing");}
+       | RETURN expr NEWLINE { $$.ty = $2.ty; if(retval == gNothing) yyerrorline(1, lineno - 1, "Cannot return value from function that returns nothing"); else if (!returnbug) canconvertreturn($2.ty, retval, 0); }
        | RETURN NEWLINE { if (retval != gNothing) yyerrorline(1, lineno - 1, "Return nothing in function that should return value"); $$.ty = gNone;}
        | DEBUG statement {$$.ty = gNone;}
        | IF expr THEN NEWLINE codeblock elsifseq elseseq {canconvert($2.ty, gBoolean, 0); $$.ty = combinetype($6.ty!=gAny?combinetype($5.ty, $6.ty):$5.ty, $7.ty); yyerrorex(0, "Missing endif");}

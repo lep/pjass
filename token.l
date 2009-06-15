@@ -68,7 +68,7 @@ UNITTYPEINT (['][\x01-\x26\x29-\x5B\x5D-\x7F]([\x01-\x26\x29-\x5B\x5D-\x7F][\x01
 
 {DIGIT}*"."{DIGIT}*  return REALLIT;
 "0"({OCTDIGIT}*("8"|"9"){OCTDIGIT}*)+ yyerrorline(3, lineno, "Invalid digit in octal integer notation"); return INTLIT;
-({DIGIT}+)|(("0x"|"$"){HEXDIGIT}+)  return INTLIT;
+({DIGIT}+)|(("0x"|"$"){HEXDIGIT}+) return INTLIT;
 
 "if" if (!islinebreak) yyerrorline(3, lineno, "Missing linebreak before if"); islinebreak=0; return IF;
 "not" return NOT;

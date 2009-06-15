@@ -11,7 +11,7 @@
 #include "grammar.tab.h"
 #include "misc.h"
 
-#define VERSIONSTR "1.0j"
+#define VERSIONSTR "1.0l"
 #define ERRORLEVELNUM 4
 
 int fno;
@@ -24,6 +24,7 @@ int isconstant;
 int inconstant;
 int inblock;
 int strict;
+int returnbug;
 int didparse;
 int inloop;
 int afterendglobals;
@@ -60,6 +61,7 @@ void init(int argc, char **argv)
   curtab = &globals;
   fno = 0;
   strict = 0;
+  returnbug = 0;
   haderrors = 0;
   ignorederrors = 0;
   islinebreak = 1;
@@ -279,20 +281,23 @@ struct typenode *binop(const struct typenode *a, const struct typenode *b)
   return gReal;
 }
 
+// this is used for reducing expressions in many places (if/exitwhen conditions, assignments etc.)
 int canconvert(const struct typenode *ufrom, const struct typenode *uto, const int linemod)
 {
   const struct typenode *from = ufrom, *to = uto;
   char ebuf[1024];
-  
-  if (from == NULL || to == NULL) return 0;
-  if (from == gAny || to == gAny) return 1;
+  if (from == NULL || to == NULL)
+    return 0;
+  if (from == gAny || to == gAny)
+    return 1;
   if (isDerivedFrom(from, to))
     return 1;
-  //bug allows downcasting erroneously
   //if (isDerivedFrom(to, from))
-  //  return 1;
-  if (from->typename == NULL || to->typename == NULL) return 0;
-  if (from == gNone || to == gNone) return 0;
+  //  return 1; // blizzard bug allows downcasting erroneously, we don't support this though
+  if (from->typename == NULL || to->typename == NULL)
+    return 0;
+  if (from == gNone || to == gNone)
+    return 0;
   from = getPrimitiveAncestor(from);
   to = getPrimitiveAncestor(to);
   if ((from == gNull) && (to != gInteger) && (to != gReal) && (to != gBoolean))
@@ -313,33 +318,34 @@ int canconvert(const struct typenode *ufrom, const struct typenode *uto, const i
   yyerrorline(3, lineno + linemod, ebuf);
 }
 
+// this is used for return statements only
 int canconvertreturn(const struct typenode *ufrom, const struct typenode *uto, const int linemod)
 {
   const struct typenode *from = ufrom, *to = uto;
   char ebuf[1024];
-  if (from == NULL || to == NULL) return 0;
-  if (from == gAny || to == gAny) return 1;
+  if (from == NULL || to == NULL)
+	  return 0; // garbage
+  if (from == gAny || to == gAny)
+	  return 1; // we don't care
   if (isDerivedFrom(from, to))
-    return 1;
-  /* Blizzard bug: allows downcasting erroneously */
-  /* TODO: get Blizzard to fix this in Blizzard.j and the language */
-  //  if (isDerivedFrom(to, from))
-  //    return 1;
-  if (from->typename == NULL || to->typename == NULL) return 0;
-  if (from == gNone || to == gNone) return 0;
+    return 1; // eg. from = unit, to = handle
+  //if (isDerivedFrom(to, from))
+  //  return 1; // blizzard bug allows downcasting erroneously, we don't support this though
+  if (from->typename == NULL || to->typename == NULL)
+	  return 0; // garbage
+  if (from == gNone || to == gNone)
+	  return 0; // garbage
+
   from = getPrimitiveAncestor(from);
   to = getPrimitiveAncestor(to);
-  
-  // can't return integer when it expects a real (added 9.5.2005)
   if ((to == gReal) && (from == gInteger)) {
+	// can't return integer when it expects a real (added 9.5.2005)
     sprintf(ebuf, "Cannot convert returned value from %s to %s", from->typename, to->typename);
     yyerrorline(1, lineno + linemod, ebuf);
     return 0;
   }
-  
-  // can't return null when it expects integer, real or boolean (added 9.5.2005)
   if ((from == gNull) && (to != gInteger) && (to != gReal) && (to != gBoolean))
-    return 1;
+    return 1; // can't return null when it expects integer, real or boolean (added 9.5.2005)
   
   if (strict) {
     if (isDerivedFrom(uto, ufrom))
@@ -369,7 +375,7 @@ struct typenode *combinetype(struct typenode *n1, struct typenode *n2) {
     return gReal;
   if ((n1 == gReal) && (n2 == gInteger))
     return gInteger;
-//  printf("Cannot convert %s to %s", n1->typename, n2->typename);
+  // printf("Cannot convert %s to %s", n1->typename, n2->typename);
   return gNone;
 }
 
@@ -498,6 +504,8 @@ printf(
 "pjass +e2          Undo Ignore of error level 2\n"
 "pjass +s           Enable strict downcast evaluation\n"
 "pjass -s           Disable strict downcast evaluation\n"
+"pjass +rb          Enable returnbug\n"
+"pjass -rb          Disable returnbug\n"
 "pjass -            Read from standard input (may appear in a list)\n"
 );
 			exit(0);
@@ -514,6 +522,14 @@ printf(
 		}
 		if (strcmp(argv[i], "-s") == 0) {
 			strict = 0;
+			continue;
+		}
+		if (strcmp(argv[i], "+rb") == 0) {
+			returnbug = 1;
+			continue;
+		}
+		if (strcmp(argv[i], "-rb") == 0) {
+			returnbug = 0;
 			continue;
 		}
 		if (argv[i][0] == '-' && argv[i][1] == 'e' && argv[i][2] >= '0' && argv[i][2] < ('0' + ERRORLEVELNUM)) {

@@ -86,6 +86,7 @@ extern int ignorederrors;
 extern int didparse;
 extern int inloop;
 extern int strict;
+extern int returnbug;
 extern int afterendglobals;
 extern char *yytext, *curfile;
 extern int yydebug;
