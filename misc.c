@@ -11,7 +11,7 @@
 #include "grammar.tab.h"
 #include "misc.h"
 
-#define VERSIONSTR "1.0l"
+#define VERSIONSTR "1.0m"
 #define ERRORLEVELNUM 4
 
 int fno;

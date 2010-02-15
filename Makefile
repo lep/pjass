@@ -1,5 +1,5 @@
 CC=gcc.exe
-RESHCK=ResHacker.exe
+RESHCK=Reshack\Reshacker.exe
 
 all:  pjass
 
