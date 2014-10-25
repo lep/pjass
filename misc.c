@@ -11,7 +11,7 @@
 #include "grammar.tab.h"
 #include "misc.h"
 
-#define VERSIONSTR "1.0m"
+#define VERSIONSTR "1.0n"
 #define ERRORLEVELNUM 4
 
 int fno;
@@ -78,6 +78,119 @@ void init(int argc, char **argv)
   }
 }
 
+int min(int a, int b){
+    if(a < b) return a;
+    else return b;
+}
+
+int editdistance(const char *s, const char *t){
+    if(!strcmp(s, t)) return 0;
+
+    int a = strlen(s);
+    int b = strlen(t);
+
+    if(a==0) return b;
+    if(b==0) return a;
+
+    int *v[3];
+    int i;
+    for(i = 0; i != 3; i++)
+        v[i] = malloc(sizeof(int) * (b+1));
+
+    for(i = 0; i != b; i++){
+        v[0][i] = i;
+    }
+
+    int pcur;
+    int ppcur;
+    int cur = 1;
+    for(i = 0; i != a; i++, cur = (cur+1) % 3){
+        pcur = cur -1;
+        if(pcur < 0) pcur += 3;
+        ppcur = pcur -1;
+        if(ppcur < 0) ppcur += 3;
+
+        v[cur][0] = i + 1;
+        int j;
+        for(j = 0; j != b; j++){
+            int cost = (s[i] == t[j]) ? 0 : 1;
+            v[cur][j+1] = min(v[cur][j] + 1, min(v[pcur][j+1] + 1, v[pcur][j] + cost));
+
+            if(i > 0 && j > 0 && s[i] == t[j-1] && s[i-1] == t[j]){
+                v[cur][j+1] = min(v[cur][j+1], v[ppcur][j-1] + cost);
+            }
+        }
+    }
+    pcur = cur -1;
+    if(pcur < 0) pcur += 3;
+    int d = v[pcur][b];
+    for(i = 0; i != 3; i++)
+        free(v[i]);
+    return d;
+}
+
+void getsuggestions(const char *name, char *buff, int nTables, ...){
+    int i;
+    va_list ap;
+
+    int len = strlen(name);
+    int cutoff = (int)((len+2)/4.0);
+    int count = 0;
+
+    struct {int distance; char *name} suggestions[3];
+    for(i = 0; i != 3; i++){
+        suggestions[i].distance = INT_MAX;
+        suggestions[i].name = NULL;
+    }
+
+    va_start(ap, nTables);
+    for(i = 0; i != nTables; i++){
+        struct hashtable *ht = va_arg(ap, struct hashtable*);
+        int x;
+        for(x = 0; x != BUCKETS; x++){
+            struct hashnode *hn;
+            hn = ht->h[x];
+            while (hn) {
+                int dist = editdistance(hn->name, name);
+                if(dist <= cutoff){
+                    count++;
+                    int j;
+                    for(j = 0; j != 3; j++){
+                        if(suggestions[j].distance > dist){
+                            if(i == 0){
+                                suggestions[2] = suggestions[1];
+                                suggestions[1] = suggestions[0];
+                            }else if(i == 1){
+                                suggestions[2] = suggestions[1];
+                            }
+                            suggestions[j].distance = dist;
+                            suggestions[j].name = hn->name;
+
+                            break;
+                        }
+                    }
+                }
+                hn = hn->next;
+            }
+        }
+    }
+    va_end(ap);
+
+    if(count==0)
+        return;
+    else if(count == 1){
+        char hbuff[1024];
+        sprintf(hbuff, ". Maybe you meant %s", suggestions[0].name);
+        strcat(buff, hbuff);
+    }else{
+        strcat(buff, ". Maybe you meant ");
+        for(i=0; suggestions[i].name; i++){
+            strcat(buff, suggestions[i].name);
+            if(i!=2 && suggestions[i+1].name)
+                strcat(buff, ", ");
+        }
+    }
+}
 struct typenode *getFunctionType(const char *funcname)
 {
   char ebuf[1024];
@@ -85,6 +198,7 @@ struct typenode *getFunctionType(const char *funcname)
   result = lookup(&functions, funcname);
   if (result) return result->ret;
   sprintf(ebuf, "Undeclared function: %s", funcname);
+  getsuggestions(funcname, ebuf, 1, &functions);
   yyerrorline(3, islinebreak ? lineno - 1 : lineno, ebuf);
 }
 
@@ -99,6 +213,7 @@ const struct typeandname *getVariable(const char *varname)
   result = lookup(&globals, varname);
   if (result) return result;
   sprintf(ebuf, "Undeclared variable %s", varname);
+  getsuggestions(varname, ebuf, 3, &locals, &params, &globals);
   yyerrorline(2, islinebreak ? lineno - 1 : lineno, ebuf);
   // Store it as unidentified variable
   put(curtab, varname, newtypeandname(gAny, varname));
@@ -476,7 +591,7 @@ void dofile(FILE *fp, const char *name)
 
 void printversion()
 {
-	printf("Pjass version %s by Rudi Cilibrasi, modified by AIAndy and PitzerMike\n", VERSIONSTR);
+	printf("Pjass version %s by Rudi Cilibrasi, modified by AIAndy,PitzerMike, Deaod and lep\n", VERSIONSTR);
 }
 
 void doparse(int argc, char **argv)

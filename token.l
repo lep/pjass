@@ -36,12 +36,42 @@ FSTRINGSTART ["]
 FSTILLSTRINGA [^"\\]
 FSTILLSTRINGB [\\].
 FSTRINGDONE ["]
-/*UNITTYPEINT (['][\x01-\x26\x29-\x5B\x5D-\x7F]([\x01-\x26\x29-\x5B\x5D-\x7F][\x01-\x26\x29-\x5B\x5D-\x7F][\x01-\x26\x29-\x5B\x5D-\x7F])?['])*/
-/* Deaod -- 15.02.2010*/
-UNITTYPEINT (['][\x01-\x26\x28-\x5B\x5D-\x7F]([\x01-\x26\x28-\x5B\x5D-\x7F][\x01-\x26\x28-\x5B\x5D-\x7F][\x01-\x26\x28-\x5B\x5D-\x7F])?['])
+RAWCODESTART [']
 
 %%
 
+{RAWCODESTART} {
+    int prevChar = 0;
+    int curChar = input();
+    int special = 0;
+    int count = 0;
+    for(;;){
+        if (prevChar == '\r' && curChar != '\r') {
+            lineno++;
+        }
+        if(curChar == EOF){
+            break;
+        }else if (prevChar == '\\'){
+            if(count != 1){
+                yyerrorline(3, lineno, "Escaped chars are only allowed if they are the only char in the rawcode.");
+            }else{
+                if (curChar != 'b' && curChar != 't' && curChar != 'r' && curChar != 'n' &&  curChar != 'f' && curChar != '\'' && curChar != '\\')
+                    yyerrorline(3, lineno, "Invalid escape character sequence");
+                curChar = 0;
+                special = 1;
+            }
+        }else if (curChar == '\''){
+            if(count != 4 && count - special != 1){
+                yyerrorline(3, lineno, "Rawcodes must be 1 or 4 characters.");
+            }
+            break;
+        }
+        count++;
+        prevChar = curChar;
+        curChar = input();
+    }
+    return UNITTYPEINT;
+}
 
 {STRINGSTART} {  int prevChar = 0;
                  int curChar = input();
@@ -127,7 +157,7 @@ UNITTYPEINT (['][\x01-\x26\x28-\x5B\x5D-\x7F]([\x01-\x26\x28-\x5B\x5D-\x7F][\x01
 "!=" return NEQ;
 
 {ID}        islinebreak=0; return ID;
-{UNITTYPEINT}        return UNITTYPEINT;
+ /*{UNITTYPEINT}        return UNITTYPEINT;*/
 
 "<"|">"|"!"|"["|"]"|"("|")"|"+"|"-"|"*"|"/"|"."  return TNULL;
 

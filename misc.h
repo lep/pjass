@@ -5,6 +5,8 @@
 // on at http://jass.sourceforge.net
 // Released under the BSD license
 #include <stdio.h>
+#include <limits.h>
+#include <stdarg.h>
 #define YYDEBUG 1
 
 #define BUFSIZE 8192
@@ -58,6 +60,7 @@ struct hashtable {
   struct hashnode *h[BUCKETS];
 };
 
+void getsuggestions(const char*, char*, int, ...);
 void *lookup(struct hashtable *h, const char *name);
 void put(struct hashtable *h, const char *name, void *val);
 void clear(struct hashtable *h);

@@ -9,7 +9,7 @@
 #include <string.h>
 #include "misc.h"
 
-#define YYMAXDEPTH 25000
+#define YYMAXDEPTH 100000
 
 int yyerrorline (int errorlevel, int line, char *s)
 {
@@ -135,7 +135,8 @@ int main(int argc, char **argv)
 %token UNITTYPEINT
 
 %right EQUALS
-%left AND OR
+%left AND
+%left OR
 %left LESS GREATER EQCOMP NEQ LEQ GEQ
 %left NOT
 %left MINUS PLUS
@@ -199,6 +200,7 @@ expr: intexpr      { $$.ty = gInteger; }
                        if (fd == NULL) {
                            char ebuf[1024];
                            sprintf(ebuf, "Undefined function %s", $2.str);
+                           getsuggestions($2.str, ebuf, 1, &functions);
                            yyerrorex(3, ebuf);
                            $$.ty = gCode;
                        } else {
@@ -285,6 +287,7 @@ funccall: rid LPAREN exprlistcompl RPAREN {
           if (fd == NULL) {
             char ebuf[1024];
             sprintf(ebuf, "Undeclared function %s", $1.str);
+            getsuggestions($1.str, ebuf, 1, &functions);
             yyerrorex(3, ebuf);
             $$.ty = gNull;
           } else {
@@ -305,6 +308,7 @@ funccall: rid LPAREN exprlistcompl RPAREN {
           if (fd == NULL) {
             char ebuf[1024];
             sprintf(ebuf, "Undeclared function %s", $1.str);
+            getsuggestions($1.str, ebuf, 1, &functions);
             yyerrorex(3, ebuf);
             $$.ty = gNull;
           } else if (inconstant && !(fd->isconst)) {
@@ -765,6 +769,7 @@ type: primtype { $$.ty = $1.ty; }
    if (lookup(&types, $1.str) == NULL) {
      char buf[1024];
      sprintf(buf, "Undefined type %s", $1.str);
+     getsuggestions($1.str, buf, 1, &types);
      yyerrorex(3, buf);
      $$.ty = gNull;
    }
