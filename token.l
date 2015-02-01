@@ -29,13 +29,6 @@ TABS     [\x01-\x09\x0B\x0C\x0E-\x1F]
 CSTART  [/][*]
 CEND    [*][/]
 STRINGSTART ["]
-STILLSTRINGA [^"\\\r]
-STILLSTRINGB [\\][btrnf"\\]
-STRINGDONE ["]
-FSTRINGSTART ["]
-FSTILLSTRINGA [^"\\]
-FSTILLSTRINGB [\\].
-FSTRINGDONE ["]
 RAWCODESTART [']
 
 %%
@@ -166,7 +159,7 @@ RAWCODESTART [']
 "!=" return NEQ;
 
 {ID}        islinebreak=0; return ID;
- /*{UNITTYPEINT}        return UNITTYPEINT;*/
+
 
 "<"|">"|"!"|"["|"]"|"("|")"|"+"|"-"|"*"|"/"|"."  return TNULL;
 

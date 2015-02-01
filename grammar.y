@@ -110,7 +110,6 @@ int main(int argc, char **argv)
 %token BOOLEAN
 %token NOTHING
 %token ID
-%token COMMENT
 %token COMMA
 %token AND
 %token OR
