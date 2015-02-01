@@ -511,10 +511,6 @@ void checkParameters(const struct paramlist *func, const struct paramlist *inp, 
       return;
     }
     canconvert(pi->ty, fi->ty, 0);
-    if (mustretbool && pi->ty == gCodeReturnsNoBoolean) {
-    	yyerrorex(3, "Functions passed to Filter or Condition must return a boolean");
-    	return;
-    }
     pi = pi->next;
     fi = fi->next;
   }
