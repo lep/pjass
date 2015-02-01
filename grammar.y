@@ -163,7 +163,7 @@ globdefs: /* empty */
          | GLOBALS vardecls ENDGLOBALS endglobalsmarker {yyerrorline(0, lineno - 1, "Missing linebreak before global declaration");}
 ;
 
-endglobalsmarker: /* empty */  {afterendglobals = 1}
+endglobalsmarker: /* empty */  {afterendglobals = 1;}
 ;
 
 vardecls: /* empty */
@@ -234,7 +234,7 @@ expr: intexpr      { $$.ty = gInteger; }
                            $$.ty = binop($1.ty, $3.ty); }
       | MINUS expr { isnumeric($2.ty); $$.ty = $2.ty; }
       | LPAREN expr RPAREN { $$.ty = $2.ty; }
-      | funccall { $$.ty = $1.ty }
+      | funccall { $$.ty = $1.ty; }
       | rid LBRACKET expr RBRACKET {
           const struct typeandname *tan = getVariable($1.str);
           if (tan->ty != gAny) {
