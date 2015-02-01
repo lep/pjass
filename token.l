@@ -26,8 +26,6 @@ HEXDIGIT [0-9a-fA-F]
 ID       [a-zA-Z]([a-zA-Z0-9_]*[a-zA-Z0-9])?
 SPACE    [ \t]
 TABS     [\x01-\x09\x0B\x0C\x0E-\x1F]
-CSTART  [/][*]
-CEND    [*][/]
 STRINGSTART ["]
 RAWCODESTART [']
 
@@ -97,7 +95,6 @@ RAWCODESTART [']
                  return STRINGLIT;
               }
 
-{CSTART}.*{CEND} { }
 {NEWLINE} lineno++; islinebreak=1; isconstant=0; return NEWLINE;
 
 {DIGIT}*"."{DIGIT}*  return REALLIT;
