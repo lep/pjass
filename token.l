@@ -18,7 +18,7 @@ int yywrap()
 
 %}
 
-COMMENT [/][/].*\r*\n
+COMMENTSTART [/][/]
 NEWLINE  (\r*\n)|\r*
 OCTDIGIT [0-7]
 DIGIT    [0-9]
@@ -39,6 +39,15 @@ FSTRINGDONE ["]
 RAWCODESTART [']
 
 %%
+
+{COMMENTSTART} {
+    int c;
+    for(c = input(); !(c == '\n' || c == EOF); c = input()) ;
+    lineno++;
+    islinebreak = 1;
+    isconstant = 0;
+    return NEWLINE;
+}
 
 {RAWCODESTART} {
     int prevChar = 0;
@@ -94,7 +103,7 @@ RAWCODESTART [']
                  }
                  return STRINGLIT;
               }
-{COMMENT} lineno++; islinebreak=1; isconstant=0; return NEWLINE;
+
 {CSTART}.*{CEND} { }
 {NEWLINE} lineno++; islinebreak=1; isconstant=0; return NEWLINE;
 
