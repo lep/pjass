@@ -87,7 +87,13 @@ int min(int a, int b){
     else return b;
 }
 
-int editdistance(const char *s, const char *t){
+int abs(int i){
+    if(i < 0)
+        return -i;
+    return i;
+}
+
+int editdistance(const char *s, const char *t, int cutoff){
     if(!strcmp(s, t)) return 0;
 
     int a = strlen(s);
@@ -95,6 +101,10 @@ int editdistance(const char *s, const char *t){
 
     if(a==0) return b;
     if(b==0) return a;
+    
+    if(abs(a-b) > cutoff){
+        return cutoff + 1;
+    }
 
     int *v[3];
     int i;
@@ -115,14 +125,26 @@ int editdistance(const char *s, const char *t){
         if(ppcur < 0) ppcur += 3;
 
         v[cur][0] = i + 1;
+        
+        int minDistance = INT_MAX;
+        
         int j;
         for(j = 0; j != b; j++){
             int cost = (s[i] == t[j]) ? 0 : 1;
+
             v[cur][j+1] = min(v[cur][j] + 1, min(v[pcur][j+1] + 1, v[pcur][j] + cost));
-            
+
             if(i > 0 && j > 0 && s[i] == t[j-1] && s[i-1] == t[j]){
                 v[cur][j+1] = min(v[cur][j+1], v[ppcur][j-1] + cost);
             }
+            
+            if(v[cur][j+1] < minDistance){
+                minDistance = v[cur][j+1];
+            }
+        }
+        
+        if(minDistance > cutoff){
+            return cutoff + 1;
         }
     }
     pcur = cur -1;
@@ -155,7 +177,7 @@ void getsuggestions(const char *name, char *buff, int nTables, ...){
             struct hashnode *hn;
             hn = ht->h[x];
             while (hn) {
-                int dist = editdistance(hn->name, name);
+                int dist = editdistance(hn->name, name, cutoff);
                 if(dist <= cutoff){
                     count++;
                     int j;

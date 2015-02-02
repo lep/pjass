@@ -267,7 +267,8 @@ expr: intexpr      { $$.ty = gInteger; }
           if(infunction && lookup(curtab, $1.str) && !lookup(&initialized, $1.str) ){
             char ebuf[1024];
             sprintf(ebuf, "Variable %s is uninitialized", $1.str);
-            yyerrorex(3, ebuf);
+            //yyerrorex(3, ebuf);
+            yyerrorline(3, lineno - 1, ebuf);
           }
           $$.ty = tan->ty;
        }
