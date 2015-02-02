@@ -101,7 +101,7 @@ int editdistance(const char *s, const char *t){
     for(i = 0; i != 3; i++)
         v[i] = malloc(sizeof(int) * (b+1));
 
-    for(i = 0; i != b; i++){
+    for(i = 0; i != b+1; i++){
         v[0][i] = i;
     }
 
@@ -119,7 +119,7 @@ int editdistance(const char *s, const char *t){
         for(j = 0; j != b; j++){
             int cost = (s[i] == t[j]) ? 0 : 1;
             v[cur][j+1] = min(v[cur][j] + 1, min(v[pcur][j+1] + 1, v[pcur][j] + cost));
-
+            
             if(i > 0 && j > 0 && s[i] == t[j-1] && s[i-1] == t[j]){
                 v[cur][j+1] = min(v[cur][j+1], v[ppcur][j-1] + cost);
             }
