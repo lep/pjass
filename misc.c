@@ -221,6 +221,9 @@ const struct typeandname *getVariable(const char *varname)
   yyerrorline(2, islinebreak ? lineno - 1 : lineno, ebuf);
   // Store it as unidentified variable
   put(curtab, varname, newtypeandname(gAny, varname));
+  if(infunction && lookup(curtab, varname) && !lookup(&initialized, varname)){
+    put(&initialized, varname, 1);
+  }
   return getVariable(varname);
 }
 
