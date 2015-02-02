@@ -83,7 +83,7 @@ void checkParameters(const struct paramlist *func, const struct paramlist *inp, 
 void validateGlobalAssignment(const char *varname);
 void checkcomparisonsimple(const struct typenode *a);
 	
-extern int fno, lineno, totlines, islinebreak, isconstant, inblock, inconstant;
+extern int fno, lineno, totlines, islinebreak, isconstant, inblock, inconstant, infunction;
 extern int haderrors;
 extern int ignorederrors;
 extern int didparse;
@@ -94,7 +94,7 @@ extern int afterendglobals;
 extern char *yytext, *curfile;
 extern int yydebug;
 int *showerrorlevel;
-extern struct hashtable functions, globals, locals, params, types, *curtab;
+extern struct hashtable functions, globals, locals, params, types, initialized, *curtab;
 extern struct typenode *gInteger, *gReal, *gBoolean, *gString, *gCode, *gHandle, *gNothing, *gNull, *gAny, *gNone, *gCodeReturnsBoolean, *gCodeReturnsNoBoolean;
 extern struct funcdecl *fFilter, *fCondition, *fCurrent;
 extern struct typenode *retval;

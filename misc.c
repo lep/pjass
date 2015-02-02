@@ -24,6 +24,7 @@ int totlines;
 int islinebreak;
 int isconstant;
 int inconstant;
+int infunction;
 int inblock;
 int strict;
 int returnbug;
@@ -33,7 +34,7 @@ int afterendglobals;
 int *showerrorlevel;
 
 int hashfunc(const char *name);
-struct hashtable functions, globals, locals, params, types;
+struct hashtable functions, globals, locals, params, types, initialized;
 struct hashtable *curtab;
 struct typenode *retval, *retcheck;
 char *curfile;
@@ -70,6 +71,7 @@ void init(int argc, char **argv)
   inblock = 0;
   isconstant = 0;
   inconstant = 0;
+  infunction = 0;
   fFilter = fCondition = fCurrent = 0;
   showerrorlevel = malloc(ERRORLEVELNUM*sizeof(int));
   for(i=0;i<ERRORLEVELNUM;i++)

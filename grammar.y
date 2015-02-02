@@ -264,6 +264,11 @@ expr: intexpr      { $$.ty = gInteger; }
             sprintf(ebuf, "Index missing for array variable %s", $1.str);
             yyerrorex(3, ebuf);
           }
+          if(infunction && lookup(curtab, $1.str) && !lookup(&initialized, $1.str) ){
+            char ebuf[1024];
+            sprintf(ebuf, "Variable %s is uninitialized", $1.str);
+            yyerrorex(3, ebuf);
+          }
           $$.ty = tan->ty;
        }
       | expr EQUALS expr {yyerrorex(0, "Single = in expression, should probably be =="); checkeqtest($1.ty, $3.ty); $$.ty = gBoolean;}
@@ -388,10 +393,10 @@ funcdefn: NEWLINE
 ;
 
 funcdefncore: funcbegin localblock codeblock funcend { if(retval != gNothing) { if ($3.ty == gAny || $3.ty == gNone) yyerrorline(1, lineno - 1, "Missing return"); else if (returnbug) canconvertreturn($3.ty, retval, -1); } }
-       | funcbegin localblock codeblock {yyerrorex(0, "Missing endfunction"); clear(&params); clear(&locals); curtab = &globals;}
+       | funcbegin localblock codeblock {yyerrorex(0, "Missing endfunction"); clear(&params); clear(&locals); clear(&initialized); curtab = &globals;}
 ;
 
-funcend: ENDFUNCTION { clear(&params); clear(&locals); curtab = &globals; inblock = 0; inconstant = 0; }
+funcend: ENDFUNCTION { clear(&params); clear(&locals); clear(&initialized); curtab = &globals; inblock = 0; inconstant = 0; infunction = 0; }
 ;
 
 returnorreturns: RETURNS
@@ -409,6 +414,7 @@ funcbegin: FUNCTION rid TAKES optparam_list returnorreturns opttype {
     yyerrorex(3, buf);
   }
   inconstant = 0;
+  infunction = 1;
   curtab = &locals;
   $$.fd = newfuncdecl(); 
   $$.fd->name = strdup($2.str);
@@ -498,6 +504,9 @@ statement:  NEWLINE {$$.ty = gAny;}
                                        }
                                        if (inconstant)
                                          validateGlobalAssignment($2.str);
+                                       if(!lookup(&initialized, $2.str)){
+                                         put(&initialized, $2.str, 1);
+                                       }
 				    }
        | SET rid LBRACKET expr RBRACKET EQUALS expr NEWLINE{ 
            const struct typeandname *tan = getVariable($2.str);
@@ -738,6 +747,9 @@ vardecl: vartypedecl NEWLINE {
              const struct typeandname *tan = getVariable($1.str);
              if (tan->isarray) {
                yyerrorex(3, "Arrays cannot be directly initialized");
+             }
+             if(infunction && !lookup(&initialized, tan->name)){
+               put(&initialized, tan->name, 1);
              }
              canconvert($3.ty, tan->ty, -1);
              $$.ty = gNothing;
