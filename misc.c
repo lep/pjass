@@ -9,6 +9,7 @@
 #include <assert.h>
 #include <malloc.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include "grammar.tab.h"
 #include "misc.h"
 
@@ -262,7 +263,11 @@ struct typeandname *newtypeandname(const struct typenode *ty, const char *name)
 struct typenode *newtypenode(const char *typename, const struct typenode *superclass)
 {
   struct typenode *result;
-  result = memalign(8, sizeof(struct typenode));
+#if defined __CYGWIN__
+    result = memalign(8, sizeof(struct typenode));
+#else
+    result = _aligned_malloc(8, sizeof(struct typenode));
+#endif
   result->typename = strdup(typename);
   result->superclass = superclass;
   return result;
