@@ -298,8 +298,8 @@ struct funcdecl *newfuncdecl()
 
 const struct typenode *getPrimitiveAncestor(const struct typenode *cur)
 {
-  while (cur->superclass)
-    cur = cur->superclass;
+  while (getTypePtr(cur)->superclass)
+    cur = getTypePtr(cur)->superclass;
   return cur;
 }
 
@@ -307,7 +307,7 @@ int isDerivedFrom(const struct typenode *cur, const struct typenode *base)
 {
   do {
     if (typeeq(cur, base)) return 1;
-    cur = cur->superclass;
+    cur = getTypePtr(cur)->superclass;
   } while (cur);
   return 0;
 }
@@ -319,14 +319,14 @@ void showtypenode(const struct typenode *td)
   char *extends = "";
   char ebuf[1024];
   assert(td);
-  assert(td->typename);
+  assert(getTypePtr(td)->typename);
   /*
   if (td->superclass) {
     sprintf(ebuf, " extends %s", td->superclass->typename);
     extends = ebuf;
   }
   */
-  printf("%s  %s \n", td->typename, extends);
+  printf("%s  %s \n", getTypePtr(td)->typename, extends);
 }
 
 void showfuncdecl(struct funcdecl *fd)
@@ -434,7 +434,7 @@ int canconvert(const struct typenode *ufrom, const struct typenode *uto, const i
     return 1;
   //if (isDerivedFrom(to, from))
   //  return 1; // blizzard bug allows downcasting erroneously, we don't support this though
-  if (from->typename == NULL || to->typename == NULL)
+  if (getTypePtr(from)->typename == NULL || getTypePtr(to)->typename == NULL)
     return 0;
   if (typeeq(from, gNone) || typeeq(to, gNone))
     return 0;
@@ -472,7 +472,7 @@ int canconvertreturn(const struct typenode *ufrom, const struct typenode *uto, c
     return 1; // eg. from = unit, to = handle
   //if (isDerivedFrom(to, from))
   //  return 1; // blizzard bug allows downcasting erroneously, we don't support this though
-  if (from->typename == NULL || to->typename == NULL)
+  if (getTypePtr(from)->typename == NULL || getTypePtr(to)->typename == NULL)
 	  return 0; // garbage
   if (typeeq(from, gNone) || typeeq(to, gNone))
 	  return 0; // garbage
@@ -481,7 +481,7 @@ int canconvertreturn(const struct typenode *ufrom, const struct typenode *uto, c
   to = getPrimitiveAncestor(to);
   if ((typeeq(to, gReal)) && (typeeq(from, gInteger))) {
 	// can't return integer when it expects a real (added 9.5.2005)
-    sprintf(ebuf, "Cannot convert returned value from %s to %s", from->typename, to->typename);
+    sprintf(ebuf, "Cannot convert returned value from %s to %s", getTypePtr(from)->typename, getTypePtr(to)->typename);
     yyerrorline(1, lineno + linemod, ebuf);
     return 0;
   }
@@ -494,7 +494,7 @@ int canconvertreturn(const struct typenode *ufrom, const struct typenode *uto, c
   } else if (typeeq(from, to))
     return 1;
     
-  sprintf(ebuf, "Cannot convert returned value from %s to %s", ufrom->typename, uto->typename);
+  sprintf(ebuf, "Cannot convert returned value from %s to %s", getTypePtr(ufrom)->typename, getTypePtr(uto)->typename);
   yyerrorline(1, lineno + linemod, ebuf);
   return 0;
 }
@@ -578,11 +578,11 @@ void isnumeric(const struct typenode *ty)
 void checkcomparisonsimple(const struct typenode *a) {
   const struct typenode *pa;
   pa = getPrimitiveAncestor(a);
-  if (pa == gString || pa == gHandle || pa == gCode || pa == gBoolean) {
+  if (typeeq(pa, gString) || typeeq(pa, gHandle) || typeeq(pa, gCode) || typeeq(pa, gBoolean)) {
     yyerrorex(3, "Comparing the order/size of 2 variables only works on reals and integers");
     return;
   }
-  if (pa == gNull)
+  if (typeeq(pa, gNull))
     yyerrorex(3, "Comparing null is not allowed");
 }
 
@@ -591,11 +591,11 @@ void checkcomparison(const struct typenode *a, const struct typenode *b)
   const struct typenode *pa, *pb;
   pa = getPrimitiveAncestor(a);
   pb = getPrimitiveAncestor(b);
-  if (pa == gString || pa == gHandle || pa == gCode || pa == gBoolean || pb == gString || pb == gCode || pb == gHandle || pb == gBoolean) {
+  if (typeeq(pa, gString) || typeeq(pa, gHandle) || typeeq(pa, gCode) || typeeq(pa, gBoolean) || typeeq(pb, gString) || typeeq(pb, gCode) || typeeq(pb, gHandle) || typeeq(pb, gBoolean)) {
     yyerrorex(3, "Comparing the order/size of 2 variables only works on reals and integers");
     return;
   }
-  if (pa == gNull && pb == gNull)
+  if (typeeq(pa, gNull) && typeeq(pb, gNull))
     yyerrorex(3, "Comparing null is not allowed");
 }
 
@@ -604,9 +604,9 @@ void checkeqtest(const struct typenode *a, const struct typenode *b)
   const struct typenode *pa, *pb;
   pa = getPrimitiveAncestor(a);
   pb = getPrimitiveAncestor(b);
-  if ((pa == gInteger || pa == gReal) && (pb == gInteger || pb == gReal))
+  if ((typeeq(pa, gInteger) || typeeq(pa, gReal)) && (typeeq(pb, gInteger) || typeeq(pb, gReal)))
     return;
-  if (pa == gNull || pb == gNull)
+  if (typeeq(pa, gNull) || typeeq(pb, gNull))
     return;
   if (!typeeq(pa, pb)) {
     yyerrorex(3, "Comparing two variables of different primitive types (except real and integer) is not allowed");

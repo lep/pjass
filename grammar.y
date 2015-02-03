@@ -234,7 +234,7 @@ expr: intexpr      { $$.ty = gInteger; }
       | funccall { $$.ty = $1.ty; }
       | rid LBRACKET expr RBRACKET {
           const struct typeandname *tan = getVariable($1.str);
-          if (tan->ty != gAny) {
+          if (!typeeq(tan->ty, gAny)) {
             if (!tan->isarray) {
               char ebuf[1024];
               sprintf(ebuf, "%s not an array", $1.str);
