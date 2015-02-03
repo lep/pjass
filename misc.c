@@ -40,6 +40,7 @@ struct hashtable *curtab;
 struct typenode *retval, *retcheck;
 const char *curfile;
 struct typenode *gInteger, *gReal, *gBoolean, *gString, *gCode, *gHandle, *gNothing, *gNull, *gAny, *gNone, *gCodeReturnsBoolean, *gCodeReturnsNoBoolean;
+struct typenode *gEmpty;
 struct funcdecl *fCurrent;
 
 void addPrimitiveType(const char *name, struct typenode **toSave)
@@ -321,7 +322,7 @@ void showtypenode(const struct typenode *td)
     extends = ebuf;
   }
   */
-  printf("%s%s", td->typename, extends);
+  printf("%s  %s \n", td->typename, extends);
 }
 
 void showfuncdecl(struct funcdecl *fd)
@@ -497,16 +498,16 @@ int canconvertreturn(const struct typenode *ufrom, const struct typenode *uto, c
 struct typenode *combinetype(const struct typenode *n1, const struct typenode *n2) {
   if ((n1 == gNone) || (n2 == gNone)) return gNone;
   if (n1 == n2) return n1;
-  if (n1 == gNull)
+  if (n1 == gNull || n1 == gAny)
     return n2;
-  if (n2 == gNull)
+  if (n2 == gNull || n2 == gAny)
     return n1;
   n1 = getPrimitiveAncestor(n1);
   n2 = getPrimitiveAncestor(n2);
   if (n1 == n2) return n1;
-  if (n1 == gNull)
+  if (n1 == gNull || n1 == gAny)
     return n2;
-  if (n2 == gNull)
+  if (n2 == gNull || n2 == gAny)
     return n1;
   if ((n1 == gInteger) && (n2 == gReal))
     return gReal;

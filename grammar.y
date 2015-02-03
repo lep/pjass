@@ -294,7 +294,7 @@ funccall: rid LPAREN exprlistcompl RPAREN {
             sprintf(ebuf, "Undeclared function %s", $1.str);
             getsuggestions($1.str, ebuf, 1, &functions);
             yyerrorex(3, ebuf);
-            $$.ty = gNull;
+            $$.ty = gAny;
           } else {
             if (inconstant && !(fd->isconst)) {
               char ebuf[1024];
@@ -315,12 +315,12 @@ funccall: rid LPAREN exprlistcompl RPAREN {
             sprintf(ebuf, "Undeclared function %s", $1.str);
             getsuggestions($1.str, ebuf, 1, &functions);
             yyerrorex(3, ebuf);
-            $$.ty = gNull;
+            $$.ty = gAny;
           } else if (inconstant && !(fd->isconst)) {
             char ebuf[1024];
             sprintf(ebuf, "Call to non-constant function %s in constant function", $1.str);
             yyerrorex(3, ebuf);
-            $$.ty = gNull;
+            $$.ty = gAny;
           } else {
           	if (fd == fCurrent && fCurrent)
           		yyerrorex(3, "Recursive function calls are not permitted in local declarations");
@@ -389,7 +389,14 @@ funcdefn: NEWLINE
        | statement { yyerrorex(0, "Statement outside of function"); }
 ;
 
-funcdefncore: funcbegin localblock codeblock funcend { if(retval != gNothing) { if ($3.ty == gAny || $3.ty == gNone) yyerrorline(1, lineno - 1, "Missing return"); else if (returnbug) canconvertreturn($3.ty, retval, -1); } }
+funcdefncore: funcbegin localblock codeblock funcend {
+            if(retval != gNothing) {
+                if ($3.ty == gAny || $3.ty == gNone)
+                    yyerrorline(1, lineno - 1, "Missing return");
+                else if (returnbug)
+                    canconvertreturn($3.ty, retval, -1);
+            }
+        }
        | funcbegin localblock codeblock {yyerrorex(0, "Missing endfunction"); clear(&params); clear(&locals); clear(&initialized); curtab = &globals;}
 ;
 
@@ -480,13 +487,25 @@ funcbegin: FUNCTION rid TAKES optparam_list returnorreturns opttype {
 }
 ;
 
-codeblock: /* empty */ {$$.ty = gAny;}
-       | statement codeblock { if($2.ty == gAny) $$.ty = $1.ty; else $$.ty = $2.ty;}
+codeblock: /* empty */ { $$.ty = gNull; }
+       | statement codeblock {
+            if($2.ty == gNull)
+                $$.ty = $1.ty;
+            else
+                $$.ty = $2.ty;
+        }
 ;
 
-statement:  NEWLINE {$$.ty = gAny;}
+statement:  NEWLINE { $$.ty = gNull; }
        | CALL funccall NEWLINE{ $$.ty = gNone;}
-       | IF expr THEN NEWLINE codeblock elsifseq elseseq ENDIF NEWLINE { canconvert($2.ty, gBoolean, -1); $$.ty = combinetype($6.ty!=gAny?combinetype($5.ty, $6.ty):$5.ty, $7.ty);}
+       /*1    2    3     4        5        6        7      8      9 */
+       | IF expr THEN NEWLINE codeblock elsifseq elseseq ENDIF NEWLINE {
+            canconvert($2.ty, gBoolean, -1);
+            $5.ty = $5.ty == gNull ? gNone : $5.ty;
+            $6.ty = $6.ty == gNull ? gNull : $6.ty;
+            $7.ty = $7.ty == gNull ? gNone : $7.ty;
+            $$.ty = combinetype($5.ty, combinetype($6.ty, $7.ty));
+       }
        | SET rid EQUALS expr NEWLINE { if (getVariable($2.str)->isarray) {
                                          char ebuf[1024];
                                          sprintf(ebuf, "Index missing for array variable %s", $2.str);
@@ -508,7 +527,8 @@ statement:  NEWLINE {$$.ty = gAny;}
        | SET rid LBRACKET expr RBRACKET EQUALS expr NEWLINE{ 
            const struct typeandname *tan = getVariable($2.str);
            if (tan->ty != gAny) {
-             canconvert($4.ty, gInteger, -1); $$.ty = gNone;
+             canconvert($4.ty, gInteger, -1);
+             $$.ty = gNone;
              if (!tan->isarray) {
                char ebuf[1024];
                sprintf(ebuf, "%s is not an array", $2.str);
@@ -522,11 +542,33 @@ statement:  NEWLINE {$$.ty = gAny;}
        | loopstart NEWLINE codeblock loopend NEWLINE {$$.ty = $3.ty;}
        | loopstart NEWLINE codeblock {$$.ty = $3.ty; yyerrorex(0, "Missing endloop");}
        | EXITWHEN expr NEWLINE { canconvert($2.ty, gBoolean, -1); if (!inloop) yyerrorline(0, lineno - 1, "Exitwhen outside of loop"); $$.ty = gNone;}
-       | RETURN expr NEWLINE { $$.ty = $2.ty; if(retval == gNothing) yyerrorline(1, lineno - 1, "Cannot return value from function that returns nothing"); else if (!returnbug) canconvertreturn($2.ty, retval, 0); }
-       | RETURN NEWLINE { if (retval != gNothing) yyerrorline(1, lineno - 1, "Return nothing in function that should return value"); $$.ty = gNone;}
+       | RETURN expr NEWLINE {
+            $$.ty = $2.ty;
+            if(retval == gNothing)
+                yyerrorline(1, lineno - 1, "Cannot return value from function that returns nothing");
+            else if (!returnbug)
+                canconvertreturn($2.ty, retval, 0);
+         }
+       | RETURN NEWLINE {
+            if (retval != gNothing)
+                yyerrorline(1, lineno - 1, "Return nothing in function that should return value");
+                $$.ty = gAny;
+            }
        | DEBUG statement {$$.ty = gNone;}
-       | IF expr THEN NEWLINE codeblock elsifseq elseseq {canconvert($2.ty, gBoolean, 0); $$.ty = combinetype($6.ty!=gAny?combinetype($5.ty, $6.ty):$5.ty, $7.ty); yyerrorex(0, "Missing endif");}
-       | IF expr NEWLINE{canconvert($2.ty, gBoolean, -1); $$.ty = gAny; yyerrorex(0, "Missing then or non valid expression");}
+       /*1    2   3      4        5         6        7 */
+       | IF expr THEN NEWLINE codeblock elsifseq elseseq {
+            canconvert($2.ty, gBoolean, -1);
+            $5.ty = $5.ty == gNull ? gNone : $5.ty;
+            $6.ty = $6.ty == gNull ? gNull : $6.ty;
+            $7.ty = $7.ty == gNull ? gNone : $7.ty;
+            $$.ty = combinetype($5.ty, combinetype($6.ty, $7.ty));
+            yyerrorex(0, "Missing endif");
+        }
+       | IF expr NEWLINE {
+            canconvert($2.ty, gBoolean, -1);
+            $$.ty = gAny;
+            yyerrorex(0, "Missing then or non valid expression");
+        }
        | SET funccall NEWLINE{$$.ty = gNone; yyerrorline(0, lineno - 1, "Call expected instead of set");}
        | lvardecl {yyerrorex(0, "Local declaration after first statement");}
        | error {$$.ty = gNone; }
@@ -538,12 +580,26 @@ loopstart: LOOP {inloop++;}
 loopend: ENDLOOP {inloop--;}
 ;
 
-elseseq: /* empty */ {$$.ty = gNone;}
-        | ELSE NEWLINE codeblock {$$.ty = $3.ty;}
+elseseq: /* empty */ { $$.ty = gNull; }
+        | ELSE NEWLINE codeblock {
+            if($3.ty == gNull) {
+                $$.ty = gNone;
+            } else {
+                $$.ty = $3.ty;
+            }
+        }
 ;
 
-elsifseq: /* empty */ {$$.ty = gAny;}
-        | ELSEIF expr THEN NEWLINE codeblock elsifseq { canconvert($2.ty, gBoolean, -1); $$.ty = $6.ty!=gAny?combinetype($5.ty, $6.ty):$5.ty;}
+elsifseq: /* empty */ { $$.ty = gNull; }
+        /*   1     2    3    4         5         6 */
+        | ELSEIF expr THEN NEWLINE codeblock elsifseq {
+            canconvert($2.ty, gBoolean, -1);
+            if($6.ty == gNull){
+                $$.ty = $5.ty == gNull ? gNone : $5.ty;
+            }else{
+                $$.ty = $5.ty == gNull ? gNone : combinetype($5.ty, $6.ty);
+            }
+        }
 ;
 
 optparam_list: param_list { $$.pl = $1.pl; }
@@ -779,7 +835,7 @@ type: primtype { $$.ty = $1.ty; }
      sprintf(buf, "Undefined type %s", $1.str);
      getsuggestions($1.str, buf, 1, &types);
      yyerrorex(3, buf);
-     $$.ty = gNull;
+     $$.ty = gAny;
    }
    else
      $$.ty = lookup(&types, $1.str);
