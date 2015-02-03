@@ -157,7 +157,7 @@ int editdistance(const char *s, const char *t, int cutoff){
     return d;
 }
 
-void getsuggestions(const char *name, char *buff, int nTables, ...){
+void getsuggestions(const char *name, char *buff, int buffsize, int nTables, ...){
     int i;
     va_list ap;
 
@@ -207,19 +207,16 @@ void getsuggestions(const char *name, char *buff, int nTables, ...){
     }
     va_end(ap);
 
-    if(count==0)
-        return;
-    else if(count == 1){
-        char hbuff[1024];
+    char hbuff[1024];
+    if(count == 1){
         snprintf(hbuff, 1024, ". Maybe you meant %s", suggestions[0].name);
-        strcat(buff, hbuff);
-    }else{
-        strcat(buff, ". Maybe you meant ");
-        for(i=0; suggestions[i].name; i++){
-            strcat(buff, suggestions[i].name);
-            if(i!=2 && suggestions[i+1].name)
-                strcat(buff, ", ");
-        }
+        strncat(buff, hbuff, buffsize);
+    }else if(count == 2){
+        snprintf(hbuff, 1024, ". Maybe you meant %s or %s", suggestions[0].name, suggestions[1].name);
+        strncat(buff, hbuff, buffsize);
+    }else if(count >= 3){
+        snprintf(hbuff, 1024, ". Maybe you meant %s, %s or %s", suggestions[0].name, suggestions[1].name, suggestions[2].name);
+        strncat(buff, hbuff, buffsize);
     }
 }
 
@@ -235,7 +232,7 @@ const struct typeandname *getVariable(const char *varname)
   result = lookup(&globals, varname);
   if (result) return result;
   snprintf(ebuf, 1024, "Undeclared variable %s", varname);
-  getsuggestions(varname, ebuf, 3, &locals, &params, &globals);
+  getsuggestions(varname, ebuf, 1024, 3, &locals, &params, &globals);
   yyerrorline(2, islinebreak ? lineno - 1 : lineno, ebuf);
   // Store it as unidentified variable
   put(curtab, varname, newtypeandname(gAny, varname));

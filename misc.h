@@ -59,7 +59,7 @@ struct hashtable {
   struct hashnode *h[BUCKETS];
 };
 
-void getsuggestions(const char*, char*, int, ...);
+void getsuggestions(const char*, char*, int, int, ...);
 void *lookup(struct hashtable *h, const char *name);
 void put(struct hashtable *h, const char *name, void *val);
 void clear(struct hashtable *h);

@@ -199,7 +199,7 @@ expr: intexpr      { $$.ty = gInteger; }
                        if (fd == NULL) {
                            char ebuf[1024];
                            snprintf(ebuf, 1024, "Undefined function %s", $2.str);
-                           getsuggestions($2.str, ebuf, 1, &functions);
+                           getsuggestions($2.str, ebuf, 1024, 1, &functions);
                            yyerrorex(3, ebuf);
                            $$.ty = gCode;
                        } else {
@@ -289,7 +289,7 @@ funccall: rid LPAREN exprlistcompl RPAREN {
           if (fd == NULL) {
             char ebuf[1024];
             snprintf(ebuf, 1024, "Undeclared function %s", $1.str);
-            getsuggestions($1.str, ebuf, 1, &functions);
+            getsuggestions($1.str, ebuf, 1024, 1, &functions);
             yyerrorex(3, ebuf);
             $$.ty = gAny;
           } else {
@@ -310,7 +310,7 @@ funccall: rid LPAREN exprlistcompl RPAREN {
           if (fd == NULL) {
             char ebuf[1024];
             snprintf(ebuf, 1024, "Undeclared function %s", $1.str);
-            getsuggestions($1.str, ebuf, 1, &functions);
+            getsuggestions($1.str, ebuf, 1024, 1, &functions);
             yyerrorex(3, ebuf);
             $$.ty = gAny;
           } else if (inconstant && !(fd->isconst)) {
@@ -521,9 +521,9 @@ statement:  NEWLINE { $$.ty = gNone; }
 				    }
        | SET rid LBRACKET expr RBRACKET EQUALS expr NEWLINE{ 
            const struct typeandname *tan = getVariable($2.str);
+           $$.ty = gNone;
            if (tan->ty != gAny) {
              canconvert($4.ty, gInteger, -1);
-             $$.ty = gNone;
              if (!tan->isarray) {
                char ebuf[1024];
                snprintf(ebuf, 1024, "%s is not an array", $2.str);
@@ -826,7 +826,7 @@ type: primtype { $$.ty = $1.ty; }
    if (lookup(&types, $1.str) == NULL) {
      char buf[1024];
      snprintf(buf, 1024, "Undefined type %s", $1.str);
-     getsuggestions($1.str, buf, 1, &types);
+     getsuggestions($1.str, buf, 1024, 1, &types);
      yyerrorex(3, buf);
      $$.ty = gAny;
    }
