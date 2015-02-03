@@ -39,7 +39,7 @@ struct hashtable functions, globals, locals, params, types, initialized;
 struct hashtable *curtab;
 struct typenode *retval, *retcheck;
 const char *curfile;
-struct typenode *gInteger, *gReal, *gBoolean, *gString, *gCode, *gHandle, *gNothing, *gNull, *gAny, *gNone, *gCodeReturnsBoolean, *gCodeReturnsNoBoolean;
+struct typenode *gInteger, *gReal, *gBoolean, *gString, *gCode, *gHandle, *gNothing, *gNull, *gAny, *gNone, *gEmpty;
 struct typenode *gEmpty;
 struct funcdecl *fCurrent;
 
@@ -61,8 +61,7 @@ void init(int argc, char **argv)
   gNull = newtypenode("null", NULL);
   gAny = newtypenode("any", NULL);
   gNone = newtypenode("none", NULL);
-  gCodeReturnsBoolean = newtypenode("codereturnsboolean", gCode);
-  gCodeReturnsNoBoolean = newtypenode("codereturnsnoboolean", gCode);
+  gEmpty = newtypenode("gempty", NULL);
   curtab = &globals;
   fno = 0;
   strict = 0;
@@ -263,7 +262,7 @@ struct typeandname *newtypeandname(const struct typenode *ty, const char *name)
 struct typenode *newtypenode(const char *typename, const struct typenode *superclass)
 {
   struct typenode *result;
-  result = calloc(sizeof(struct typenode), 1);
+  result = memalign(8, sizeof(struct typenode));
   result->typename = strdup(typename);
   result->superclass = superclass;
   return result;
@@ -302,7 +301,7 @@ const struct typenode *getPrimitiveAncestor(const struct typenode *cur)
 int isDerivedFrom(const struct typenode *cur, const struct typenode *base)
 {
   do {
-    if (cur == base) return 1;
+    if (typeeq(cur, base)) return 1;
     cur = cur->superclass;
   } while (cur);
   return 0;
@@ -405,13 +404,13 @@ struct typenode *binop(const struct typenode *a, const struct typenode *b)
 {
   a = getPrimitiveAncestor(a);
   b = getPrimitiveAncestor(b);
-  if (a == gInteger && b == gInteger)
+  if (typeeq(a, gInteger) && typeeq(b, gInteger))
     return gInteger;
-  if (a == gAny)
+  if (typeeq(a, gAny))
     return b;
-  if (b == gAny)
+  if (typeeq(b, gAny))
     return a;
-  if ((a != gInteger && a != gReal) || (b != gInteger && b != gReal)) {
+  if ((!typeeq(a, gInteger) && !typeeq(a, gReal)) || (!typeeq(b, gInteger) && !typeeq(b, gReal))) {
     yyerrorline(3, islinebreak ? lineno - 1 : lineno, "Bad types for binary operator");
   }
   return gReal;
@@ -424,7 +423,7 @@ int canconvert(const struct typenode *ufrom, const struct typenode *uto, const i
   char ebuf[1024];
   if (from == NULL || to == NULL)
     return 0;
-  if (from == gAny || to == gAny)
+  if (typeeq(from, gAny) || typeeq(to, gAny))
     return 1;
   if (isDerivedFrom(from, to))
     return 1;
@@ -432,21 +431,21 @@ int canconvert(const struct typenode *ufrom, const struct typenode *uto, const i
   //  return 1; // blizzard bug allows downcasting erroneously, we don't support this though
   if (from->typename == NULL || to->typename == NULL)
     return 0;
-  if (from == gNone || to == gNone)
+  if (typeeq(from, gNone) || typeeq(to, gNone))
     return 0;
   from = getPrimitiveAncestor(from);
   to = getPrimitiveAncestor(to);
-  if ((from == gNull) && (to != gInteger) && (to != gReal) && (to != gBoolean))
+  if (typeeq(from, gNull) && !typeeq(to, gInteger) && !typeeq(to, gReal) && !typeeq(to, gBoolean))
     return 1;
   if (strict) {
-    if (ufrom == gInteger && (to == gReal || to == gInteger))
+    if (typeeq(ufrom, gInteger) && (typeeq(to, gReal) || typeeq(to, gInteger)))
       return 1;
-    if (ufrom == to && (ufrom == gBoolean || ufrom == gString || ufrom == gReal || ufrom == gInteger || ufrom == gCode))
+    if (typeeq(ufrom, to) && (typeeq(ufrom, gBoolean) || typeeq(ufrom, gString) || typeeq(ufrom, gReal) || typeeq(ufrom, gInteger) || typeeq(ufrom, gCode)))
       return 1;
   } else {
-    if (from == gInteger && (to == gReal || to == gInteger))
+    if (typeeq(from, gInteger) && (typeeq(to, gReal) || typeeq(to, gInteger)))
       return 1;
-    if (from == to && (from == gBoolean || from == gString || from == gReal || from == gInteger || from == gCode))
+    if (typeeq(from, to) && (typeeq(from, gBoolean) || typeeq(from, gString) || typeeq(from, gReal) || typeeq(from, gInteger) || typeeq(from, gCode)))
       return 1;
   }
 
@@ -462,7 +461,7 @@ int canconvertreturn(const struct typenode *ufrom, const struct typenode *uto, c
   char ebuf[1024];
   if (from == NULL || to == NULL)
 	  return 0; // garbage
-  if (from == gAny || to == gAny)
+  if (typeeq(from, gAny) || typeeq(to, gAny))
 	  return 1; // we don't care
   if (isDerivedFrom(from, to))
     return 1; // eg. from = unit, to = handle
@@ -470,24 +469,24 @@ int canconvertreturn(const struct typenode *ufrom, const struct typenode *uto, c
   //  return 1; // blizzard bug allows downcasting erroneously, we don't support this though
   if (from->typename == NULL || to->typename == NULL)
 	  return 0; // garbage
-  if (from == gNone || to == gNone)
+  if (typeeq(from, gNone) || typeeq(to, gNone))
 	  return 0; // garbage
 
   from = getPrimitiveAncestor(from);
   to = getPrimitiveAncestor(to);
-  if ((to == gReal) && (from == gInteger)) {
+  if ((typeeq(to, gReal)) && (typeeq(from, gInteger))) {
 	// can't return integer when it expects a real (added 9.5.2005)
     sprintf(ebuf, "Cannot convert returned value from %s to %s", from->typename, to->typename);
     yyerrorline(1, lineno + linemod, ebuf);
     return 0;
   }
-  if ((from == gNull) && (to != gInteger) && (to != gReal) && (to != gBoolean))
+  if ((typeeq(from, gNull)) && (!typeeq(to, gInteger)) && (!typeeq(to, gReal)) && (!typeeq(to, gBoolean)))
     return 1; // can't return null when it expects integer, real or boolean (added 9.5.2005)
   
   if (strict) {
     if (isDerivedFrom(uto, ufrom))
       return 1;
-  } else if (from == to)
+  } else if (typeeq(from, to))
     return 1;
     
   sprintf(ebuf, "Cannot convert returned value from %s to %s", ufrom->typename, uto->typename);
@@ -495,26 +494,52 @@ int canconvertreturn(const struct typenode *ufrom, const struct typenode *uto, c
   return 0;
 }
 
-struct typenode *combinetype(const struct typenode *n1, const struct typenode *n2) {
-  if ((n1 == gNone) || (n2 == gNone)) return gNone;
-  if (n1 == n2) return n1;
-  if (n1 == gNull || n1 == gAny)
-    return n2;
-  if (n2 == gNull || n2 == gAny)
-    return n1;
+struct typenode* mkretty(struct typenode *ty, int ret){
+    uintptr_t tagMask = (8-1);
+    uintptr_t pointerMask = ~tagMask;
+    uintptr_t ptr = (uintptr_t)ty;
+    ret = ret & tagMask;
+    return (struct typenode*)((ptr & pointerMask) | ret);
+}
+
+int getTypeTag(struct typenode *ty){
+    uintptr_t tagMask = (8-1);
+    uintptr_t ptr = (uintptr_t)ty;
+    return (int)(ptr & tagMask);
+}
+
+struct typenode* getTypePtr(struct typenode *ty){
+    uintptr_t tagMask = (8-1);
+    uintptr_t pointerMask = ~tagMask;
+    uintptr_t ptr = (uintptr_t)ty;
+    return (struct typenode*)(ptr & pointerMask);
+}
+
+int typeeq(struct typenode *a, struct typenode *b){
+    return getTypePtr(a) == getTypePtr(b);
+}
+
+struct typenode *combinetype(struct typenode *n1, struct typenode *n2) {
+  int ret = getTypeTag(n1) & getTypeTag(n2);
+  if ((typeeq(n1, gNone)) || (typeeq(n2, gNone))) return mkretty(gNone, ret);
+  if (typeeq(n1, n2)) return mkretty(n1, ret);
+  if (typeeq(n1, gNull))
+    return mkretty(n2, ret);
+  if (typeeq(n2, gNull))
+    return mkretty(n1, ret);
   n1 = getPrimitiveAncestor(n1);
   n2 = getPrimitiveAncestor(n2);
-  if (n1 == n2) return n1;
-  if (n1 == gNull || n1 == gAny)
-    return n2;
-  if (n2 == gNull || n2 == gAny)
-    return n1;
-  if ((n1 == gInteger) && (n2 == gReal))
-    return gReal;
-  if ((n1 == gReal) && (n2 == gInteger))
-    return gInteger;
+  if (typeeq(n1, n2)) return mkretty(n1, ret);
+  if (typeeq(n1, gNull))
+    return mkretty(n2, ret);
+  if (typeeq(n2, gNull))
+    return mkretty(n1, ret);
+  if ((typeeq(n1, gInteger)) && (typeeq(n2, gReal)))
+    return mkretty(gReal, ret);
+  if ((typeeq(n1, gReal)) && (typeeq(n2, gInteger)))
+    return mkretty(gInteger, ret);
   // printf("Cannot convert %s to %s", n1->typename, n2->typename);
-  return gNone;
+  return mkretty(gNone, ret);
 }
 
 void checkParameters(const struct paramlist *func, const struct paramlist *inp)
@@ -578,7 +603,7 @@ void checkeqtest(const struct typenode *a, const struct typenode *b)
     return;
   if (pa == gNull || pb == gNull)
     return;
-  if (pa != pb) {
+  if (!typeeq(pa, pb)) {
     yyerrorex(3, "Comparing two variables of different primitive types (except real and integer) is not allowed");
     return;
   }

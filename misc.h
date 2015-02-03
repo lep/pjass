@@ -16,7 +16,6 @@
 
 struct typenode {
   char *typename;
-  
   const struct typenode *superclass;
 };
 
@@ -78,7 +77,8 @@ void showfuncdecl(struct funcdecl *fd);
 struct typenode *binop(const struct typenode *a, const struct typenode *b);
 int canconvert(const struct typenode *from, const struct typenode *to, const int linemod);
 int canconvertreturn(const struct typenode *from, const struct typenode *to, const int linemod);
-struct typenode *combinetype(const struct typenode *n1, const struct typenode *n2);
+struct typenode* mkretty(struct typenode *ty, int ret);
+struct typenode *combinetype(struct typenode *n1, struct typenode *n2);
 void checkParameters(const struct paramlist *func, const struct paramlist *inp);
 void validateGlobalAssignment(const char *varname);
 void checkcomparisonsimple(const struct typenode *a);
@@ -96,7 +96,7 @@ extern const char *curfile;
 extern int yydebug;
 int *showerrorlevel;
 extern struct hashtable functions, globals, locals, params, types, initialized, *curtab;
-extern struct typenode *gInteger, *gReal, *gBoolean, *gString, *gCode, *gHandle, *gNothing, *gNull, *gAny, *gNone, *gCodeReturnsBoolean, *gCodeReturnsNoBoolean;
+extern struct typenode *gInteger, *gReal, *gBoolean, *gString, *gCode, *gHandle, *gNothing, *gNull, *gAny, *gNone, *gEmpty;
 extern struct funcdecl *fCurrent;
 extern struct typenode *retval;
 const struct typeandname *getVariable(const char *varname);

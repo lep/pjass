@@ -208,10 +208,7 @@ expr: intexpr      { $$.ty = gInteger; }
                                sprintf(ebuf, "Function %s must not take any arguments when used as code", $2.str);
                                yyerrorex(3, ebuf);
                            }
-                           if (fd->ret == gBoolean)
-                           	$$.ty = gCodeReturnsBoolean;
-                           else
-                              $$.ty = gCodeReturnsNoBoolean;
+                           $$.ty = gCode;
                        }
                      }
       | TNULL { $$.ty = gNull; }
@@ -391,7 +388,8 @@ funcdefn: NEWLINE
 
 funcdefncore: funcbegin localblock codeblock funcend {
             if(retval != gNothing) {
-                if ($3.ty == gAny || $3.ty == gNone)
+                //if ($3.ty == gAny || $3.ty == gNone)
+                if(!getTypeTag($3.ty))
                     yyerrorline(1, lineno - 1, "Missing return");
                 else if (returnbug)
                     canconvertreturn($3.ty, retval, -1);
@@ -487,23 +485,20 @@ funcbegin: FUNCTION rid TAKES optparam_list returnorreturns opttype {
 }
 ;
 
-codeblock: /* empty */ { $$.ty = gNull; }
+codeblock: /* empty */ { $$.ty = gEmpty; }
        | statement codeblock {
-            if($2.ty == gNull)
+            if(typeeq($2.ty, gEmpty))
                 $$.ty = $1.ty;
             else
                 $$.ty = $2.ty;
         }
 ;
 
-statement:  NEWLINE { $$.ty = gNull; }
+statement:  NEWLINE { $$.ty = gNone; }
        | CALL funccall NEWLINE{ $$.ty = gNone;}
        /*1    2    3     4        5        6        7      8      9 */
        | IF expr THEN NEWLINE codeblock elsifseq elseseq ENDIF NEWLINE {
             canconvert($2.ty, gBoolean, -1);
-            $5.ty = $5.ty == gNull ? gNone : $5.ty;
-            $6.ty = $6.ty == gNull ? gNull : $6.ty;
-            $7.ty = $7.ty == gNull ? gNone : $7.ty;
             $$.ty = combinetype($5.ty, combinetype($6.ty, $7.ty));
        }
        | SET rid EQUALS expr NEWLINE { if (getVariable($2.str)->isarray) {
@@ -543,7 +538,7 @@ statement:  NEWLINE { $$.ty = gNull; }
        | loopstart NEWLINE codeblock {$$.ty = $3.ty; yyerrorex(0, "Missing endloop");}
        | EXITWHEN expr NEWLINE { canconvert($2.ty, gBoolean, -1); if (!inloop) yyerrorline(0, lineno - 1, "Exitwhen outside of loop"); $$.ty = gNone;}
        | RETURN expr NEWLINE {
-            $$.ty = $2.ty;
+            $$.ty = mkretty($2.ty, 1);
             if(retval == gNothing)
                 yyerrorline(1, lineno - 1, "Cannot return value from function that returns nothing");
             else if (!returnbug)
@@ -552,15 +547,12 @@ statement:  NEWLINE { $$.ty = gNull; }
        | RETURN NEWLINE {
             if (retval != gNothing)
                 yyerrorline(1, lineno - 1, "Return nothing in function that should return value");
-                $$.ty = gAny;
+                $$.ty = mkretty(gAny, 1);
             }
        | DEBUG statement {$$.ty = gNone;}
        /*1    2   3      4        5         6        7 */
        | IF expr THEN NEWLINE codeblock elsifseq elseseq {
             canconvert($2.ty, gBoolean, -1);
-            $5.ty = $5.ty == gNull ? gNone : $5.ty;
-            $6.ty = $6.ty == gNull ? gNull : $6.ty;
-            $7.ty = $7.ty == gNull ? gNone : $7.ty;
             $$.ty = combinetype($5.ty, combinetype($6.ty, $7.ty));
             yyerrorex(0, "Missing endif");
         }
@@ -580,24 +572,25 @@ loopstart: LOOP {inloop++;}
 loopend: ENDLOOP {inloop--;}
 ;
 
-elseseq: /* empty */ { $$.ty = gNull; }
+elseseq: /* empty */ { $$.ty = gNone; }
         | ELSE NEWLINE codeblock {
-            if($3.ty == gNull) {
-                $$.ty = gNone;
-            } else {
-                $$.ty = $3.ty;
-            }
+            $$.ty = $3.ty;
         }
 ;
 
-elsifseq: /* empty */ { $$.ty = gNull; }
+elsifseq: /* empty */ { $$.ty = mkretty(gEmpty, 1); }
         /*   1     2    3    4         5         6 */
         | ELSEIF expr THEN NEWLINE codeblock elsifseq {
             canconvert($2.ty, gBoolean, -1);
-            if($6.ty == gNull){
-                $$.ty = $5.ty == gNull ? gNone : $5.ty;
+            
+            if(typeeq($6.ty, gEmpty)){
+                if(typeeq($5.ty, gEmpty)){
+                    $$.ty = mkretty(gNone, 0);
+                }else{
+                    $$.ty = $5.ty;
+                }
             }else{
-                $$.ty = $5.ty == gNull ? gNone : combinetype($5.ty, $6.ty);
+                $$.ty = combinetype($5.ty, $6.ty);
             }
         }
 ;
