@@ -8,6 +8,7 @@
 #include <string.h>
 #include <assert.h>
 #include <malloc.h>
+#include <stdlib.h>
 #include "grammar.tab.h"
 #include "misc.h"
 
@@ -37,9 +38,9 @@ int hashfunc(const char *name);
 struct hashtable functions, globals, locals, params, types, initialized;
 struct hashtable *curtab;
 struct typenode *retval, *retcheck;
-char *curfile;
+const char *curfile;
 struct typenode *gInteger, *gReal, *gBoolean, *gString, *gCode, *gHandle, *gNothing, *gNull, *gAny, *gNone, *gCodeReturnsBoolean, *gCodeReturnsNoBoolean;
-struct funcdecl *fFilter, *fCondition, *fCurrent;
+struct funcdecl *fCurrent;
 
 void addPrimitiveType(const char *name, struct typenode **toSave)
 {
@@ -72,7 +73,7 @@ void init(int argc, char **argv)
   isconstant = 0;
   inconstant = 0;
   infunction = 0;
-  fFilter = fCondition = fCurrent = 0;
+  fCurrent = 0;
   showerrorlevel = malloc(ERRORLEVELNUM*sizeof(int));
   for(i=0;i<ERRORLEVELNUM;i++)
     showerrorlevel[i] = 1;
@@ -163,7 +164,7 @@ void getsuggestions(const char *name, char *buff, int nTables, ...){
     int cutoff = (int)((len+2)/4.0);
     int count = 0;
 
-    struct {int distance; char *name} suggestions[3];
+    struct {int distance; char *name;} suggestions[3];
     for(i = 0; i != 3; i++){
         suggestions[i].distance = INT_MAX;
         suggestions[i].name = NULL;
@@ -217,16 +218,6 @@ void getsuggestions(const char *name, char *buff, int nTables, ...){
         }
     }
 }
-struct typenode *getFunctionType(const char *funcname)
-{
-  char ebuf[1024];
-  struct funcdecl *result;
-  result = lookup(&functions, funcname);
-  if (result) return result->ret;
-  sprintf(ebuf, "Undeclared function: %s", funcname);
-  getsuggestions(funcname, ebuf, 1, &functions);
-  yyerrorline(3, islinebreak ? lineno - 1 : lineno, ebuf);
-}
 
 const struct typeandname *getVariable(const char *varname)
 {
@@ -244,7 +235,7 @@ const struct typeandname *getVariable(const char *varname)
   // Store it as unidentified variable
   put(curtab, varname, newtypeandname(gAny, varname));
   if(infunction && lookup(curtab, varname) && !lookup(&initialized, varname)){
-    put(&initialized, varname, 1);
+    put(&initialized, varname, (void*)1);
   }
   return getVariable(varname);
 }
@@ -460,6 +451,7 @@ int canconvert(const struct typenode *ufrom, const struct typenode *uto, const i
 
   sprintf(ebuf, "Cannot convert %s to %s", ufrom->typename, uto->typename);
   yyerrorline(3, lineno + linemod, ebuf);
+  return 0;
 }
 
 // this is used for return statements only
@@ -499,9 +491,10 @@ int canconvertreturn(const struct typenode *ufrom, const struct typenode *uto, c
     
   sprintf(ebuf, "Cannot convert returned value from %s to %s", ufrom->typename, uto->typename);
   yyerrorline(1, lineno + linemod, ebuf);
+  return 0;
 }
 
-struct typenode *combinetype(struct typenode *n1, struct typenode *n2) {
+struct typenode *combinetype(const struct typenode *n1, const struct typenode *n2) {
   if ((n1 == gNone) || (n2 == gNone)) return gNone;
   if (n1 == n2) return n1;
   if (n1 == gNull)
@@ -523,11 +516,10 @@ struct typenode *combinetype(struct typenode *n1, struct typenode *n2) {
   return gNone;
 }
 
-void checkParameters(const struct paramlist *func, const struct paramlist *inp, const int mustretbool)
+void checkParameters(const struct paramlist *func, const struct paramlist *inp)
 {
   const struct typeandname *fi = func->head;
   const struct typeandname *pi = inp->head;
-  int pnum = 1;
   for (;;) {
     if (fi == NULL && pi == NULL)
       return;
@@ -593,7 +585,6 @@ void checkeqtest(const struct typenode *a, const struct typenode *b)
 
 void dofile(FILE *fp, const char *name)
 {
-	void *cur;
   lineno = 1;
   islinebreak = 1;
   isconstant = 0;
@@ -601,8 +592,7 @@ void dofile(FILE *fp, const char *name)
   inblock = 0;
   afterendglobals = 0;
   int olderrs = haderrors;
-	cur = yy_create_buffer(fp, BUFSIZE);
-  yy_switch_to_buffer(cur);
+  yy_switch_to_buffer(yy_create_buffer(fp, BUFSIZE));
   curfile = name;
 	while (yyparse())
     ;
@@ -616,7 +606,7 @@ void dofile(FILE *fp, const char *name)
 
 void printversion()
 {
-	printf("Pjass version %s by Rudi Cilibrasi, modified by AIAndy,PitzerMike, Deaod and lep\n", VERSIONSTR);
+	printf("Pjass version %s by Rudi Cilibrasi, modified by AIAndy, PitzerMike, Deaod and lep\n", VERSIONSTR);
 }
 
 void doparse(int argc, char **argv)

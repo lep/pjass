@@ -303,7 +303,7 @@ funccall: rid LPAREN exprlistcompl RPAREN {
             }
             if (fd == fCurrent && fCurrent)
           		yyerrorex(3, "Recursive function calls are not permitted in local declarations");
-            checkParameters(fd->p, $3.pl, (fd==fFilter || fd==fCondition));
+            checkParameters(fd->p, $3.pl);
             $$.ty = fd->ret;
           }
        }
@@ -324,7 +324,7 @@ funccall: rid LPAREN exprlistcompl RPAREN {
           } else {
           	if (fd == fCurrent && fCurrent)
           		yyerrorex(3, "Recursive function calls are not permitted in local declarations");
-            checkParameters(fd->p, $3.pl, (fd==fFilter || fd==fCondition));
+            checkParameters(fd->p, $3.pl);
             $$.ty = fd->ret;
           }
        }
@@ -379,10 +379,6 @@ nativefuncdecl: NATIVE rid TAKES optparam_list RETURNS opttype
   $$.fd->ret = $6.ty;
   //printf("***** %s = %s\n", $2.str, $$.fd->ret->typename);
   $$.fd->isconst = isconstant;
-  if (strcmp($$.fd->name, "Filter") == 0)
-    fFilter = $$.fd;
-  if (strcmp($$.fd->name, "Condition") == 0)
-    fCondition = $$.fd;
   put(&functions, $$.fd->name, $$.fd);
   //showfuncdecl($$.fd);
 }
@@ -506,7 +502,7 @@ statement:  NEWLINE {$$.ty = gAny;}
                                        if (inconstant)
                                          validateGlobalAssignment($2.str);
                                        if(!lookup(&initialized, $2.str)){
-                                         put(&initialized, $2.str, 1);
+                                         put(&initialized, $2.str, (void*)1);
                                        }
 				    }
        | SET rid LBRACKET expr RBRACKET EQUALS expr NEWLINE{ 
@@ -750,7 +746,7 @@ vardecl: vartypedecl NEWLINE {
                yyerrorex(3, "Arrays cannot be directly initialized");
              }
              if(infunction && !lookup(&initialized, tan->name)){
-               put(&initialized, tan->name, 1);
+               put(&initialized, tan->name, (void*)1);
              }
              canconvert($3.ty, tan->ty, -1);
              $$.ty = gNothing;
