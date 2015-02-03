@@ -156,9 +156,8 @@ int editdistance(const char *s, const char *t, int cutoff){
         free(v[i]);
     return d;
 }
-#if 0
+
 void getsuggestions(const char *name, char *buff, int nTables, ...){
-    return;
     int i;
     va_list ap;
 
@@ -171,7 +170,7 @@ void getsuggestions(const char *name, char *buff, int nTables, ...){
         suggestions[i].distance = INT_MAX;
         suggestions[i].name = NULL;
     }
-/*
+
     va_start(ap, nTables);
     for(i = 0; i != nTables; i++){
         struct hashtable *ht = va_arg(ap, struct hashtable*);
@@ -181,10 +180,8 @@ void getsuggestions(const char *name, char *buff, int nTables, ...){
             struct hashnode *hn;
             hn = ht->h[x];
             while (hn) {
-                int dist = 0;//editdistance(hn->name, name, cutoff);
+                int dist = editdistance(hn->name, name, cutoff);
                 if(dist <= cutoff){
-                    //printf("Possible suggestion for %s: %s\n", name, hn->name);
-                    
                     count++;
                     int j;
                     for(j = 0; j != 3; j++){
@@ -209,7 +206,6 @@ void getsuggestions(const char *name, char *buff, int nTables, ...){
         
     }
     va_end(ap);
-    */
 
     if(count==0)
         return;
@@ -226,7 +222,7 @@ void getsuggestions(const char *name, char *buff, int nTables, ...){
         }
     }
 }
-#endif
+
 
 const struct typeandname *getVariable(const char *varname)
 {
@@ -239,7 +235,7 @@ const struct typeandname *getVariable(const char *varname)
   result = lookup(&globals, varname);
   if (result) return result;
   snprintf(ebuf, 1024, "Undeclared variable %s", varname);
-  //getsuggestions(varname, ebuf, 3, &locals, &params, &globals);
+  getsuggestions(varname, ebuf, 3, &locals, &params, &globals);
   yyerrorline(2, islinebreak ? lineno - 1 : lineno, ebuf);
   // Store it as unidentified variable
   put(curtab, varname, newtypeandname(gAny, varname));
