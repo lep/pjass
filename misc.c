@@ -156,8 +156,9 @@ int editdistance(const char *s, const char *t, int cutoff){
         free(v[i]);
     return d;
 }
-
+#if 0
 void getsuggestions(const char *name, char *buff, int nTables, ...){
+    return;
     int i;
     va_list ap;
 
@@ -170,17 +171,20 @@ void getsuggestions(const char *name, char *buff, int nTables, ...){
         suggestions[i].distance = INT_MAX;
         suggestions[i].name = NULL;
     }
-
+/*
     va_start(ap, nTables);
     for(i = 0; i != nTables; i++){
         struct hashtable *ht = va_arg(ap, struct hashtable*);
+        
         int x;
         for(x = 0; x != BUCKETS; x++){
             struct hashnode *hn;
             hn = ht->h[x];
             while (hn) {
-                int dist = editdistance(hn->name, name, cutoff);
+                int dist = 0;//editdistance(hn->name, name, cutoff);
                 if(dist <= cutoff){
+                    //printf("Possible suggestion for %s: %s\n", name, hn->name);
+                    
                     count++;
                     int j;
                     for(j = 0; j != 3; j++){
@@ -197,18 +201,21 @@ void getsuggestions(const char *name, char *buff, int nTables, ...){
                             break;
                         }
                     }
+                    
                 }
                 hn = hn->next;
             }
         }
+        
     }
     va_end(ap);
+    */
 
     if(count==0)
         return;
     else if(count == 1){
         char hbuff[1024];
-        sprintf(hbuff, ". Maybe you meant %s", suggestions[0].name);
+        snprintf(hbuff, 1024, ". Maybe you meant %s", suggestions[0].name);
         strcat(buff, hbuff);
     }else{
         strcat(buff, ". Maybe you meant ");
@@ -219,6 +226,7 @@ void getsuggestions(const char *name, char *buff, int nTables, ...){
         }
     }
 }
+#endif
 
 const struct typeandname *getVariable(const char *varname)
 {
@@ -230,8 +238,8 @@ const struct typeandname *getVariable(const char *varname)
   if (result) return result;
   result = lookup(&globals, varname);
   if (result) return result;
-  sprintf(ebuf, "Undeclared variable %s", varname);
-  getsuggestions(varname, ebuf, 3, &locals, &params, &globals);
+  snprintf(ebuf, 1024, "Undeclared variable %s", varname);
+  //getsuggestions(varname, ebuf, 3, &locals, &params, &globals);
   yyerrorline(2, islinebreak ? lineno - 1 : lineno, ebuf);
   // Store it as unidentified variable
   put(curtab, varname, newtypeandname(gAny, varname));
@@ -246,7 +254,7 @@ void validateGlobalAssignment(const char *varname) {
   struct typeandname *result;
   result = lookup(&globals, varname);
   if (result) {
-    sprintf(ebuf, "Assignment to global variable %s in constant function", varname);
+    snprintf(ebuf, 1024, "Assignment to global variable %s in constant function", varname);
     yyerrorline(2, lineno - 1, ebuf);
   }
 }
@@ -377,7 +385,7 @@ void put(struct hashtable *h, const char *name, void *val)
   
   if (lookup(h, name) != NULL) {
     char ebuf[1024];
-    sprintf(ebuf, "Symbol %s multiply defined", name);
+    snprintf(ebuf, 1024, "Symbol %s multiply defined", name);
     yyerrorline(3, islinebreak ? lineno - 1 : lineno, ebuf);
     return;
   }
@@ -454,7 +462,7 @@ int canconvert(const struct typenode *ufrom, const struct typenode *uto, const i
       return 1;
   }
 
-  sprintf(ebuf, "Cannot convert %s to %s", ufrom->typename, uto->typename);
+  snprintf(ebuf, 1024, "Cannot convert %s to %s", ufrom->typename, uto->typename);
   yyerrorline(3, lineno + linemod, ebuf);
   return 0;
 }
@@ -481,7 +489,7 @@ int canconvertreturn(const struct typenode *ufrom, const struct typenode *uto, c
   to = getPrimitiveAncestor(to);
   if ((typeeq(to, gReal)) && (typeeq(from, gInteger))) {
 	// can't return integer when it expects a real (added 9.5.2005)
-    sprintf(ebuf, "Cannot convert returned value from %s to %s", getTypePtr(from)->typename, getTypePtr(to)->typename);
+    snprintf(ebuf, 1024, "Cannot convert returned value from %s to %s", getTypePtr(from)->typename, getTypePtr(to)->typename);
     yyerrorline(1, lineno + linemod, ebuf);
     return 0;
   }
@@ -494,7 +502,7 @@ int canconvertreturn(const struct typenode *ufrom, const struct typenode *uto, c
   } else if (typeeq(from, to))
     return 1;
     
-  sprintf(ebuf, "Cannot convert returned value from %s to %s", getTypePtr(ufrom)->typename, getTypePtr(uto)->typename);
+  snprintf(ebuf, 1024, "Cannot convert returned value from %s to %s", getTypePtr(ufrom)->typename, getTypePtr(uto)->typename);
   yyerrorline(1, lineno + linemod, ebuf);
   return 0;
 }

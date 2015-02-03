@@ -198,14 +198,14 @@ expr: intexpr      { $$.ty = gInteger; }
       | FUNCTION rid { struct funcdecl *fd = lookup(&functions, $2.str);
                        if (fd == NULL) {
                            char ebuf[1024];
-                           sprintf(ebuf, "Undefined function %s", $2.str);
-                           getsuggestions($2.str, ebuf, 1, &functions);
+                           snprintf(ebuf, 1024, "Undefined function %s", $2.str);
+                           //getsuggestions($2.str, ebuf, 1, &functions);
                            yyerrorex(3, ebuf);
                            $$.ty = gCode;
                        } else {
                            if (fd->p->head != NULL) {
                                char ebuf[1024];
-                               sprintf(ebuf, "Function %s must not take any arguments when used as code", $2.str);
+                               snprintf(ebuf, 1024, "Function %s must not take any arguments when used as code", $2.str);
                                yyerrorex(3, ebuf);
                            }
                            $$.ty = gCode;
@@ -237,7 +237,7 @@ expr: intexpr      { $$.ty = gInteger; }
           if (!typeeq(tan->ty, gAny)) {
             if (!tan->isarray) {
               char ebuf[1024];
-              sprintf(ebuf, "%s not an array", $1.str);
+              snprintf(ebuf, 1024, "%s not an array", $1.str);
               yyerrorex(3, ebuf);
             }
             else {
@@ -250,20 +250,20 @@ expr: intexpr      { $$.ty = gInteger; }
           const struct typeandname *tan = getVariable($1.str);
           if (tan->lineno == lineno && tan->fn == fno) {
             char ebuf[1024];
-            sprintf(ebuf, "Use of variable %s before its declaration", $1.str);
+            snprintf(ebuf, 1024, "Use of variable %s before its declaration", $1.str);
             yyerrorex(3, ebuf);
           } else if (islinebreak && tan->lineno == lineno - 1 && tan->fn == fno) {
             char ebuf[1024];
-            sprintf(ebuf, "Use of variable %s before its declaration", $1.str);
+            snprintf(ebuf, 1024, "Use of variable %s before its declaration", $1.str);
             yyerrorline(3, lineno - 1, ebuf);
           } else if (tan->isarray) {
             char ebuf[1024];
-            sprintf(ebuf, "Index missing for array variable %s", $1.str);
+            snprintf(ebuf, 1024, "Index missing for array variable %s", $1.str);
             yyerrorex(3, ebuf);
           }
           if(infunction && lookup(curtab, $1.str) && !lookup(&initialized, $1.str) ){
             char ebuf[1024];
-            sprintf(ebuf, "Variable %s is uninitialized", $1.str);
+            snprintf(ebuf, 1024, "Variable %s is uninitialized", $1.str);
             //yyerrorex(3, ebuf);
             yyerrorline(3, lineno - 1, ebuf);
           }
@@ -288,14 +288,14 @@ funccall: rid LPAREN exprlistcompl RPAREN {
           struct funcdecl *fd = lookup(&functions, $1.str);
           if (fd == NULL) {
             char ebuf[1024];
-            sprintf(ebuf, "Undeclared function %s", $1.str);
-            getsuggestions($1.str, ebuf, 1, &functions);
+            snprintf(ebuf, 1024, "Undeclared function %s", $1.str);
+            //getsuggestions($1.str, ebuf, 1, &functions);
             yyerrorex(3, ebuf);
             $$.ty = gAny;
           } else {
             if (inconstant && !(fd->isconst)) {
               char ebuf[1024];
-              sprintf(ebuf, "Call to non-constant function %s in constant function", $1.str);
+              snprintf(ebuf, 1024, "Call to non-constant function %s in constant function", $1.str);
               yyerrorex(3, ebuf);
             }
             if (fd == fCurrent && fCurrent)
@@ -309,13 +309,13 @@ funccall: rid LPAREN exprlistcompl RPAREN {
           struct funcdecl *fd = lookup(&functions, $1.str);
           if (fd == NULL) {
             char ebuf[1024];
-            sprintf(ebuf, "Undeclared function %s", $1.str);
-            getsuggestions($1.str, ebuf, 1, &functions);
+            snprintf(ebuf, 1024, "Undeclared function %s", $1.str);
+            //getsuggestions($1.str, ebuf, 1, &functions);
             yyerrorex(3, ebuf);
             $$.ty = gAny;
           } else if (inconstant && !(fd->isconst)) {
             char ebuf[1024];
-            sprintf(ebuf, "Call to non-constant function %s in constant function", $1.str);
+            snprintf(ebuf, 1024, "Call to non-constant function %s in constant function", $1.str);
             yyerrorex(3, ebuf);
             $$.ty = gAny;
           } else {
@@ -363,11 +363,11 @@ nativefuncdecl: NATIVE rid TAKES optparam_list RETURNS opttype
 {
   if (lookup(&locals, $2.str) || lookup(&params, $2.str) || lookup(&globals, $2.str)) {
     char buf[1024];
-    sprintf(buf, "%s already defined as variable", $2.str);
+    snprintf(buf, 1024, "%s already defined as variable", $2.str);
     yyerrorex(3, buf);
   } else if (lookup(&types, $2.str)) {
     char buf[1024];
-    sprintf(buf, "%s already defined as type", $2.str);
+    snprintf(buf, 1024, "%s already defined as type", $2.str);
     yyerrorex(3, buf);
   }
   $$.fd = newfuncdecl(); 
@@ -408,11 +408,11 @@ returnorreturns: RETURNS
 funcbegin: FUNCTION rid TAKES optparam_list returnorreturns opttype {
   if (lookup(&locals, $2.str) || lookup(&params, $2.str) || lookup(&globals, $2.str)) {
     char buf[1024];
-    sprintf(buf, "%s already defined as variable", $2.str);
+    snprintf(buf, 1024, "%s already defined as variable", $2.str);
     yyerrorex(3, buf);
   } else if (lookup(&types, $2.str)) {
     char buf[1024];
-    sprintf(buf, "%s already defined as type", $2.str);
+    snprintf(buf, 1024, "%s already defined as type", $2.str);
     yyerrorex(3, buf);
   }
   inconstant = 0;
@@ -432,11 +432,11 @@ funcbegin: FUNCTION rid TAKES optparam_list returnorreturns opttype {
     put(&params, strdup(tan->name), newtypeandname(tan->ty, tan->name));
     if (lookup(&functions, tan->name)) {
       char buf[1024];
-      sprintf(buf, "%s already defined as function", tan->name);
+      snprintf(buf, 1024, "%s already defined as function", tan->name);
       yyerrorex(3, buf);
     } else if (lookup(&types, tan->name)) {
       char buf[1024];
-      sprintf(buf, "%s already defined as type", tan->name);
+      snprintf(buf, 1024, "%s already defined as type", tan->name);
       yyerrorex(3, buf);
     }
   }
@@ -448,11 +448,11 @@ funcbegin: FUNCTION rid TAKES optparam_list returnorreturns opttype {
        | CONSTANT FUNCTION rid TAKES optparam_list returnorreturns opttype {
   if (lookup(&locals, $3.str) || lookup(&params, $3.str) || lookup(&globals, $3.str)) {
     char buf[1024];
-    sprintf(buf, "%s already defined as variable", $3.str);
+    snprintf(buf, 1024, "%s already defined as variable", $3.str);
     yyerrorex(3, buf);
   } else if (lookup(&types, $3.str)) {
     char buf[1024];
-    sprintf(buf, "%s already defined as type", $3.str);
+    snprintf(buf, 1024, "%s already defined as type", $3.str);
     yyerrorex(3, buf);
   }
   inconstant = 1;
@@ -470,11 +470,11 @@ funcbegin: FUNCTION rid TAKES optparam_list returnorreturns opttype {
     put(&params, strdup(tan->name), newtypeandname(tan->ty, tan->name));
     if (lookup(&functions, tan->name)) {
       char buf[1024];
-      sprintf(buf, "%s already defined as function", tan->name);
+      snprintf(buf, 1024, "%s already defined as function", tan->name);
       yyerrorex(3, buf);
     } else if (lookup(&types, tan->name)) {
       char buf[1024];
-      sprintf(buf, "%s already defined as type", tan->name);
+      snprintf(buf, 1024, "%s already defined as type", tan->name);
       yyerrorex(3, buf);
     }
   }
@@ -503,14 +503,14 @@ statement:  NEWLINE { $$.ty = gNone; }
        }
        | SET rid EQUALS expr NEWLINE { if (getVariable($2.str)->isarray) {
                                          char ebuf[1024];
-                                         sprintf(ebuf, "Index missing for array variable %s", $2.str);
+                                         snprintf(ebuf, 1024, "Index missing for array variable %s", $2.str);
                                          yyerrorline(3, lineno - 1,  ebuf);
                                        }
                                        canconvert($4.ty, getVariable($2.str)->ty, -1);
                                        $$.ty = gNone;
                                        if (getVariable($2.str)->isconst) {
                                          char ebuf[1024];
-                                         sprintf(ebuf, "Cannot assign to constant %s", $2.str);
+                                         snprintf(ebuf, 1024, "Cannot assign to constant %s", $2.str);
                                          yyerrorline(3, lineno - 1, ebuf);
                                        }
                                        if (inconstant)
@@ -526,7 +526,7 @@ statement:  NEWLINE { $$.ty = gNone; }
              $$.ty = gNone;
              if (!tan->isarray) {
                char ebuf[1024];
-               sprintf(ebuf, "%s is not an array", $2.str);
+               snprintf(ebuf, 1024, "%s is not an array", $2.str);
                yyerrorline(3, lineno - 1, ebuf);
              }
              canconvert($7.ty, tan->ty, -1);
@@ -614,11 +614,11 @@ rid: ID
 vartypedecl: type rid {
   if (lookup(&functions, $2.str)) {
     char buf[1024];
-    sprintf(buf, "Symbol %s already defined as function", $2.str);
+    snprintf(buf, 1024, "Symbol %s already defined as function", $2.str);
     yyerrorex(3, buf);
   } else if (lookup(&types, $2.str)) {
     char buf[1024];
-    sprintf(buf, "Symbol %s already defined as type", $2.str);
+    snprintf(buf, 1024, "Symbol %s already defined as type", $2.str);
     yyerrorex(3, buf);
   }
   struct typeandname *tan = newtypeandname($1.ty, $2.str);
@@ -643,11 +643,11 @@ vartypedecl: type rid {
   }
   if (lookup(&functions, $3.str)) {
     char buf[1024];
-    sprintf(buf, "Symbol %s already defined as function", $3.str);
+    snprintf(buf, 1024, "Symbol %s already defined as function", $3.str);
     yyerrorex(3, buf);
   } else if (lookup(&types, $3.str)) {
     char buf[1024];
-    sprintf(buf, "Symbol %s already defined as type", $3.str);
+    snprintf(buf, 1024, "Symbol %s already defined as type", $3.str);
     yyerrorex(3, buf);
   }
   struct typeandname *tan = newtypeandname($2.ty, $3.str);
@@ -670,11 +670,11 @@ vartypedecl: type rid {
        | type ARRAY rid {
   if (lookup(&functions, $3.str)) {
     char buf[1024];
-    sprintf(buf, "Symbol %s already defined as function", $3.str);
+    snprintf(buf, 1024, "Symbol %s already defined as function", $3.str);
     yyerrorex(3, buf);
   } else if (lookup(&types, $3.str)) {
     char buf[1024];
-    sprintf(buf, "Symbol %s already defined as type", $3.str);
+    snprintf(buf, 1024, "Symbol %s already defined as type", $3.str);
     yyerrorex(3, buf);
   }
   if (getPrimitiveAncestor($1.ty) == gCode)
@@ -687,13 +687,13 @@ vartypedecl: type rid {
     char buf[1024];
     existing = lookup(&params, $3.str);
     if (afterendglobals && existing) {
-    	sprintf(buf, "Symbol %s already defined as function parameter", $3.str);
+    	snprintf(buf, 1024, "Symbol %s already defined as function parameter", $3.str);
     	yyerrorex(3, buf);
     }
     if (!existing) {
       existing = lookup(&globals, $3.str);
       if (afterendglobals && existing) {
-      	sprintf(buf, "Symbol %s already defined as global variable", $3.str);
+      	snprintf(buf, 1024, "Symbol %s already defined as global variable", $3.str);
       	yyerrorex(3, buf);
       }
     }
@@ -806,11 +806,11 @@ vardecl: vartypedecl NEWLINE {
 typedef: TYPE rid EXTENDS type {
   if (lookup(&types, $2.str)) {
      char buf[1024];
-     sprintf(buf, "Multiply defined type %s", $2.str);
+     snprintf(buf, 1024, "Multiply defined type %s", $2.str);
      yyerrorex(3, buf);
   } else if (lookup(&functions, $2.str)) {
     char buf[1024];
-    sprintf(buf, "%s already defined as function", $2.str);
+    snprintf(buf, 1024, "%s already defined as function", $2.str);
     yyerrorex(3, buf);
   }
   else
@@ -825,8 +825,8 @@ type: primtype { $$.ty = $1.ty; }
   | rid {
    if (lookup(&types, $1.str) == NULL) {
      char buf[1024];
-     sprintf(buf, "Undefined type %s", $1.str);
-     getsuggestions($1.str, buf, 1, &types);
+     snprintf(buf, 1024, "Undefined type %s", $1.str);
+     //getsuggestions($1.str, buf, 1, &types);
      yyerrorex(3, buf);
      $$.ty = gAny;
    }
