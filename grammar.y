@@ -515,7 +515,7 @@ statement:  NEWLINE { $$.ty = gNone; }
                                        }
                                        if (inconstant)
                                          validateGlobalAssignment($2.str);
-                                       if(!lookup(&initialized, $2.str)){
+                                       if(infunction && lookup(curtab, $2.str) && !lookup(&initialized, $2.str)){
                                          put(&initialized, $2.str, (void*)1);
                                        }
 				    }

@@ -55,7 +55,7 @@ void init(int argc, char **argv)
   
   inittable(&functions, 8191);
   inittable(&globals, 8191);
-  inittable(&locals, 11);
+  inittable(&locals, 23);
   inittable(&params, 11);
   inittable(&types, 511);
   inittable(&initialized, 23);
