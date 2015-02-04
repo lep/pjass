@@ -47,16 +47,15 @@ union node {
   struct typeandname *tan;
 };
 
-#define BUCKETS 6841
-
 struct hashnode {
   char *name;
   void *val;
-  struct hashnode *next;
 };
 
 struct hashtable {
-  struct hashnode *h[BUCKETS];
+  size_t size;
+  size_t count;
+  struct hashnode *bucket;
 };
 
 void getsuggestions(const char*, char*, int, int, ...);

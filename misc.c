@@ -35,7 +35,7 @@ int inloop;
 int afterendglobals;
 int *showerrorlevel;
 
-int hashfunc(const char *name);
+uint32_t hashfunc(const char *name, int size);
 struct hashtable functions, globals, locals, params, types, initialized;
 struct hashtable *curtab;
 struct typenode *retval, *retcheck;
@@ -52,17 +52,27 @@ void addPrimitiveType(const char *name, struct typenode **toSave)
 void init(int argc, char **argv)
 {
   int i;
+  
+  inittable(&functions, 8191);
+  inittable(&globals, 8191);
+  inittable(&locals, 11);
+  inittable(&params, 11);
+  inittable(&types, 511);
+  inittable(&initialized, 23);
+
   addPrimitiveType("handle", &gHandle);
   addPrimitiveType("integer", &gInteger);
   addPrimitiveType("real", &gReal);
   addPrimitiveType("boolean", &gBoolean);
   addPrimitiveType("string", &gString);
   addPrimitiveType("code", &gCode);
+
   gNothing = newtypenode("nothing", NULL);
   gNull = newtypenode("null", NULL);
   gAny = newtypenode("any", NULL);
   gNone = newtypenode("none", NULL);
   gEmpty = newtypenode("gempty", NULL);
+  
   curtab = &globals;
   fno = 0;
   strict = 0;
@@ -176,11 +186,9 @@ void getsuggestions(const char *name, char *buff, int buffsize, int nTables, ...
         struct hashtable *ht = va_arg(ap, struct hashtable*);
         
         int x;
-        for(x = 0; x != BUCKETS; x++){
-            struct hashnode *hn;
-            hn = ht->h[x];
-            while (hn) {
-                int dist = editdistance(hn->name, name, cutoff);
+        for(x = 0; x != ht->size; x++){
+            if(ht->bucket[x].name){
+                int dist = editdistance(ht->bucket[x].name, name, cutoff);
                 if(dist <= cutoff){
                     count++;
                     int j;
@@ -193,14 +201,13 @@ void getsuggestions(const char *name, char *buff, int buffsize, int nTables, ...
                                 suggestions[2] = suggestions[1];
                             }
                             suggestions[j].distance = dist;
-                            suggestions[j].name = hn->name;
+                            suggestions[j].name = ht->bucket[x].name;
 
                             break;
                         }
                     }
                     
                 }
-                hn = hn->next;
             }
         }
         
@@ -264,7 +271,7 @@ struct typeandname *newtypeandname(const struct typenode *ty, const char *name)
 struct typenode *newtypenode(const char *typename, const struct typenode *superclass)
 {
   struct typenode *result;
-#if defined __CYGWIN__
+#if defined __CYGWIN__ || defined linux
     result = memalign(8, sizeof(struct typenode));
 #else
     result = _aligned_malloc(8, sizeof(struct typenode));
@@ -349,61 +356,127 @@ void showfuncdecl(struct funcdecl *fd)
 }
 
 
-int hashfunc(const char *name)
-{
-  int h = 0;
-  const unsigned char *s;
-  for (s = name; *s; ++s)
-    h = ((811 * h + (*s)) % 19205861);
-  return ((h % BUCKETS) + BUCKETS) % BUCKETS;
+uint32_t hashfunc(const char *key, int size) {
+//murmur3_32
+	static const uint32_t c1 = 0xcc9e2d51;
+	static const uint32_t c2 = 0x1b873593;
+	static const uint32_t r1 = 15;
+	static const uint32_t r2 = 13;
+	static const uint32_t m = 5;
+	static const uint32_t n = 0xe6546b64;
+ 
+    uint32_t len = strlen(key);
+	uint32_t hash = 0;
+ 
+	const int nblocks = len / 4;
+	const uint32_t *blocks = (const uint32_t *) key;
+	int i;
+	for (i = 0; i < nblocks; i++) {
+		uint32_t k = blocks[i];
+		k *= c1;
+		k = (k << r1) | (k >> (32 - r1));
+		k *= c2;
+ 
+		hash ^= k;
+		hash = ((hash << r2) | (hash >> (32 - r2))) * m + n;
+	}
+ 
+	const uint8_t *tail = (const uint8_t *) (key + nblocks * 4);
+	uint32_t k1 = 0;
+ 
+	switch (len & 3) {
+	case 3:
+		k1 ^= tail[2] << 16;
+	case 2:
+		k1 ^= tail[1] << 8;
+	case 1:
+		k1 ^= tail[0];
+ 
+		k1 *= c1;
+		k1 = (k1 << r1) | (k1 >> (32 - r1));
+		k1 *= c2;
+		hash ^= k1;
+	}
+ 
+	hash ^= len;
+	hash ^= (hash >> 16);
+	hash *= 0x85ebca6b;
+	hash ^= (hash >> 13);
+	hash *= 0xc2b2ae35;
+	hash ^= (hash >> 16);
+ 
+	return hash;
+}
+
+void inittable(struct hashtable *h, int size){
+    h->count = 0;
+    h->size = size;
+    h->bucket = malloc(h->size * sizeof(struct hashnode));
+    memset(h->bucket, 0, h->size * sizeof(struct hashnode));
+    assert(h->count == 0);
+    assert(h->size == size);
 }
 
 void *lookup(struct hashtable *h, const char *name)
 {
-  struct hashnode *hn;
-  int hf = hashfunc(name);
-  hn = h->h[hf];
-  while (hn) {
-    if (strcmp(hn->name, name) == 0)
-      return hn->val;
-    hn = hn->next;
+  int start = hashfunc(name, h->size);
+  int idx = (start + 1) % h->size;
+  for(; idx != start; idx = (idx + 1) % h->size){
+    if(h->bucket[idx].name){
+      if(!strcmp(h->bucket[idx].name, name)){
+        return h->bucket[idx].val;
+      }
+    }else{
+        break;
+    }
   }
   return NULL;
 }
 
+void resize(struct hashtable *h){
+    struct hashtable new;
+    inittable(&new, h->size*2 +1);
+    int i;
+    for(i = 0; i != h->size; i++){
+        if(h->bucket[i].name){
+            put(&new, h->bucket[i].name, h->bucket[i].val);
+        }
+    }
+    free(h->bucket);
+    h->bucket = new.bucket;
+    h->size = new.size;
+    h->count = new.count;
+}
+
 void put(struct hashtable *h, const char *name, void *val)
 {
-  struct hashnode *hn;
-  int hf;
-  
+
   if (lookup(h, name) != NULL) {
     char ebuf[1024];
     snprintf(ebuf, 1024, "Symbol %s multiply defined", name);
     yyerrorline(3, islinebreak ? lineno - 1 : lineno, ebuf);
     return;
   }
-  hf = hashfunc(name);
-  hn = calloc(sizeof(struct hashnode), 1);
-  hn->name = strdup(name);
-  hn->val = val;
-  hn->next = h->h[hf];
-  h->h[hf] = hn;
+  
+  int start = hashfunc(name, h->size);
+  int idx = (start + 1) % h->size;
+  for(; /*idx != start*/; idx = (idx + 1) % h->size){
+    if(!h->bucket[idx].name){
+        h->bucket[idx].name = name;
+        h->bucket[idx].val = val;
+        break;
+    }
+  }
+  h->count++;
+  if(h->count*3/2 > h->size){
+    resize(h);
+  }
 }
 
 void clear(struct hashtable *h)
 {
-  int i;
-  struct hashnode *hn;
-  for (i = 0; i < BUCKETS; ++i) {
-    hn = h->h[i];
-    while (hn) {
-      struct hashnode *tofree = hn;
-      hn = hn->next;
-      free(tofree->name);
-      free(tofree);
-    }
-    h->h[i] = NULL;
-  }
+  memset(h->bucket, 0, h->size*sizeof(struct hashnode));
+  h->count = 0;
 }
 
 struct typenode *binop(const struct typenode *a, const struct typenode *b)
