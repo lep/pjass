@@ -94,10 +94,7 @@ void init(int argc, char **argv)
   }
 }
 
-int min(int a, int b){
-    if(a < b) return a;
-    else return b;
-}
+#define min(a, b) (((a) < (b)) ? (a) : (b))
 
 int abs(int i){
     if(i < 0)
