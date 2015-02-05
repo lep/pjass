@@ -69,9 +69,10 @@ void init(int argc, char **argv)
 
   gNothing = newtypenode("nothing", NULL);
   gNull = newtypenode("null", NULL);
+
   gAny = newtypenode("any", NULL);
   gNone = newtypenode("none", NULL);
-  gEmpty = newtypenode("gempty", NULL);
+  gEmpty = newtypenode("empty", NULL);
   
   curtab = &globals;
   fno = 0;
@@ -408,10 +409,7 @@ uint32_t hashfunc(const char *key, int size) {
 void inittable(struct hashtable *h, int size){
     h->count = 0;
     h->size = size;
-    h->bucket = malloc(h->size * sizeof(struct hashnode));
-    memset(h->bucket, 0, h->size * sizeof(struct hashnode));
-    assert(h->count == 0);
-    assert(h->size == size);
+    h->bucket = calloc(sizeof(struct hashnode), h->size);
 }
 
 void *lookup(struct hashtable *h, const char *name)

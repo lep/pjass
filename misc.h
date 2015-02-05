@@ -10,9 +10,6 @@
 #define YYDEBUG 1
 
 #define BUFSIZE 8192
-#define MAYBE 0
-#define NO 1
-#define YES 2
 
 struct typenode {
   char *typename;
