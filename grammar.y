@@ -495,7 +495,7 @@ codeblock: /* empty */ { $$.ty = gEmpty; }
 ;
 
 statement:  NEWLINE { $$.ty = gEmpty; }
-       | CALL funccall NEWLINE{ $$.ty = gNone;}
+       | CALL funccall NEWLINE{ $$.ty = gAny;}
        /*1    2    3     4        5        6        7      8      9 */
        | IF expr THEN NEWLINE codeblock elsifseq elseseq ENDIF NEWLINE {
             canconvert($2.ty, gBoolean, -1);
@@ -507,7 +507,7 @@ statement:  NEWLINE { $$.ty = gEmpty; }
                                          yyerrorline(3, lineno - 1,  ebuf);
                                        }
                                        canconvert($4.ty, getVariable($2.str)->ty, -1);
-                                       $$.ty = gNone;
+                                       $$.ty = gAny;
                                        if (getVariable($2.str)->isconst) {
                                          char ebuf[1024];
                                          snprintf(ebuf, 1024, "Cannot assign to constant %s", $2.str);
@@ -521,7 +521,7 @@ statement:  NEWLINE { $$.ty = gEmpty; }
 				    }
        | SET rid LBRACKET expr RBRACKET EQUALS expr NEWLINE{ 
            const struct typeandname *tan = getVariable($2.str);
-           $$.ty = gNone;
+           $$.ty = gAny;
            if (tan->ty != gAny) {
              canconvert($4.ty, gInteger, -1);
              if (!tan->isarray) {
@@ -536,7 +536,7 @@ statement:  NEWLINE { $$.ty = gEmpty; }
            }
        | loopstart NEWLINE codeblock loopend NEWLINE {$$.ty = $3.ty;}
        | loopstart NEWLINE codeblock {$$.ty = $3.ty; yyerrorex(0, "Missing endloop");}
-       | EXITWHEN expr NEWLINE { canconvert($2.ty, gBoolean, -1); if (!inloop) yyerrorline(0, lineno - 1, "Exitwhen outside of loop"); $$.ty = gNone;}
+       | EXITWHEN expr NEWLINE { canconvert($2.ty, gBoolean, -1); if (!inloop) yyerrorline(0, lineno - 1, "Exitwhen outside of loop"); $$.ty = gAny;}
        | RETURN expr NEWLINE {
             $$.ty = mkretty($2.ty, 1);
             if(retval == gNothing)
@@ -549,7 +549,7 @@ statement:  NEWLINE { $$.ty = gEmpty; }
                 yyerrorline(1, lineno - 1, "Return nothing in function that should return value");
                 $$.ty = mkretty(gAny, 1);
             }
-       | DEBUG statement {$$.ty = gNone;}
+       | DEBUG statement {$$.ty = gAny;}
        /*1    2   3      4        5         6        7 */
        | IF expr THEN NEWLINE codeblock elsifseq elseseq {
             canconvert($2.ty, gBoolean, -1);
@@ -561,9 +561,9 @@ statement:  NEWLINE { $$.ty = gEmpty; }
             $$.ty = gAny;
             yyerrorex(0, "Missing then or non valid expression");
         }
-       | SET funccall NEWLINE{$$.ty = gNone; yyerrorline(0, lineno - 1, "Call expected instead of set");}
+       | SET funccall NEWLINE{$$.ty = gAny; yyerrorline(0, lineno - 1, "Call expected instead of set");}
        | lvardecl {yyerrorex(0, "Local declaration after first statement");}
-       | error {$$.ty = gNone; }
+       | error {$$.ty = gAny; }
 ;
 
 loopstart: LOOP {inloop++;}
