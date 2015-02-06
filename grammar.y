@@ -572,7 +572,7 @@ loopstart: LOOP {inloop++;}
 loopend: ENDLOOP {inloop--;}
 ;
 
-elseseq: /* empty */ { $$.ty = gNone; }
+elseseq: /* empty */ { $$.ty = gAny; }
         | ELSE NEWLINE codeblock {
             $$.ty = $3.ty;
         }
@@ -585,7 +585,7 @@ elsifseq: /* empty */ { $$.ty = mkretty(gEmpty, 1); }
             
             if(typeeq($6.ty, gEmpty)){
                 if(typeeq($5.ty, gEmpty)){
-                    $$.ty = mkretty(gNone, 0);
+                    $$.ty = mkretty(gAny, 0);
                 }else{
                     $$.ty = $5.ty;
                 }
