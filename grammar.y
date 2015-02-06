@@ -490,11 +490,11 @@ codeblock: /* empty */ { $$.ty = gEmpty; }
             if(typeeq($2.ty, gEmpty))
                 $$.ty = $1.ty;
             else
-                $$.ty = $2.ty;
+                $$.ty = mkretty($2.ty, getTypeTag($1.ty) || getTypeTag($2.ty) );
         }
 ;
 
-statement:  NEWLINE { $$.ty = gNone; }
+statement:  NEWLINE { $$.ty = gEmpty; }
        | CALL funccall NEWLINE{ $$.ty = gNone;}
        /*1    2    3     4        5        6        7      8      9 */
        | IF expr THEN NEWLINE codeblock elsifseq elseseq ENDIF NEWLINE {
