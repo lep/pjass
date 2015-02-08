@@ -13,6 +13,10 @@ int yywrap()
 	return 1;
 }
 
+int rawcodelen;
+int rawcodespecial;
+int rawcodestartline;
+
 #include "grammar.tab.h" 
 #include "misc.h"
 
@@ -27,7 +31,8 @@ ID       [a-zA-Z]([a-zA-Z0-9_]*[a-zA-Z0-9])?
 SPACE    [ \t]
 TABS     [\x01-\x09\x0B\x0C\x0E-\x1F]
 STRINGSTART ["]
-RAWCODESTART [']
+
+%x RAWCODE
 
 %%
 
@@ -40,38 +45,36 @@ RAWCODESTART [']
     return NEWLINE;
 }
 
-{RAWCODESTART} {
-    int prevChar = 0;
-    int curChar = input();
-    int special = 0;
-    int count = 0;
-    for(;;){
-        if (prevChar == '\r' && curChar != '\r') {
-            lineno++;
-        }
-        if(curChar == EOF){
-            break;
-        }else if (prevChar == '\\'){
-            if(count != 1){
-                yyerrorline(3, lineno, "Escaped chars are only allowed if they are the only char in the rawcode.");
-            }else{
-                if (curChar != 'b' && curChar != 't' && curChar != 'r' && curChar != 'n' &&  curChar != 'f' && curChar != '\'' && curChar != '\\')
-                    yyerrorline(3, lineno, "Invalid escape character sequence");
-                curChar = 0;
-                special = 1;
-            }
-        }else if (curChar == '\''){
-            if(count != 4 && count - special != 1){
-                yyerrorline(3, lineno, "Rawcodes must be 1 or 4 characters.");
-            }
-            break;
-        }
-        count++;
-        prevChar = curChar;
-        curChar = input();
+[']\\[btrnf"\\]['] { return UNITTYPEINT; }
+[']\\.['] {
+        yyerrorline(3, lineno, "Invalid escape character sequence");
+        return UNITTYPEINT; 
     }
-    return UNITTYPEINT;
-}
+
+['] {
+        BEGIN(RAWCODE);
+        rawcodelen = 0;
+        rawcodestartline = lineno;
+    }
+<RAWCODE>['] {
+        if(rawcodelen != 4 && rawcodelen != 1){
+            yyerrorline(3, rawcodestartline, "Rawcodes must consist of 1 or 4 characters");
+        }
+        BEGIN(INITIAL);
+        return UNITTYPEINT;
+    }
+
+<RAWCODE>\\[btrnf"\\] {
+        rawcodelen++;
+        yyerrorline(3, rawcodestartline, "Escaped chars are only allowed if they are the only char in the rawcode.");
+    }
+<RAWCODE>\\. {
+        yyerrorline(3, lineno, "Invalid escape character sequence");
+        rawcodelen++;
+    }
+<RAWCODE>\r*\n { lineno++; isconstant = 0; rawcodelen += strlen(yytext) ;}
+<RAWCODE>.  { rawcodelen++; }
+
 
 {STRINGSTART} {  int prevChar = 0;
                  int curChar = input();

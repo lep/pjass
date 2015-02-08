@@ -75,7 +75,7 @@ int canconvert(const struct typenode *from, const struct typenode *to, const int
 int canconvertreturn(const struct typenode *from, const struct typenode *to, const int linemod);
 struct typenode* mkretty(struct typenode *ty, int ret);
 struct typenode* getTypePtr(struct typenode *ty);
-getTypeTag(struct typenode *ty);
+int getTypeTag(struct typenode *ty);
 int typeeq(struct typenode*, struct typenode*);
 struct typenode *combinetype(struct typenode *n1, struct typenode *n2);
 void checkParameters(const struct paramlist *func, const struct paramlist *inp);

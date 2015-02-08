@@ -35,7 +35,8 @@ int inloop;
 int afterendglobals;
 int *showerrorlevel;
 
-uint32_t hashfunc(const char *name, int size);
+uint32_t hashfunc(const char *name);
+void inittable(struct hashtable*, int);
 struct hashtable functions, globals, locals, params, types, initialized;
 struct hashtable *curtab;
 struct typenode *retval, *retcheck;
@@ -360,7 +361,7 @@ void showfuncdecl(struct funcdecl *fd)
 }
 
 
-uint32_t hashfunc(const char *key, int size) {
+uint32_t hashfunc(const char *key) {
 //murmur3_32
 	static const uint32_t c1 = 0xcc9e2d51;
 	static const uint32_t c2 = 0x1b873593;
@@ -420,7 +421,7 @@ void inittable(struct hashtable *h, int size){
 
 void *lookup(struct hashtable *h, const char *name)
 {
-  int start = hashfunc(name, h->size);
+  int start = hashfunc(name);
   int idx = (start + 1) % h->size;
   for(; idx != start; idx = (idx + 1) % h->size){
     if(h->bucket[idx].name){
@@ -459,7 +460,7 @@ void put(struct hashtable *h, const char *name, void *val)
     return;
   }
   
-  int start = hashfunc(name, h->size);
+  int start = hashfunc(name);
   int idx = (start + 1) % h->size;
   for(; /*idx != start*/; idx = (idx + 1) % h->size){
     if(!h->bucket[idx].name){

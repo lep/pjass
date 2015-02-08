@@ -11,23 +11,21 @@
 
 #define YYMAXDEPTH 100000
 
-int yyerrorline (int errorlevel, int line, char *s)
+void yyerrorline (int errorlevel, int line, char *s)
 {
   if (showerrorlevel[errorlevel]) {
     haderrors++;
     printf ("%s:%d: %s\n", curfile, line, s);
-    return 0;
   }
   else
     ignorederrors++;
 }
 
-int yyerrorex (int errorlevel, char *s)
+void yyerrorex (int errorlevel, char *s)
 {
   if (showerrorlevel[errorlevel]) {
     haderrors++;
     printf ("%s:%d: %s\n", curfile, lineno, s);
-    return 0;
   }
   else
     ignorederrors++;
