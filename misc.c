@@ -186,6 +186,11 @@ void getsuggestions(const char *name, char *buff, int buffsize, int nTables, ...
         int x;
         for(x = 0; x != ht->size; x++){
             if(ht->bucket[x].name){
+                const struct typeandname *tan = ht->bucket[x].val;
+                if(typeeq(tan->ty, gAny)){
+                    continue;
+                }
+                
                 int dist = editdistance(ht->bucket[x].name, name, cutoff);
                 if(dist <= cutoff){
                     count++;
@@ -240,11 +245,12 @@ const struct typeandname *getVariable(const char *varname)
   getsuggestions(varname, ebuf, 1024, 3, &locals, &params, &globals);
   yyerrorline(2, islinebreak ? lineno - 1 : lineno, ebuf);
   // Store it as unidentified variable
-  put(curtab, varname, newtypeandname(gAny, varname));
-  if(infunction && lookup(curtab, varname) && !lookup(&initialized, varname)){
+  const struct typeandname *newtan = newtypeandname(gAny, varname);
+  put(curtab, varname, newtan);
+  if(infunction && !lookup(&initialized, varname)){
     put(&initialized, varname, (void*)1);
   }
-  return getVariable(varname);
+  return newtan;
 }
 
 void validateGlobalAssignment(const char *varname) {
