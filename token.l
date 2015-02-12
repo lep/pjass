@@ -30,9 +30,10 @@ HEXDIGIT [0-9a-fA-F]
 ID       [a-zA-Z]([a-zA-Z0-9_]*[a-zA-Z0-9])?
 SPACE    [ \t]
 TABS     [\x01-\x09\x0B\x0C\x0E-\x1F]
-STRINGSTART ["]
+
 
 %x RAWCODE
+%x INSTRING
 
 %%
 
@@ -45,7 +46,7 @@ STRINGSTART ["]
     return NEWLINE;
 }
 
-[']\\[btrnf"\\]['] { return UNITTYPEINT; }
+[']\\[btrnf\\]['] { return UNITTYPEINT; }
 [']\\.['] {
         yyerrorline(3, lineno, "Invalid escape character sequence");
         return UNITTYPEINT; 
@@ -72,31 +73,18 @@ STRINGSTART ["]
         yyerrorline(3, lineno, "Invalid escape character sequence");
         rawcodelen++;
     }
-<RAWCODE>\r*\n { lineno++; isconstant = 0; rawcodelen += strlen(yytext) ;}
+<RAWCODE>\r?\n { lineno++; isconstant = 0; rawcodelen += strlen(yytext); }
+<RAWCODE>\r { lineno++; isconstant = 0; rawcodelen++; }
 <RAWCODE>.  { rawcodelen++; }
 
+["] { BEGIN(INSTRING); }
+<INSTRING>["] { BEGIN(INITIAL); return STRINGLIT; }
+<INSTRING>\\[btrnf"\\] { }
+<INSTRING>\\. { yyerrorline(3, lineno, "Invalid escape character sequence"); }
+<INSTRING>\r?\n { lineno++; isconstant = 0; }
+<INSTRING>\r { lineno++; isconstant = 0; }
+<INSTRING>. {}
 
-{STRINGSTART} {  int prevChar = 0;
-                 int curChar = input();
-                 islinebreak = 0;
-                 for (;;) {
-                   if (prevChar == '\r' && curChar != '\r') {
-                     lineno++; isconstant = 0;
-                   }
-                   if (curChar == EOF)
-                     break;
-                   else if (prevChar == '\\') {
-                     if (curChar != 'b' && curChar != 't' && curChar != 'r' && curChar != 'n' &&  curChar != 'f' && curChar != '\"' && curChar != '\\')
-                       yyerrorline(3, lineno, "Invalid escape character sequence");
-                     curChar = 0;
-                   } else if (curChar == '\"') {
-                     break;
-                   }
-                   prevChar = curChar;
-                   curChar = input();
-                 }
-                 return STRINGLIT;
-              }
 
 {NEWLINE} lineno++; islinebreak=1; isconstant=0; return NEWLINE;
 
@@ -166,7 +154,7 @@ STRINGSTART ["]
 [ \t]+          /* eat up whitespace */
 [\x01-\x09\x0B\x0C\x0E-\x1F]+    /* eat up tabs */
 
-.            if (1) { char ebuf[1024]; sprintf(ebuf, "Unrecognized character %s (ASCII %d)", yytext, yytext[0] ); yyerrorline(3, lineno, ebuf); }
+.            if (1) { char ebuf[1024]; sprintf(ebuf, "Unrecognized character %s (ASCII %d)", yytext, (unsigned char)yytext[0] ); yyerrorline(3, lineno, ebuf); }
 
 %%
 
