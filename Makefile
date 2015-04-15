@@ -1,37 +1,19 @@
-CC=gcc.exe
-RESHCK=Reshack\Reshacker.exe
+CC=gcc
+CFLAGS=-w
+
+.PHONY: all
 
 all:  pjass
 
-pjass: lex.yy.c grammar.tab.c grammar.tab.h misc.o
-	$(CC) lex.yy.c grammar.tab.c misc.c -o $@ -O2 -mno-cygwin
-	$(RESHCK) -addskip $@.exe, $@.exe, pjass.res ,,,
+pjass: lex.yy.c grammar.tab.c grammar.tab.h misc.c misc.h
+	$(CC) $(CFLAGS) lex.yy.c grammar.tab.c misc.c -o $@ -O2 -DVERSIONSTR="\"git-$(shell git rev-parse --short HEAD)\""
+
 
 lex.yy.c: token.l
 	flex $<
 
-grammar.tab.c: grammar.y
-	bison -o grammar.tab.c $<
-
-grammar.tab.h: grammar.y
-	bison -d -o grammar.tab $<
-
-%.o: %.c
-	$(CC) $< -c
+%.tab.c %.tab.h: grammar.y
+	bison -d $<
 
 clean:
-	del grammar.tab.h
-	del grammar.tab.c
-	del lex.yy.c
-	del misc.o
-	del pjass.exe
-
-t:
-	./pjass <t.txt
-
-package:
-	tar Ccvfz ../ jass2.tar.gz  jass2/Makefile jass2/grammar.y jass2/token.l jass2/misc.c jass2/misc.h jass2/readme.txt
-
-binpackage:
-	rm -f PJASS.zip ; pkzip -a pjass.zip ../doc/readme.txt ./pjass.exe ; mv -f PJASS.zip pjass-bin-091-win32.zip
-
+	rm grammar.tab.h grammar.tab.c lex.yy.c pjass.exe

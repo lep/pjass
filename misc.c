@@ -321,7 +321,7 @@ int isDerivedFrom(const struct typenode *cur, const struct typenode *base)
   do {
     if (typeeq(cur, base)) return 1;
     cur = getTypePtr(cur)->superclass;
-  } while (cur);
+  } while (getTypePtr(cur));
   return 0;
 }
 
@@ -536,22 +536,27 @@ int canconvert(const struct typenode *ufrom, const struct typenode *uto, const i
 }
 
 // this is used for return statements only
-int canconvertreturn(const struct typenode *ufrom, const struct typenode *uto, const int linemod)
+void canconvertreturn(const struct typenode *ufrom, const struct typenode *uto, const int linemod)
 {
   const struct typenode *from = ufrom, *to = uto;
   char ebuf[1024];
   if (from == NULL || to == NULL)
-	  return 0; // garbage
+	  return; // garbage
+  
   if (typeeq(from, gAny) || typeeq(to, gAny))
-	  return 1; // we don't care
+	  return; // we don't care
+  
   if (isDerivedFrom(from, to))
-    return 1; // eg. from = unit, to = handle
+    return; // eg. from = unit, to = handle
+
   //if (isDerivedFrom(to, from))
   //  return 1; // blizzard bug allows downcasting erroneously, we don't support this though
   if (getTypePtr(from)->typename == NULL || getTypePtr(to)->typename == NULL)
-	  return 0; // garbage
+	  return; // garbage
+  
   if (typeeq(from, gNone) || typeeq(to, gNone))
-	  return 0; // garbage
+	  return; // garbage
+  
 
   from = getPrimitiveAncestor(from);
   to = getPrimitiveAncestor(to);
@@ -559,20 +564,22 @@ int canconvertreturn(const struct typenode *ufrom, const struct typenode *uto, c
 	// can't return integer when it expects a real (added 9.5.2005)
     snprintf(ebuf, 1024, "Cannot convert returned value from %s to %s", getTypePtr(from)->typename, getTypePtr(to)->typename);
     yyerrorline(1, lineno + linemod, ebuf);
-    return 0;
+    return;
   }
+  
   if ((typeeq(from, gNull)) && (!typeeq(to, gInteger)) && (!typeeq(to, gReal)) && (!typeeq(to, gBoolean)))
-    return 1; // can't return null when it expects integer, real or boolean (added 9.5.2005)
+    return; // can't return null when it expects integer, real or boolean (added 9.5.2005)
   
   if (strict) {
-    if (isDerivedFrom(uto, ufrom))
-      return 1;
-  } else if (typeeq(from, to))
-    return 1;
-    
+    if (isDerivedFrom(ufrom, uto))
+      return;
+  } else if (typeeq(ufrom, uto)){
+    return;
+  }
+  
   snprintf(ebuf, 1024, "Cannot convert returned value from %s to %s", getTypePtr(ufrom)->typename, getTypePtr(uto)->typename);
   yyerrorline(1, lineno + linemod, ebuf);
-  return 0;
+  return;
 }
 
 struct typenode* mkretty(struct typenode *ty, int ret){

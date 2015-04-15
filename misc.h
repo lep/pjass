@@ -72,7 +72,7 @@ struct funcdecl *newfuncdecl();
 void showfuncdecl(struct funcdecl *fd);
 struct typenode *binop(const struct typenode *a, const struct typenode *b);
 int canconvert(const struct typenode *from, const struct typenode *to, const int linemod);
-int canconvertreturn(const struct typenode *from, const struct typenode *to, const int linemod);
+void canconvertreturn(const struct typenode *from, const struct typenode *to, const int linemod);
 struct typenode* mkretty(struct typenode *ty, int ret);
 struct typenode* getTypePtr(struct typenode *ty);
 int getTypeTag(struct typenode *ty);
