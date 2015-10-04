@@ -14,7 +14,7 @@ pjass: lex.yy.c grammar.tab.c grammar.tab.h misc.c misc.h
 lex.yy.c: token.l
 	flex $<
 
-%.tab.c %.tab.h: grammar.y
+%.tab.c %.tab.h: %.y
 	bison -d $<
 
 clean:
@@ -27,4 +27,7 @@ pjass-git-$(VERSION)-src.zip: grammar.y token.l misc.c misc.h Makefile notes.txt
 	zip -q pjass-git-$(VERSION)-src.zip $^
 
 pjass-git-$(VERSION).zip: pjass
+#ResourceHacker -addskip pjass.exe pjass.exe, pjass.res ,,,
+	strip pjass.exe
+	upx --best pjass.exe > /dev/null
 	zip -q pjass-git-$(VERSION).zip pjass.exe
