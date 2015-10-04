@@ -38,18 +38,22 @@ TABS     [\x01-\x09\x0B\x0C\x0E-\x1F]
 %%
 
 {COMMENTSTART} {
-    char buf[4] = {0};
+    char buf[5] = {0};
+    int pos = 0;
     int len = 0;
     int c;
     for(c = input(); !(c == '\n' || c == EOF); c = input()){
-        if(c != '\r' && len < sizeof(buf)-1)
-            buf[len++] = c;
+        if(c == '\r' || c == '\t' || c == ' ')
+            continue;
+        len++;
+        if(pos < sizeof(buf)-1)
+            buf[pos++] = c;
     }
     lineno++;
     islinebreak = 1;
     isconstant = 0;
 
-    if(!strcmp(buf, "+rb")){
+    if(len == strlen("!+rb") && !strcmp(buf, "!+rb")){
         return RETURNBUG;
     }else{
         return NEWLINE;
