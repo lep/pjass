@@ -38,14 +38,14 @@ pjass-git-$(VERSION).zip: pjass
 SHOULD_FAIL:=$(wildcard ../pjass-tests/should-fail/*.j)
 SHOULD_CHECK:=$(wildcard ../pjass-tests/should-check/*.j)
 
-test: pjass test_check test_fail
+test: test_check test_fail
 
-test_check:
+test_check: pjass
 	@for file in $(SHOULD_CHECK); do \
 		./check.sh "$$file" ; \
 	done
 
-test_fail:
+test_fail: pjass
 	@for file in $(SHOULD_FAIL); do \
 		./fail.sh "$$file" ; \
 	done
