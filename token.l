@@ -38,30 +38,22 @@ TABS     [\x01-\x09\x0B\x0C\x0E-\x1F]
 %%
 
 {COMMENTSTART} {
-    char *buf = malloc(512);
-	memset(buf, 0, 512);
-	int size = 512;
-	int len = 0;
+    char buf[4] = {0};
+    int len = 0;
     int c;
     for(c = input(); !(c == '\n' || c == EOF); c = input()){
-        if(len == size){
-			buf = realloc(buf, 2*size);
-			size*=2;
-		}
-		if(c != '\r')
-			buf[len++] = c;
+        if(c != '\r' && len < sizeof(buf)-1)
+            buf[len++] = c;
     }
     lineno++;
     islinebreak = 1;
     isconstant = 0;
 
-	if(!strcmp(buf, "+rb")){
-		free(buf);
-		return RETURNBUG;
-	}else{
-		free(buf);
-		return NEWLINE;
-	}
+    if(!strcmp(buf, "+rb")){
+        return RETURNBUG;
+    }else{
+        return NEWLINE;
+    }
 }
 
 [']\\[btrnf\\]['] { return UNITTYPEINT; }
