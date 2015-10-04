@@ -30,6 +30,7 @@ int infunction;
 int inblock;
 int strict;
 int returnbug;
+int prevreturnbug;
 int didparse;
 int inloop;
 int afterendglobals;
@@ -79,6 +80,7 @@ void init(int argc, char **argv)
   fno = 0;
   strict = 0;
   returnbug = 0;
+  prevreturnbug = 0;
   haderrors = 0;
   ignorederrors = 0;
   islinebreak = 1;

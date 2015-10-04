@@ -89,6 +89,7 @@ extern int didparse;
 extern int inloop;
 extern int strict;
 extern int returnbug;
+extern int prevreturnbug;
 extern int afterendglobals;
 extern char *yytext;
 extern const char *curfile;

@@ -37,17 +37,15 @@ TABS     [\x01-\x09\x0B\x0C\x0E-\x1F]
 
 %%
 
+"//+rb" return RETURNBUG;
+
 {COMMENTSTART} {
-    int c = input();
-    for(; !(c == '\n' || c == EOF); c = input()) ;
+    int c;
+    for(c = input(); !(c == '\n' || c == EOF); c = input()) ;
     lineno++;
     islinebreak = 1;
     isconstant = 0;
-
-    if(c == '#')
-        return DERECTIVE;
-    else
-        return NEWLINE;
+    return NEWLINE;
 }
 
 [']\\[btrnf\\]['] { return UNITTYPEINT; }
