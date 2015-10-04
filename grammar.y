@@ -130,6 +130,7 @@ int main(int argc, char **argv)
 %token INTLIT
 %token REALLIT
 %token UNITTYPEINT
+%token DERECTIVE
 
 %right EQUALS
 %left AND
@@ -140,6 +141,8 @@ int main(int argc, char **argv)
 %left TIMES DIV
 
 %%
+
+
 
 program: topscopes globdefs topscopes funcdefns
 ;
@@ -157,7 +160,7 @@ funcdefns: /* empty */
 ;
 
 globdefs: /* empty */
-         | GLOBALS NEWLINE vardecls ENDGLOBALS endglobalsmarker
+         | GLOBALS newline vardecls ENDGLOBALS endglobalsmarker
          | GLOBALS vardecls ENDGLOBALS endglobalsmarker {yyerrorline(0, lineno - 1, "Missing linebreak before global declaration");}
 ;
 
@@ -168,7 +171,7 @@ vardecls: /* empty */
          | vd vardecls
 ;
 
-vd:      NEWLINE
+vd:      newline
        | vardecl
 ;
 
@@ -176,7 +179,7 @@ funcdecls: /* empty */
          | fd funcdecls
 ;
 
-fd:      NEWLINE
+fd:      newline
        | funcdecl
 ;
 
@@ -184,7 +187,7 @@ typedefs:  /* empty */
          | td typedefs
 ;
 
-td:      NEWLINE
+td:      newline
        | typedef
 ;
 
@@ -302,7 +305,7 @@ funccall: rid LPAREN exprlistcompl RPAREN {
             $$.ty = fd->ret;
           }
        }
-       |  rid LPAREN exprlistcompl NEWLINE {
+       |  rid LPAREN exprlistcompl newline {
           yyerrorex(0, "Missing ')'");
           struct funcdecl *fd = lookup(&functions, $1.str);
           if (fd == NULL) {
@@ -379,21 +382,24 @@ nativefuncdecl: NATIVE rid TAKES optparam_list RETURNS opttype
 }
 ;
 
-funcdefn: NEWLINE
+funcdefn: newline
        | funcdefncore
        | statement { yyerrorex(0, "Statement outside of function"); }
 ;
 
-funcdefncore: funcbegin localblock codeblock funcend {
+derectives: /* empty */
+          | DERECTIVE derectives
+;
+
+funcdefncore: derectives funcbegin localblock codeblock funcend {
             if(retval != gNothing) {
-                //if ($3.ty == gAny || $3.ty == gNone)
-                if(!getTypeTag($3.ty))
+                if(!getTypeTag($4.ty))
                     yyerrorline(1, lineno - 1, "Missing return");
                 else if (returnbug)
-                    canconvertreturn($3.ty, retval, -1);
+                    canconvertreturn($4.ty, retval, -1);
             }
         }
-       | funcbegin localblock codeblock {yyerrorex(0, "Missing endfunction"); clear(&params); clear(&locals); clear(&initialized); curtab = &globals;}
+       | derectives funcbegin localblock codeblock {yyerrorex(0, "Missing endfunction"); clear(&params); clear(&locals); clear(&initialized); curtab = &globals;}
 ;
 
 funcend: ENDFUNCTION { clear(&params); clear(&locals); clear(&initialized); curtab = &globals; inblock = 0; inconstant = 0; infunction = 0; }
@@ -492,14 +498,14 @@ codeblock: /* empty */ { $$.ty = gEmpty; }
         }
 ;
 
-statement:  NEWLINE { $$.ty = gEmpty; }
-       | CALL funccall NEWLINE{ $$.ty = gAny;}
+statement:  newline { $$.ty = gEmpty; }
+       | CALL funccall newline{ $$.ty = gAny;}
        /*1    2    3     4        5        6        7      8      9 */
-       | IF expr THEN NEWLINE codeblock elsifseq elseseq ENDIF NEWLINE {
+       | IF expr THEN newline codeblock elsifseq elseseq ENDIF newline {
             canconvert($2.ty, gBoolean, -1);
             $$.ty = combinetype($5.ty, combinetype($6.ty, $7.ty));
        }
-       | SET rid EQUALS expr NEWLINE { if (getVariable($2.str)->isarray) {
+       | SET rid EQUALS expr newline { if (getVariable($2.str)->isarray) {
                                          char ebuf[1024];
                                          snprintf(ebuf, 1024, "Index missing for array variable %s", $2.str);
                                          yyerrorline(3, lineno - 1,  ebuf);
@@ -517,7 +523,7 @@ statement:  NEWLINE { $$.ty = gEmpty; }
                                          put(&initialized, $2.str, (void*)1);
                                        }
 				    }
-       | SET rid LBRACKET expr RBRACKET EQUALS expr NEWLINE{ 
+       | SET rid LBRACKET expr RBRACKET EQUALS expr newline{ 
            const struct typeandname *tan = getVariable($2.str);
            $$.ty = gAny;
            if (tan->ty != gAny) {
@@ -532,34 +538,34 @@ statement:  NEWLINE { $$.ty = gEmpty; }
                validateGlobalAssignment($2.str);
              }
            }
-       | loopstart NEWLINE codeblock loopend NEWLINE {$$.ty = $3.ty;}
-       | loopstart NEWLINE codeblock {$$.ty = $3.ty; yyerrorex(0, "Missing endloop");}
-       | EXITWHEN expr NEWLINE { canconvert($2.ty, gBoolean, -1); if (!inloop) yyerrorline(0, lineno - 1, "Exitwhen outside of loop"); $$.ty = gAny;}
-       | RETURN expr NEWLINE {
+       | loopstart newline codeblock loopend newline {$$.ty = $3.ty;}
+       | loopstart newline codeblock {$$.ty = $3.ty; yyerrorex(0, "Missing endloop");}
+       | EXITWHEN expr newline { canconvert($2.ty, gBoolean, -1); if (!inloop) yyerrorline(0, lineno - 1, "Exitwhen outside of loop"); $$.ty = gAny;}
+       | RETURN expr newline {
             $$.ty = mkretty($2.ty, 1);
             if(retval == gNothing)
                 yyerrorline(1, lineno - 1, "Cannot return value from function that returns nothing");
             else if (!returnbug)
                 canconvertreturn($2.ty, retval, 0);
          }
-       | RETURN NEWLINE {
+       | RETURN newline {
             if (retval != gNothing)
                 yyerrorline(1, lineno - 1, "Return nothing in function that should return value");
                 $$.ty = mkretty(gAny, 1);
             }
        | DEBUG statement {$$.ty = gAny;}
        /*1    2   3      4        5         6        7 */
-       | IF expr THEN NEWLINE codeblock elsifseq elseseq {
+       | IF expr THEN newline codeblock elsifseq elseseq {
             canconvert($2.ty, gBoolean, -1);
             $$.ty = combinetype($5.ty, combinetype($6.ty, $7.ty));
             yyerrorex(0, "Missing endif");
         }
-       | IF expr NEWLINE {
+       | IF expr newline {
             canconvert($2.ty, gBoolean, -1);
             $$.ty = gAny;
             yyerrorex(0, "Missing then or non valid expression");
         }
-       | SET funccall NEWLINE{$$.ty = gAny; yyerrorline(0, lineno - 1, "Call expected instead of set");}
+       | SET funccall newline{$$.ty = gAny; yyerrorline(0, lineno - 1, "Call expected instead of set");}
        | lvardecl {yyerrorex(0, "Local declaration after first statement");}
        | error {$$.ty = gAny; }
 ;
@@ -571,14 +577,14 @@ loopend: ENDLOOP {inloop--;}
 ;
 
 elseseq: /* empty */ { $$.ty = gAny; }
-        | ELSE NEWLINE codeblock {
+        | ELSE newline codeblock {
             $$.ty = $3.ty;
         }
 ;
 
 elsifseq: /* empty */ { $$.ty = mkretty(gEmpty, 1); }
         /*   1     2    3    4         5         6 */
-        | ELSEIF expr THEN NEWLINE codeblock elsifseq {
+        | ELSEIF expr THEN newline codeblock elsifseq {
             canconvert($2.ty, gBoolean, -1);
             
             if(typeeq($6.ty, gEmpty)){
@@ -769,7 +775,7 @@ vartypedecl: type rid {
 
 localblock: endlocalsmarker
         | lvardecl localblock
-        | NEWLINE localblock
+        | newline localblock
 ;
 
 endlocalsmarker: /* empty */ { fCurrent = 0; }
@@ -780,14 +786,14 @@ lvardecl: LOCAL vardecl { }
         | typedef { yyerrorex(3,"Types can not be extended inside functions"); }
 ;
 
-vardecl: vartypedecl NEWLINE {
+vardecl: vartypedecl newline {
              const struct typeandname *tan = getVariable($1.str);
              if (tan->isconst) {
                yyerrorline(3, lineno - 1, "Constants must be initialized");
              }
              $$.ty = gNothing;
            }
-        |  vartypedecl EQUALS expr NEWLINE {
+        |  vartypedecl EQUALS expr newline {
              const struct typeandname *tan = getVariable($1.str);
              if (tan->isarray) {
                yyerrorex(3, "Arrays cannot be directly initialized");
@@ -841,3 +847,6 @@ primtype: HANDLE  { $$.ty = lookup(&types, yytext); }
  | CODE           { $$.ty = lookup(&types, yytext); }
 ;
 
+newline: NEWLINE
+       | DERECTIVE
+;
