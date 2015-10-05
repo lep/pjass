@@ -1,4 +1,3 @@
-CC=gcc
 CFLAGS=-w -O2
 
 VERSION:=$(shell git rev-parse --short HEAD)
@@ -33,19 +32,23 @@ pjass-git-$(VERSION).zip: pjass
 	zip -q pjass-git-$(VERSION).zip pjass.exe
 
 
-.PHONY: test test_check test_fail
+.PHONY: test test-check test-fail print-testing
 
-SHOULD_FAIL:=$(wildcard ../pjass-tests/should-fail/*.j)
-SHOULD_CHECK:=$(wildcard ../pjass-tests/should-check/*.j)
+SHOULD_FAIL=$(wildcard tests/should-fail/*.j)
+SHOULD_CHECK=$(wildcard tests/should-check/*.j)
 
-test: test_check test_fail
+test: test-check test-fail
+	@echo ' Done'
 
-test_check: pjass
+print-testing: pjass
+	@echo -n Testing...
+
+test-check: print-testing
 	@for file in $(SHOULD_CHECK); do \
 		./check.sh "$$file" ; \
 	done
 
-test_fail: pjass
+test-fail: print-testing
 	@for file in $(SHOULD_FAIL); do \
 		./fail.sh "$$file" ; \
 	done
