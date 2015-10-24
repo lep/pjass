@@ -1,14 +1,36 @@
-CFLAGS=-w -O2
+CFLAGS = -w -O3 -flto -Os
+VERSION := $(shell git rev-parse --short HEAD)
 
-VERSION:=$(shell git rev-parse --short HEAD)
+# when testing and releasing, we can't run both in parallel
+# but we also don't want to test when we're just making the zip
+# so this rule depends on test just when we're both releasing and testing
+ifneq (,$(findstring release,$(MAKECMDGOALS)))
+  ifneq (,$(findstring test,$(MAKECMDGOALS)))
 
-.PHONY: all release clean
+pjass-git-$(VERSION).zip: | test
+
+  endif
+endif
+
+
+
+.PHONY: all release clean debug
 
 all:  pjass
 
-pjass: lex.yy.c grammar.tab.c grammar.tab.h misc.c misc.h
-	$(CC) $(CFLAGS) lex.yy.c grammar.tab.c misc.c -o $@ -DVERSIONSTR="\"git-$(VERSION)\""
+debug: CFLAGS = -w -g
+debug: pjass
 
+pjass: lex.yy.o grammar.tab.o misc.o
+	$(CC) $(CFLAGS) $^ -o $@ -DVERSIONSTR="\"git-$(VERSION)\""
+
+lex.yy.o: lex.yy.c grammar.tab.h
+
+misc.o: misc.c misc.h grammar.tab.h
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+%.o: %.c %.h
+	$(CC) $(CFLAGS) -c -o $@ $<
 
 lex.yy.c: token.l
 	flex $<
@@ -17,8 +39,9 @@ lex.yy.c: token.l
 	bison -d $<
 
 clean:
-	rm grammar.tab.h grammar.tab.c lex.yy.c pjass.exe
-	rm pjass-git-*.zip
+	rm -f grammar.tab.h grammar.tab.c lex.yy.c pjass.exe
+	rm -f misc.o grammar.tab.o lex.yy.o
+	rm -f pjass-git-*.zip
 
 release: pjass-git-$(VERSION)-src.zip pjass-git-$(VERSION).zip
 
@@ -28,27 +51,22 @@ pjass-git-$(VERSION)-src.zip: grammar.y token.l misc.c misc.h Makefile notes.txt
 pjass-git-$(VERSION).zip: pjass
 #ResourceHacker -addskip pjass.exe pjass.exe, pjass.res ,,,
 	strip pjass.exe
-	upx --best pjass.exe > /dev/null
+	upx --best --ultra-brute pjass.exe > /dev/null
 	zip -q pjass-git-$(VERSION).zip pjass.exe
 
 
-.PHONY: test test-check test-fail print-testing
+SHOULD_FAIL := $(wildcard tests/should-fail/*.j)
+SHOULD_CHECK := $(wildcard tests/should-check/*.j)
 
-SHOULD_FAIL=$(wildcard tests/should-fail/*.j)
-SHOULD_CHECK=$(wildcard tests/should-check/*.j)
+.PHONY: test print-test $(SHOULD_CHECK) $(SHOULD_FAIL)
 
-test: test-check test-fail
-	@echo ' Done'
+$(SHOULD_CHECK): pjass print-test
+	@./check.sh $@
 
-print-testing: pjass
-	@echo -n Testing...
+$(SHOULD_FAIL): pjass print-test
+	@./fail.sh $@
 
-test-check: print-testing
-	@for file in $(SHOULD_CHECK); do \
-		./check.sh "$$file" ; \
-	done
+test: $(SHOULD_FAIL) $(SHOULD_CHECK)
 
-test-fail: print-testing
-	@for file in $(SHOULD_FAIL); do \
-		./fail.sh "$$file" ; \
-	done
+print-test: pjass
+	@echo 'Testing... '
