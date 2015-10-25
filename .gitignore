@@ -1,0 +1,7 @@
+*.o
+nppBackup
+grammar.tab.h
+grammar.tab.c
+lex.yy.c
+pjass.exe
+pjass

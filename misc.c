@@ -335,7 +335,7 @@ void showtypenode(const struct typenode *td)
   const char *tn = "";
   char *extends = "";
   char ebuf[1024];
-  assert(td);
+  assert(getTypePtr(td));
   assert(getTypePtr(td)->typename);
   /*
   if (td->superclass) {
@@ -544,7 +544,7 @@ void canconvertreturn(const struct typenode *ufrom, const struct typenode *uto, 
 {
   const struct typenode *from = ufrom, *to = uto;
   char ebuf[1024];
-  if (from == NULL || to == NULL)
+  if(typeeq(from, NULL) || typeeq(to, NULL))
 	  return; // garbage
   
   if (typeeq(from, gAny) || typeeq(to, gAny))
