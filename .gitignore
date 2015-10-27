@@ -1,4 +1,5 @@
 *.o
+*.zip
 nppBackup
 grammar.tab.h
 grammar.tab.c

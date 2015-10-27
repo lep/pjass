@@ -9,7 +9,7 @@
 #include <stdarg.h>
 #define YYDEBUG 1
 
-#define BUFSIZE 8192
+#define BUFSIZE (16384)
 
 struct typenode {
   char *typename;

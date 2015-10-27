@@ -53,7 +53,7 @@ TABS     [\x01-\x09\x0B\x0C\x0E-\x1F]
     islinebreak = 1;
     isconstant = 0;
 
-    if(len == strlen("!+rb") && !strcmp(buf, "!+rb")){
+    if(len == strlen("#+rb") && !strcmp(buf, "#+rb")){
         return RETURNBUG;
     }else{
         return NEWLINE;

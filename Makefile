@@ -3,11 +3,13 @@ VERSION := $(shell git rev-parse --short HEAD)
 
 # when testing and releasing, we can't run both in parallel
 # but we also don't want to test when we're just making the zip
-# so this rule depends on test just when we're both releasing and testing
+# additionaly we want to test before we make any zip file
+# so these rules depend on test just when we're both releasing and testing
 ifneq (,$(findstring release,$(MAKECMDGOALS)))
   ifneq (,$(findstring test,$(MAKECMDGOALS)))
 
 pjass-git-$(VERSION).zip: | test
+pjass-git-$(VERSION)-src.zip: | test
 
   endif
 endif
