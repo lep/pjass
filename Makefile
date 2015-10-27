@@ -15,12 +15,15 @@ pjass-git-$(VERSION)-src.zip: | test
 endif
 
 
-.PHONY: all release clean debug
+.PHONY: all release clean debug prof
 
 all:  pjass
 
 debug: CFLAGS = -w -g
 debug: pjass
+
+prof: CFLAGS = -w -pg
+prof: pjass
 
 pjass: lex.yy.o grammar.tab.o misc.o
 	$(CC) $(CFLAGS) $^ -o $@
@@ -40,10 +43,13 @@ lex.yy.c: token.l
 	bison -d $<
 
 clean:
-	rm -f grammar.tab.h grammar.tab.c lex.yy.c
-	rm -f misc.o grammar.tab.o lex.yy.o
-	rm -f pjass.exe
-	rm -f pjass-git-*.zip
+	rm -f grammar.tab.h grammar.tab.c lex.yy.c \
+          misc.o grammar.tab.o lex.yy.o \
+          pjass.exe \
+          pjass-git-*.zip \
+          tests/should-check/*-analysis.txt \
+          tests/should-fail/*-analysis.txt \
+          gmon.out
 
 release: pjass-git-$(VERSION)-src.zip pjass-git-$(VERSION).zip
 

@@ -6,3 +6,5 @@ grammar.tab.c
 lex.yy.c
 pjass.exe
 pjass
+*.out
+*-analysis.txt
