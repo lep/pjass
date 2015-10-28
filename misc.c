@@ -18,6 +18,10 @@
 #endif
 #define ERRORLEVELNUM 4
 
+#if !(defined __CYGWIN__ || defined linux)
+    extern void * _aligned_malloc(size_t size, size_t alignment);
+#endif
+
 int fno;
 int lineno;
 int haderrors;
@@ -41,7 +45,7 @@ uint32_t hashfunc(const char *name);
 void inittable(struct hashtable*, int);
 struct hashtable functions, globals, locals, params, types, initialized;
 struct hashtable *curtab;
-struct typenode *retval, *retcheck;
+const struct typenode *retval;
 const char *curfile;
 struct typenode *gInteger, *gReal, *gBoolean, *gString, *gCode, *gHandle, *gNothing, *gNull, *gAny, *gNone, *gEmpty;
 struct typenode *gEmpty;
@@ -52,7 +56,7 @@ void addPrimitiveType(const char *name, struct typenode **toSave)
   put(&types, name, *toSave = newtypenode(name, NULL));
 }
 
-void init(int argc, char **argv)
+void init()
 {
   int i;
   
@@ -178,7 +182,7 @@ void getsuggestions(const char *name, char *buff, int buffsize, int nTables, ...
     int cutoff = (int)((len+2)/4.0);
     int count = 0;
 
-    struct {int distance; char *name;} suggestions[3];
+    struct {int distance; const char *name;} suggestions[3];
     for(i = 0; i != 3; i++){
         suggestions[i].distance = INT_MAX;
         suggestions[i].name = NULL;
@@ -188,7 +192,7 @@ void getsuggestions(const char *name, char *buff, int buffsize, int nTables, ...
     for(i = 0; i != nTables; i++){
         struct hashtable *ht = va_arg(ap, struct hashtable*);
         
-        int x;
+        size_t x;
         for(x = 0; x != ht->size; x++){
             if(ht->bucket[x].name){
                 const struct typeandname *tan = ht->bucket[x].val;
@@ -251,7 +255,7 @@ const struct typeandname *getVariable(const char *varname)
   yyerrorline(2, islinebreak ? lineno - 1 : lineno, ebuf);
   // Store it as unidentified variable
   const struct typeandname *newtan = newtypeandname(gAny, varname);
-  put(curtab, varname, newtan);
+  put(curtab, varname, (void*)newtan);
   if(infunction && !lookup(&initialized, varname)){
     put(&initialized, varname, (void*)1);
   }
@@ -331,18 +335,16 @@ int isDerivedFrom(const struct typenode *cur, const struct typenode *base)
 
 void showtypenode(const struct typenode *td)
 {
-  const char *tp = NULL;
-  const char *tn = "";
   char *extends = "";
   char ebuf[1024];
   assert(getTypePtr(td));
   assert(getTypePtr(td)->typename);
-  /*
+  
   if (td->superclass) {
     sprintf(ebuf, " extends %s", td->superclass->typename);
     extends = ebuf;
   }
-  */
+  
   printf("%s  %s \n", getTypePtr(td)->typename, extends);
 }
 
@@ -442,7 +444,7 @@ void *lookup(struct hashtable *h, const char *name)
 void resize(struct hashtable *h){
     struct hashtable new;
     inittable(&new, h->size*2 +1);
-    int i;
+    size_t i;
     for(i = 0; i != h->size; i++){
         if(h->bucket[i].name){
             put(&new, h->bucket[i].name, h->bucket[i].val);
@@ -485,7 +487,7 @@ void clear(struct hashtable *h)
   h->count = 0;
 }
 
-struct typenode *binop(const struct typenode *a, const struct typenode *b)
+const struct typenode *binop(const struct typenode *a, const struct typenode *b)
 {
   a = getPrimitiveAncestor(a);
   b = getPrimitiveAncestor(b);
@@ -586,7 +588,7 @@ void canconvertreturn(const struct typenode *ufrom, const struct typenode *uto, 
   return;
 }
 
-struct typenode* mkretty(struct typenode *ty, int ret){
+struct typenode* mkretty(const struct typenode *ty, int ret){
     uintptr_t tagMask = (8-1);
     uintptr_t pointerMask = ~tagMask;
     uintptr_t ptr = (uintptr_t)ty;
@@ -594,24 +596,24 @@ struct typenode* mkretty(struct typenode *ty, int ret){
     return (struct typenode*)((ptr & pointerMask) | ret);
 }
 
-int getTypeTag(struct typenode *ty){
+int getTypeTag(const struct typenode *ty){
     uintptr_t tagMask = (8-1);
     uintptr_t ptr = (uintptr_t)ty;
     return (int)(ptr & tagMask);
 }
 
-struct typenode* getTypePtr(struct typenode *ty){
+struct typenode* getTypePtr(const struct typenode *ty){
     uintptr_t tagMask = (8-1);
     uintptr_t pointerMask = ~tagMask;
     uintptr_t ptr = (uintptr_t)ty;
     return (struct typenode*)(ptr & pointerMask);
 }
 
-int typeeq(struct typenode *a, struct typenode *b){
+int typeeq(const struct typenode *a, const struct typenode *b){
     return getTypePtr(a) == getTypePtr(b);
 }
 
-struct typenode *combinetype(struct typenode *n1, struct typenode *n2) {
+const struct typenode *combinetype(const struct typenode *n1, const struct typenode *n2) {
   int ret = getTypeTag(n1) & getTypeTag(n2);
   if ((typeeq(n1, gNone)) || (typeeq(n2, gNone))) return mkretty(gNone, ret);
   if (typeeq(n1, n2)) return mkretty(n1, ret);
@@ -714,10 +716,11 @@ void dofile(FILE *fp, const char *name)
   curfile = name;
 	while (yyparse())
     ;
-  if (olderrs == haderrors)
+  if (olderrs == haderrors){
 		printf("Parse successful: %8d lines: %s\n", lineno, curfile);
-  else
+  }else{
 		printf("%s failed with %d error%s\n", curfile, haderrors - olderrs,(haderrors == olderrs + 1) ? "" : "s");
+  }
   totlines += lineno;
   fno++;
 }

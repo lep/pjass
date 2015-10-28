@@ -32,20 +32,20 @@ struct funcdecl {
   char *name;
   int isconst;
   struct paramlist *p;
-  struct typenode *ret;
+  const struct typenode *ret;
 };
 
 union node {
   char *str;
   int ival;
-  struct typenode *ty;
+  const struct typenode *ty;
   struct paramlist *pl;
   struct funcdecl *fd;
   struct typeandname *tan;
 };
 
 struct hashnode {
-  char *name;
+  const char *name;
   void *val;
 };
 
@@ -70,14 +70,14 @@ int isDerivedFrom(const struct typenode *cur, const struct typenode *base);
 void addParam(struct paramlist *tl, struct typeandname *tan);
 struct funcdecl *newfuncdecl();
 void showfuncdecl(struct funcdecl *fd);
-struct typenode *binop(const struct typenode *a, const struct typenode *b);
+const struct typenode *binop(const struct typenode *a, const struct typenode *b);
 int canconvert(const struct typenode *from, const struct typenode *to, const int linemod);
 void canconvertreturn(const struct typenode *from, const struct typenode *to, const int linemod);
-struct typenode* mkretty(struct typenode *ty, int ret);
-struct typenode* getTypePtr(struct typenode *ty);
-int getTypeTag(struct typenode *ty);
-int typeeq(struct typenode*, struct typenode*);
-struct typenode *combinetype(struct typenode *n1, struct typenode *n2);
+struct typenode* mkretty(const struct typenode *ty, int ret);
+struct typenode* getTypePtr(const struct typenode *ty);
+int getTypeTag(const struct typenode *ty);
+int typeeq(const struct typenode*, const struct typenode*);
+const struct typenode *combinetype(const struct typenode *n1, const struct typenode *n2);
 void checkParameters(const struct paramlist *func, const struct paramlist *inp);
 void validateGlobalAssignment(const char *varname);
 void checkcomparisonsimple(const struct typenode *a);
@@ -99,10 +99,10 @@ int *showerrorlevel;
 extern struct hashtable functions, globals, locals, params, types, initialized, *curtab;
 extern struct typenode *gInteger, *gReal, *gBoolean, *gString, *gCode, *gHandle, *gNothing, *gNull, *gAny, *gNone, *gEmpty;
 extern struct funcdecl *fCurrent;
-extern struct typenode *retval;
+extern const struct typenode *retval;
 const struct typeandname *getVariable(const char *varname);
 void isnumeric(const struct typenode *ty);
 void checkcomparison(const struct typenode *a, const struct typenode *b);
 void checkeqtest(const struct typenode *a, const struct typenode *b);
-void init(int argc, char **argv);
+void init();
 void doparse(int argc, char **argv);

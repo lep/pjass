@@ -7,11 +7,6 @@
 
 %{
 /* need this for the call to atof() below */
-#undef yywrap
-int yywrap()
-{
-	return 1;
-}
 
 int rawcodelen;
 int rawcodespecial;
@@ -21,6 +16,8 @@ int rawcodestartline;
 #include "misc.h"
 
 %}
+
+%option noyywrap
 
 COMMENTSTART [/][/]
 NEWLINE  (\r*\n)|\r*

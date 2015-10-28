@@ -31,24 +31,16 @@ void yyerrorex (int errorlevel, char *s)
     ignorederrors++;
 }
 
-int yyerror (char *s)  /* Called by yyparse on error */
+void yyerror (char *s)  /* Called by yyparse on error */
 {
   yyerrorex(0, s);
 }
 
 int main(int argc, char **argv)
 {
-  init(argc, argv);
-  if (1)  {
-		doparse(argc, argv);
-  }
-  else {
-    for (;;) {
-      int result = yylex();
-      if (result == 0) break;
-      printf("Got result %d, %s\n", result, yytext);
-    }
-  }
+  init();
+  doparse(argc, argv);
+
   if (!haderrors && didparse) {
 		printf("Parse successful: %8d lines: %s\n", totlines, "<total>");
     if (ignorederrors)

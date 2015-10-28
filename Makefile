@@ -1,4 +1,4 @@
-CFLAGS = -w -O3 -flto
+CFLAGS = -O3 -flto
 VERSION := $(shell git rev-parse --short HEAD)
 
 # when testing and releasing, we can't run both in parallel
