@@ -555,8 +555,11 @@ statement:  newline { $$.ty = gEmpty; }
             $$.ty = gAny;
             yyerrorex(0, "Missing then or non valid expression");
         }
-       | SET funccall newline{$$.ty = gAny; yyerrorline(0, lineno - 1, "Call expected instead of set");}
-       | lvardecl {yyerrorex(0, "Local declaration after first statement");}
+       | SET funccall newline{ $$.ty = gAny; yyerrorline(0, lineno - 1, "Call expected instead of set");}
+       | lvardecl {
+            $$.ty = gAny;
+            yyerrorex(0, "Local declaration after first statement");
+        }
        | error {$$.ty = gAny; }
 ;
 
