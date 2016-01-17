@@ -1,0 +1,4 @@
+globals
+string x = "\
+"
+endglobals
