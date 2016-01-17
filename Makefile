@@ -15,7 +15,7 @@ pjass-git-$(VERSION)-src.zip: | test
 endif
 
 
-.PHONY: all release clean debug prof
+.PHONY: all release clean debug prof clean-release-files clean-prof-files clean-build-files
 
 all:  pjass
 
@@ -42,12 +42,18 @@ lex.yy.c: token.l
 %.tab.c %.tab.h: %.y
 	bison -d $<
 
-clean:
+clean: clean-build-files clean-release-files clean-prof-files
+
+clean-build-files:
 	rm -f grammar.tab.h grammar.tab.c lex.yy.c \
           misc.o grammar.tab.o lex.yy.o \
-          pjass.exe \
-          pjass-git-*.zip \
-          tests/should-check/*-analysis.txt \
+          pjass.exe
+
+clean-release-files:
+	rm -f pjass-git-*.zip
+
+clean-prof-files:
+	rm -f tests/should-check/*-analysis.txt \
           tests/should-fail/*-analysis.txt \
           gmon.out
 

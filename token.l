@@ -34,35 +34,23 @@ TABS     [\x01-\x09\x0B\x0C\x0E-\x1F]
 
 %%
 
-{COMMENTSTART} {
-    char buf[5] = {0};
-    int pos = 0;
-    int len = 0;
-    int c;
-    for(c = input(); !(c == '\n' || c == EOF); c = input()){
-        if(c == '\r' || c == '\t' || c == ' ')
-            continue;
-        len++;
-        if(pos < sizeof(buf)-1)
-            buf[pos++] = c;
-    }
+{COMMENTSTART}"#"[ \t]*"+rb"[ \t]*{NEWLINE} {
     lineno++;
     islinebreak = 1;
     isconstant = 0;
-
-    if(len == strlen("#+rb") && !strcmp(buf, "#+rb")){
-        return RETURNBUG;
-    }else{
-        return NEWLINE;
-    }
+    return RETURNBUG;
 }
 
+{COMMENTSTART}.*{NEWLINE} {
+    lineno++;
+    islinebreak = 1;
+    isconstant = 0;
+    return NEWLINE;
+}
+
+
 [']\\[btrnf\\]['] { return UNITTYPEINT; }
-[']\\.['] {
-        yyerrorline(3, lineno, "Invalid escape character sequence");
-        return UNITTYPEINT; 
-    }
-[']\\[\r\n]['] {
+[']\\(.|[\r\n])['] {
         yyerrorline(3, lineno, "Invalid escape character sequence");
         return UNITTYPEINT; 
     }
@@ -84,14 +72,11 @@ TABS     [\x01-\x09\x0B\x0C\x0E-\x1F]
         rawcodelen++;
         yyerrorline(3, rawcodestartline, "Escaped chars are only allowed if they are the only char in the rawcode.");
     }
-<RAWCODE>\\. {
+<RAWCODE>\\(.|[\r\n]) {
         yyerrorline(3, lineno, "Invalid escape character sequence");
         rawcodelen++;
     }
-<RAWCODE>\\[\r\n] {
-        yyerrorline(3, lineno, "Invalid escape character sequence");
-        rawcodelen++;
-    }
+
 <RAWCODE>\r?\n { lineno++; isconstant = 0; rawcodelen += strlen(yytext); }
 <RAWCODE>\r { lineno++; isconstant = 0; rawcodelen++; }
 <RAWCODE>.  { rawcodelen++; }
@@ -99,8 +84,8 @@ TABS     [\x01-\x09\x0B\x0C\x0E-\x1F]
 ["] { BEGIN(INSTRING); }
 <INSTRING>["] { BEGIN(INITIAL); return STRINGLIT; }
 <INSTRING>\\[btrnf"\\] { }
-<INSTRING>\\. { yyerrorline(3, lineno, "Invalid escape character sequence"); }
-<INSTRING>\\[\r\n] { yyerrorline(3, lineno, "Invalid escape character sequence"); }
+<INSTRING>\\(.|[\r\n]) { yyerrorline(3, lineno, "Invalid escape character sequence"); }
+
 <INSTRING>\r?\n { lineno++; isconstant = 0; }
 <INSTRING>\r { lineno++; isconstant = 0; }
 <INSTRING>. {}
