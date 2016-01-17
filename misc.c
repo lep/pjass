@@ -7,7 +7,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
-#include <malloc.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include "grammar.tab.h"
@@ -17,10 +16,6 @@
 #define VERSIONSTR "1.0-git"
 #endif
 #define ERRORLEVELNUM 4
-
-#if !(defined __CYGWIN__ || defined linux)
-    extern void * _aligned_malloc(size_t size, size_t alignment);
-#endif
 
 int fno;
 int lineno;
@@ -284,11 +279,7 @@ struct typeandname *newtypeandname(const struct typenode *ty, const char *name)
 struct typenode *newtypenode(const char *typename, const struct typenode *superclass)
 {
   struct typenode *result;
-#if defined __CYGWIN__ || defined linux
-    result = memalign(8, sizeof(struct typenode));
-#else
-    result = _aligned_malloc(8, sizeof(struct typenode));
-#endif
+  result = aligned_alloc(8, sizeof(struct typenode));
   result->typename = strdup(typename);
   result->superclass = superclass;
   return result;
