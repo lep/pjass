@@ -1,7 +1,14 @@
 #!/usr/bin/env bash
 
-msg=$(./pjass tests/common.j tests/Blizzard.j "$1" )
-ret=$?
+if [[ "$MAPSCRIPT" ]]; then
+    msg=$(./pjass tests/common.j tests/Blizzard.j "$1" )
+    ret=$?
+else
+    msg=$(./pjass "$1")
+    ret=$?
+fi
+
+
 if [[ "$PROF" ]]; then
 	gprof pjass.exe gmon.out > "$1-analysis.txt"
 fi

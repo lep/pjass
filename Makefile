@@ -70,16 +70,27 @@ pjass-git-$(VERSION).zip: pjass
 
 SHOULD_FAIL := $(wildcard tests/should-fail/*.j)
 SHOULD_CHECK := $(wildcard tests/should-check/*.j)
+MAP_SCRIPTS := $(wildcard tests/map-scripts/*.j)
 
-.PHONY: test print-test $(SHOULD_CHECK) $(SHOULD_FAIL)
+.PHONY: test print-test should-check should-fail map-scripts
+.PHONY: $(SHOULD_CHECK) $(SHOULD_FAIL) $(MAP_SCRIPTS)
+
+$(MAP_SCRIPTS): pjass print-test
+	@MAPSCRIPT=1 ./check.sh $@
 
 $(SHOULD_CHECK): pjass print-test
 	@./check.sh $@
 
+
 $(SHOULD_FAIL): pjass print-test
 	@./fail.sh $@
 
-test: $(SHOULD_FAIL) $(SHOULD_CHECK)
+should-fail: $(SHOULD_FAIL)
+should-check: $(SHOULD_CHECK)
+map-scripts: $(MAP_SCRIPTS)
+
+test: should-fail should-check map-scripts
+
 
 print-test: pjass
 	@echo 'Testing... '
