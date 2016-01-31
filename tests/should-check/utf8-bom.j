@@ -1,0 +1,2 @@
+﻿globals
+endglobals

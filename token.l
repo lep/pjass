@@ -157,9 +157,10 @@ TABS     [\x01-\x09\x0B\x0C\x0E-\x1F]
 "<"|">"|"!"|"["|"]"|"("|")"|"+"|"-"|"*"|"/"|"."  return TNULL;
 
 [ \t]+          /* eat up whitespace */
+\xEF\xBB\xBF    /* utf8 bom */
 [\x01-\x09\x0B\x0C\x0E-\x1F]+    /* eat up tabs */
 
-.            if (1) { char ebuf[1024]; sprintf(ebuf, "Unrecognized character %s (ASCII %d)", yytext, (unsigned char)yytext[0] ); yyerrorline(3, lineno, ebuf); }
+.            { char ebuf[1024]; sprintf(ebuf, "Unrecognized character %s (ASCII %u)", yytext, (unsigned char)yytext[0] ); yyerrorline(3, lineno, ebuf); }
 
 %%
 
