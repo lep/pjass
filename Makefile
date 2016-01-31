@@ -47,7 +47,7 @@ clean: clean-build-files clean-release-files clean-prof-files
 clean-build-files:
 	rm -f grammar.tab.h grammar.tab.c lex.yy.c \
           misc.o grammar.tab.o lex.yy.o \
-          pjass.exe
+          pjass.exe pjass
 
 clean-release-files:
 	rm -f pjass-git-*.zip
