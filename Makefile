@@ -62,7 +62,7 @@ clean-prof-files:
 release: pjass-git-$(VERSION)-src.zip pjass-git-$(VERSION).zip
 
 pjass-git-$(VERSION)-src.zip: grammar.y token.l misc.c misc.h Makefile notes.txt readme.txt
-	zip -q pjass-git-$(VERSION)-src.zip $^
+	zip -q -r pjass-git-$(VERSION)-src.zip $^ tests/should-check/ tests/should-fail/
 
 pjass-git-$(VERSION).zip: pjass
 	strip pjass.exe
