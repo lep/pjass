@@ -7,9 +7,11 @@
 
 #include <stdio.h>
 #include <string.h>
+#include "token.yy.h"
 #include "misc.h"
 
 #define YYMAXDEPTH 100000
+#define YYDEBUG 1
 
 void yyerrorline (int errorlevel, int line, char *s)
 {

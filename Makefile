@@ -1,4 +1,4 @@
-CFLAGS = -O4
+CFLAGS = -O3 -Wall -Wextra
 VERSION := $(shell git rev-parse --short HEAD)
 
 # when testing and releasing, we can't run both in parallel
@@ -25,10 +25,11 @@ debug: pjass
 prof: CFLAGS = -w -pg
 prof: pjass
 
-pjass: lex.yy.o grammar.tab.o misc.o
+pjass: token.o grammar.tab.o misc.o
 	$(CC) $(CFLAGS) $^ -o $@
 
-lex.yy.o: lex.yy.c grammar.tab.h
+token.o: token.yy.c grammar.tab.h
+	$(CC) $(CFLAGS) -c -o $@ $<
 
 misc.o: misc.c misc.h grammar.tab.h
 	$(CC) $(CFLAGS) -c -o $@ $< -DVERSIONSTR="\"git-$(VERSION)\""
@@ -36,7 +37,8 @@ misc.o: misc.c misc.h grammar.tab.h
 %.o: %.c %.h
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-lex.yy.c: token.l
+# see token.l options block
+%.yy.c %.yy.h: %.l
 	flex $<
 
 %.tab.c %.tab.h: %.y
@@ -45,8 +47,8 @@ lex.yy.c: token.l
 clean: clean-build-files clean-release-files clean-prof-files
 
 clean-build-files:
-	rm -f grammar.tab.h grammar.tab.c lex.yy.c \
-          misc.o grammar.tab.o lex.yy.o \
+	rm -f grammar.tab.h grammar.tab.c token.yy.c token.yy.h \
+          misc.o grammar.tab.o token.o \
           pjass.exe pjass
 
 clean-release-files:
@@ -60,7 +62,7 @@ clean-prof-files:
 release: pjass-git-$(VERSION)-src.zip pjass-git-$(VERSION).zip
 
 pjass-git-$(VERSION)-src.zip: grammar.y token.l misc.c misc.h Makefile notes.txt readme.txt
-	zip -q pjass-git-$(VERSION)-src.zip $^
+	zip -q -r pjass-git-$(VERSION)-src.zip $^ tests/should-check/ tests/should-fail/
 
 pjass-git-$(VERSION).zip: pjass
 	strip pjass.exe

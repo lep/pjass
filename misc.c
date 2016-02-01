@@ -9,6 +9,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include "token.yy.h"
 #include "grammar.tab.h"
 #include "misc.h"
 

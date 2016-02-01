@@ -3,7 +3,8 @@
 nppBackup
 grammar.tab.h
 grammar.tab.c
-lex.yy.c
+token.yy.c
+token.yy.h
 pjass.exe
 pjass
 *.out
