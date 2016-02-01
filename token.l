@@ -18,6 +18,11 @@ int rawcodestartline;
 %}
 
 %option noyywrap
+%option nounput
+%option noinput
+
+%option outfile="token.yy.c"
+%option header-file="token.yy.h"
 
 COMMENTSTART [/][/]
 NEWLINE  (\r*\n)|\r*

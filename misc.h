@@ -7,7 +7,6 @@
 #include <stdio.h>
 #include <limits.h>
 #include <stdarg.h>
-#define YYDEBUG 1
 
 #define BUFSIZE (16384)
 
@@ -54,6 +53,10 @@ struct hashtable {
   size_t count;
   struct hashnode *bucket;
 };
+
+void yyerrorline (int errorlevel, int line, char *s);
+void yyerrorex (int errorlevel, char *s);
+void yyerror (char *s);
 
 void getsuggestions(const char*, char*, int, int, ...);
 void *lookup(struct hashtable *h, const char *name);
