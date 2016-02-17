@@ -8,9 +8,8 @@
 %{
 /* need this for the call to atof() below */
 
-int rawcodelen;
-int rawcodespecial;
-int rawcodestartline;
+static int rawcodelen;
+static int rawcodestartline;
 
 #include "grammar.tab.h" 
 #include "misc.h"

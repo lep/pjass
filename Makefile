@@ -1,4 +1,4 @@
-CFLAGS = -O3 -Wall -Wextra
+CFLAGS = -O3 -Wall -Wextra -std=c11 -MMD -Weverything
 VERSION := $(shell git rev-parse --short HEAD)
 
 # when testing and releasing, we can't run both in parallel
@@ -14,6 +14,10 @@ pjass-git-$(VERSION)-src.zip: | test
   endif
 endif
 
+OBJS := token.yy.o grammar.tab.o misc.o main.o \
+        hashtable.o paramlist.o funcdecl.o typeandname.o
+
+
 
 .PHONY: all release clean debug prof clean-release-files clean-prof-files clean-build-files
 
@@ -25,17 +29,21 @@ debug: pjass
 prof: CFLAGS = -w -pg
 prof: pjass
 
-pjass: token.o grammar.tab.o misc.o
+-include $(OBJS:.o=.d)
+
+pjass: $(OBJS)
 	$(CC) $(CFLAGS) $^ -o $@
 
-token.o: token.yy.c grammar.tab.h
-	$(CC) $(CFLAGS) -c -o $@ $<
 
-misc.o: misc.c misc.h grammar.tab.h
+main.o: main.c
 	$(CC) $(CFLAGS) -c -o $@ $< -DVERSIONSTR="\"git-$(VERSION)\""
 
 %.o: %.c %.h
 	$(CC) $(CFLAGS) -c -o $@ $<
+
+
+token.yy.o: token.yy.c | grammar.tab.h
+main.o: main.c | grammar.tab.h
 
 # see token.l options block
 %.yy.c %.yy.h: %.l
@@ -48,8 +56,8 @@ clean: clean-build-files clean-release-files clean-prof-files
 
 clean-build-files:
 	rm -f grammar.tab.h grammar.tab.c token.yy.c token.yy.h \
-          misc.o grammar.tab.o token.o \
-          pjass.exe pjass
+		$(OBJS) $(OBJS:.o=.d) \
+		pjass.exe pjass
 
 clean-release-files:
 	rm -f pjass-git-*.zip
@@ -96,3 +104,4 @@ test: should-fail should-check map-scripts
 
 print-test: pjass
 	@echo 'Testing... '
+

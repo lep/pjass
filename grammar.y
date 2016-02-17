@@ -10,58 +10,10 @@
 #include "token.yy.h"
 #include "misc.h"
 
-#define YYMAXDEPTH 100000
-#define YYDEBUG 1
-
-void yyerrorline (int errorlevel, int line, char *s)
-{
-  if (showerrorlevel[errorlevel]) {
-    haderrors++;
-    printf ("%s:%d: %s\n", curfile, line, s);
-  }
-  else
-    ignorederrors++;
-}
-
-void yyerrorex (int errorlevel, char *s)
-{
-  if (showerrorlevel[errorlevel]) {
-    haderrors++;
-    printf ("%s:%d: %s\n", curfile, lineno, s);
-  }
-  else
-    ignorederrors++;
-}
-
-void yyerror (char *s)  /* Called by yyparse on error */
-{
-  yyerrorex(0, s);
-}
-
-int main(int argc, char **argv)
-{
-  init();
-  doparse(argc, argv);
-
-  if (!haderrors && didparse) {
-		printf("Parse successful: %8d lines: %s\n", totlines, "<total>");
-    if (ignorederrors)
-	printf("%d errors ignored", ignorederrors);
-
-    return 0;
-  }
-  else {
-		if (haderrors)
-			printf("Parse failed: %d error%s total\n", haderrors, haderrors == 1 ? "" : "s");
-		else
-			printf("Parse failed\n");
-		if (ignorederrors)
-		  printf("%d errors ignored", ignorederrors);
-    return 1;
-	}
-}
 
 #define YYSTYPE union node
+#define YYMAXDEPTH 100000
+#define YYDEBUG 1
 
 %}
 
@@ -190,7 +142,7 @@ expr: intexpr      { $$.ty = gInteger; }
       | realexpr   { $$.ty = gReal; }
       | stringexpr { $$.ty = gString; }
       | boolexpr   { $$.ty = gBoolean; }
-      | FUNCTION rid { struct funcdecl *fd = lookup(&functions, $2.str);
+      | FUNCTION rid { struct funcdecl *fd = ht_lookup(&functions, $2.str);
                        if (fd == NULL) {
                            char ebuf[1024];
                            snprintf(ebuf, 1024, "Undefined function %s", $2.str);
@@ -256,7 +208,7 @@ expr: intexpr      { $$.ty = gInteger; }
             snprintf(ebuf, 1024, "Index missing for array variable %s", $1.str);
             yyerrorex(3, ebuf);
           }
-          if(infunction && lookup(curtab, $1.str) && !lookup(&initialized, $1.str) ){
+          if(infunction && ht_lookup(curtab, $1.str) && !ht_lookup(&initialized, $1.str) ){
             char ebuf[1024];
             snprintf(ebuf, 1024, "Variable %s is uninitialized", $1.str);
             //yyerrorex(3, ebuf);
@@ -280,7 +232,7 @@ expr: intexpr      { $$.ty = gInteger; }
 ;
 
 funccall: rid LPAREN exprlistcompl RPAREN {
-          struct funcdecl *fd = lookup(&functions, $1.str);
+          struct funcdecl *fd = ht_lookup(&functions, $1.str);
           if (fd == NULL) {
             char ebuf[1024];
             snprintf(ebuf, 1024, "Undeclared function %s", $1.str);
@@ -301,7 +253,7 @@ funccall: rid LPAREN exprlistcompl RPAREN {
        }
        |  rid LPAREN exprlistcompl newline {
           yyerrorex(0, "Missing ')'");
-          struct funcdecl *fd = lookup(&functions, $1.str);
+          struct funcdecl *fd = ht_lookup(&functions, $1.str);
           if (fd == NULL) {
             char ebuf[1024];
             snprintf(ebuf, 1024, "Undeclared function %s", $1.str);
@@ -356,11 +308,11 @@ funcdecl: nativefuncdecl { $$.fd = $1.fd; }
 
 nativefuncdecl: NATIVE rid TAKES optparam_list RETURNS opttype
 {
-  if (lookup(&locals, $2.str) || lookup(&params, $2.str) || lookup(&globals, $2.str)) {
+  if (ht_lookup(&locals, $2.str) || ht_lookup(&params, $2.str) || ht_lookup(&globals, $2.str)) {
     char buf[1024];
     snprintf(buf, 1024, "%s already defined as variable", $2.str);
     yyerrorex(3, buf);
-  } else if (lookup(&types, $2.str)) {
+  } else if (ht_lookup(&types, $2.str)) {
     char buf[1024];
     snprintf(buf, 1024, "%s already defined as type", $2.str);
     yyerrorex(3, buf);
@@ -390,10 +342,10 @@ funcdefncore: funcbegin localblock codeblock funcend {
             }
             fnhasrbannotation = 0;
         }
-       | funcbegin localblock codeblock {yyerrorex(0, "Missing endfunction"); clear(&params); clear(&locals); clear(&initialized); curtab = &globals; fnhasrbannotation = 0;}
+       | funcbegin localblock codeblock {yyerrorex(0, "Missing endfunction"); ht_clear(&params); ht_clear(&locals); ht_clear(&initialized); curtab = &globals; fnhasrbannotation = 0;}
 ;
 
-funcend: ENDFUNCTION { clear(&params); clear(&locals); clear(&initialized); curtab = &globals; inblock = 0; inconstant = 0; infunction = 0; }
+funcend: ENDFUNCTION { ht_clear(&params); ht_clear(&locals); ht_clear(&initialized); curtab = &globals; inblock = 0; inconstant = 0; infunction = 0; }
 ;
 
 returnorreturns: RETURNS
@@ -401,11 +353,11 @@ returnorreturns: RETURNS
 ;
 
 funcbegin: FUNCTION rid TAKES optparam_list returnorreturns opttype {
-  if (lookup(&locals, $2.str) || lookup(&params, $2.str) || lookup(&globals, $2.str)) {
+  if (ht_lookup(&locals, $2.str) || ht_lookup(&params, $2.str) || ht_lookup(&globals, $2.str)) {
     char buf[1024];
     snprintf(buf, 1024, "%s already defined as variable", $2.str);
     yyerrorex(3, buf);
-  } else if (lookup(&types, $2.str)) {
+  } else if (ht_lookup(&types, $2.str)) {
     char buf[1024];
     snprintf(buf, 1024, "%s already defined as type", $2.str);
     yyerrorex(3, buf);
@@ -419,17 +371,17 @@ funcbegin: FUNCTION rid TAKES optparam_list returnorreturns opttype {
   $$.fd->ret = $6.ty;
   $$.fd->isconst = 0;
   put(&functions, $$.fd->name, $$.fd);
-  fCurrent = lookup(&functions, $2.str);
+  fCurrent = ht_lookup(&functions, $2.str);
   struct typeandname *tan = $4.pl->head;
   for (;tan; tan=tan->next) {
     tan->lineno = lineno;
     tan->fn = fno;
     put(&params, strdup(tan->name), newtypeandname(tan->ty, tan->name));
-    if (lookup(&functions, tan->name)) {
+    if (ht_lookup(&functions, tan->name)) {
       char buf[1024];
       snprintf(buf, 1024, "%s already defined as function", tan->name);
       yyerrorex(3, buf);
-    } else if (lookup(&types, tan->name)) {
+    } else if (ht_lookup(&types, tan->name)) {
       char buf[1024];
       snprintf(buf, 1024, "%s already defined as type", tan->name);
       yyerrorex(3, buf);
@@ -442,11 +394,11 @@ funcbegin: FUNCTION rid TAKES optparam_list returnorreturns opttype {
   //showfuncdecl($$.fd);
 }
        | CONSTANT FUNCTION rid TAKES optparam_list returnorreturns opttype {
-  if (lookup(&locals, $3.str) || lookup(&params, $3.str) || lookup(&globals, $3.str)) {
+  if (ht_lookup(&locals, $3.str) || ht_lookup(&params, $3.str) || ht_lookup(&globals, $3.str)) {
     char buf[1024];
     snprintf(buf, 1024, "%s already defined as variable", $3.str);
     yyerrorex(3, buf);
-  } else if (lookup(&types, $3.str)) {
+  } else if (ht_lookup(&types, $3.str)) {
     char buf[1024];
     snprintf(buf, 1024, "%s already defined as type", $3.str);
     yyerrorex(3, buf);
@@ -464,11 +416,11 @@ funcbegin: FUNCTION rid TAKES optparam_list returnorreturns opttype {
     tan->lineno = lineno;
     tan->fn = fno;
     put(&params, strdup(tan->name), newtypeandname(tan->ty, tan->name));
-    if (lookup(&functions, tan->name)) {
+    if (ht_lookup(&functions, tan->name)) {
       char buf[1024];
       snprintf(buf, 1024, "%s already defined as function", tan->name);
       yyerrorex(3, buf);
-    } else if (lookup(&types, tan->name)) {
+    } else if (ht_lookup(&types, tan->name)) {
       char buf[1024];
       snprintf(buf, 1024, "%s already defined as type", tan->name);
       yyerrorex(3, buf);
@@ -511,7 +463,7 @@ statement:  newline { $$.ty = gEmpty; }
                                        }
                                        if (inconstant)
                                          validateGlobalAssignment($2.str);
-                                       if(infunction && lookup(curtab, $2.str) && !lookup(&initialized, $2.str)){
+                                       if(infunction && ht_lookup(curtab, $2.str) && !ht_lookup(&initialized, $2.str)){
                                          put(&initialized, $2.str, (void*)1);
                                        }
 				    }
@@ -611,22 +563,22 @@ rid: ID
 ;
 
 vartypedecl: type rid {
-  if (lookup(&functions, $2.str)) {
+  if (ht_lookup(&functions, $2.str)) {
     char buf[1024];
     snprintf(buf, 1024, "Symbol %s already defined as function", $2.str);
     yyerrorex(3, buf);
-  } else if (lookup(&types, $2.str)) {
+  } else if (ht_lookup(&types, $2.str)) {
     char buf[1024];
     snprintf(buf, 1024, "Symbol %s already defined as type", $2.str);
     yyerrorex(3, buf);
   }
   struct typeandname *tan = newtypeandname($1.ty, $2.str);
   $$.str = $2.str;
-  struct typeandname *existing = lookup(&locals, $2.str);
+  struct typeandname *existing = ht_lookup(&locals, $2.str);
   if (!existing) {
-    existing = lookup(&params, $2.str);
+    existing = ht_lookup(&params, $2.str);
     if (!existing)
-      existing = lookup(&globals, $2.str);
+      existing = ht_lookup(&globals, $2.str);
   }
   if (existing) {
     tan->lineno = existing->lineno;
@@ -640,11 +592,11 @@ vartypedecl: type rid {
   if (afterendglobals) {
     yyerrorex(3, "Local constants are not allowed");
   }
-  if (lookup(&functions, $3.str)) {
+  if (ht_lookup(&functions, $3.str)) {
     char buf[1024];
     snprintf(buf, 1024, "Symbol %s already defined as function", $3.str);
     yyerrorex(3, buf);
-  } else if (lookup(&types, $3.str)) {
+  } else if (ht_lookup(&types, $3.str)) {
     char buf[1024];
     snprintf(buf, 1024, "Symbol %s already defined as type", $3.str);
     yyerrorex(3, buf);
@@ -652,11 +604,11 @@ vartypedecl: type rid {
   struct typeandname *tan = newtypeandname($2.ty, $3.str);
   $$.str = $3.str;
   tan->isconst = 1;
-  struct typeandname *existing = lookup(&locals, $3.str);
+  struct typeandname *existing = ht_lookup(&locals, $3.str);
   if (!existing) {
-    existing = lookup(&params, $3.str);
+    existing = ht_lookup(&params, $3.str);
     if (!existing)
-      existing = lookup(&globals, $3.str);
+      existing = ht_lookup(&globals, $3.str);
   }
   if (existing) {
     tan->lineno = existing->lineno;
@@ -667,11 +619,11 @@ vartypedecl: type rid {
   }
   put(curtab, $3.str, tan); }
        | type ARRAY rid {
-  if (lookup(&functions, $3.str)) {
+  if (ht_lookup(&functions, $3.str)) {
     char buf[1024];
     snprintf(buf, 1024, "Symbol %s already defined as function", $3.str);
     yyerrorex(3, buf);
-  } else if (lookup(&types, $3.str)) {
+  } else if (ht_lookup(&types, $3.str)) {
     char buf[1024];
     snprintf(buf, 1024, "Symbol %s already defined as type", $3.str);
     yyerrorex(3, buf);
@@ -681,16 +633,16 @@ vartypedecl: type rid {
   struct typeandname *tan = newtypeandname($1.ty, $3.str);
   $$.str = $3.str;
   tan->isarray = 1;
-  struct typeandname *existing = lookup(&locals, $3.str);
+  struct typeandname *existing = ht_lookup(&locals, $3.str);
   if (!existing) {
     char buf[1024];
-    existing = lookup(&params, $3.str);
+    existing = ht_lookup(&params, $3.str);
     if (afterendglobals && existing) {
     	snprintf(buf, 1024, "Symbol %s already defined as function parameter", $3.str);
     	yyerrorex(3, buf);
     }
     if (!existing) {
-      existing = lookup(&globals, $3.str);
+      existing = ht_lookup(&globals, $3.str);
       if (afterendglobals && existing) {
       	snprintf(buf, 1024, "Symbol %s already defined as global variable", $3.str);
       	yyerrorex(3, buf);
@@ -711,11 +663,11 @@ vartypedecl: type rid {
   yyerrorex(3, "Invalid variable name \"type\"");
   struct typeandname *tan = newtypeandname($1.ty, "type");
   $$.str = "type";
-  struct typeandname *existing = lookup(&locals, "type");
+  struct typeandname *existing = ht_lookup(&locals, "type");
   if (!existing) {
-    existing = lookup(&params, "type");
+    existing = ht_lookup(&params, "type");
     if (!existing)
-      existing = lookup(&globals, "type");
+      existing = ht_lookup(&globals, "type");
   }
   if (existing) {
     tan->lineno = existing->lineno;
@@ -733,11 +685,11 @@ vartypedecl: type rid {
   struct typeandname *tan = newtypeandname($2.ty, "type");
   $$.str = "type";
   tan->isconst = 1;
-  struct typeandname *existing = lookup(&locals, "type");
+  struct typeandname *existing = ht_lookup(&locals, "type");
   if (!existing) {
-    existing = lookup(&params, "type");
+    existing = ht_lookup(&params, "type");
     if (!existing)
-      existing = lookup(&globals, "type");
+      existing = ht_lookup(&globals, "type");
   }
   if (existing) {
     tan->lineno = existing->lineno;
@@ -752,11 +704,11 @@ vartypedecl: type rid {
   struct typeandname *tan = newtypeandname($1.ty, "type");
   $$.str = "type";
   tan->isarray = 1;
-  struct typeandname *existing = lookup(&locals, "type");
+  struct typeandname *existing = ht_lookup(&locals, "type");
   if (!existing) {
-    existing = lookup(&params, "type");
+    existing = ht_lookup(&params, "type");
     if (!existing)
-      existing = lookup(&globals, "type");
+      existing = ht_lookup(&globals, "type");
   }
   if (existing) {
     tan->lineno = existing->lineno;
@@ -793,7 +745,7 @@ vardecl: vartypedecl newline {
              if (tan->isarray) {
                yyerrorex(3, "Arrays cannot be directly initialized");
              }
-             if(infunction && !lookup(&initialized, tan->name)){
+             if(infunction && !ht_lookup(&initialized, tan->name)){
                put(&initialized, tan->name, (void*)1);
              }
              canconvert($3.ty, tan->ty, -1);
@@ -803,11 +755,11 @@ vardecl: vartypedecl newline {
 ;
 
 typedef: TYPE rid EXTENDS type {
-  if (lookup(&types, $2.str)) {
+  if (ht_lookup(&types, $2.str)) {
      char buf[1024];
      snprintf(buf, 1024, "Multiply defined type %s", $2.str);
      yyerrorex(3, buf);
-  } else if (lookup(&functions, $2.str)) {
+  } else if (ht_lookup(&functions, $2.str)) {
     char buf[1024];
     snprintf(buf, 1024, "%s already defined as function", $2.str);
     yyerrorex(3, buf);
@@ -822,7 +774,7 @@ typeandname: type rid { $$.tan = newtypeandname($1.ty, $2.str); }
   
 type: primtype { $$.ty = $1.ty; }
   | rid {
-   if (lookup(&types, $1.str) == NULL) {
+   if (ht_lookup(&types, $1.str) == NULL) {
      char buf[1024];
      snprintf(buf, 1024, "Undefined type %s", $1.str);
      getsuggestions($1.str, buf, 1024, 1, &types);
@@ -830,16 +782,16 @@ type: primtype { $$.ty = $1.ty; }
      $$.ty = gAny;
    }
    else
-     $$.ty = lookup(&types, $1.str);
+     $$.ty = ht_lookup(&types, $1.str);
 }
 ;
 
-primtype: HANDLE  { $$.ty = lookup(&types, yytext); }
- | INTEGER        { $$.ty = lookup(&types, yytext); }
- | REAL           { $$.ty = lookup(&types, yytext); }
- | BOOLEAN        { $$.ty = lookup(&types, yytext); }
- | STRING         { $$.ty = lookup(&types, yytext); }
- | CODE           { $$.ty = lookup(&types, yytext); }
+primtype: HANDLE  { $$.ty = ht_lookup(&types, yytext); }
+ | INTEGER        { $$.ty = ht_lookup(&types, yytext); }
+ | REAL           { $$.ty = ht_lookup(&types, yytext); }
+ | BOOLEAN        { $$.ty = ht_lookup(&types, yytext); }
+ | STRING         { $$.ty = ht_lookup(&types, yytext); }
+ | CODE           { $$.ty = ht_lookup(&types, yytext); }
 ;
 
 newline: NEWLINE { rbannotated = 0; }
