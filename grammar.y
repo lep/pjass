@@ -76,7 +76,7 @@
 %token INTLIT
 %token REALLIT
 %token UNITTYPEINT
-%token RETURNBUG
+%token ANNOTATION
 
 %right EQUALS
 %left AND
@@ -155,7 +155,11 @@ expr: intexpr      { $$.ty = gInteger; }
                                snprintf(ebuf, 1024, "Function %s must not take any arguments when used as code", $2.str);
                                yyerrorex(3, ebuf);
                            }
-                           $$.ty = gCode;
+                           if( fd->ret == gBoolean) {
+                               $$.ty = gCodeReturnsBoolean;
+                           } else {
+                               $$.ty = gCodeReturnsNoBoolean;
+                           }
                        }
                      }
       | TNULL { $$.ty = gNull; }
@@ -247,7 +251,7 @@ funccall: rid LPAREN exprlistcompl RPAREN {
             }
             if (fd == fCurrent && fCurrent)
           		yyerrorex(3, "Recursive function calls are not permitted in local declarations");
-            checkParameters(fd->p, $3.pl);
+            checkParameters(fd->p, $3.pl, fd == fFilter || fd == fCondition);
             $$.ty = fd->ret;
           }
        }
@@ -268,7 +272,7 @@ funccall: rid LPAREN exprlistcompl RPAREN {
           } else {
           	if (fd == fCurrent && fCurrent)
           		yyerrorex(3, "Recursive function calls are not permitted in local declarations");
-            checkParameters(fd->p, $3.pl);
+            checkParameters(fd->p, $3.pl, fd == fCondition || fd == fFilter);
             $$.ty = fd->ret;
           }
        }
@@ -308,23 +312,29 @@ funcdecl: nativefuncdecl { $$.fd = $1.fd; }
 
 nativefuncdecl: NATIVE rid TAKES optparam_list RETURNS opttype
 {
-  if (ht_lookup(&locals, $2.str) || ht_lookup(&params, $2.str) || ht_lookup(&globals, $2.str)) {
-    char buf[1024];
-    snprintf(buf, 1024, "%s already defined as variable", $2.str);
-    yyerrorex(3, buf);
-  } else if (ht_lookup(&types, $2.str)) {
-    char buf[1024];
-    snprintf(buf, 1024, "%s already defined as type", $2.str);
-    yyerrorex(3, buf);
-  }
-  $$.fd = newfuncdecl(); 
-  $$.fd->name = strdup($2.str);
-  $$.fd->p = $4.pl;
-  $$.fd->ret = $6.ty;
-  //printf("***** %s = %s\n", $2.str, $$.fd->ret->typename);
-  $$.fd->isconst = isconstant;
-  put(&functions, $$.fd->name, $$.fd);
-  //showfuncdecl($$.fd);
+    if (ht_lookup(&locals, $2.str) || ht_lookup(&params, $2.str) || ht_lookup(&globals, $2.str)) {
+        char buf[1024];
+        snprintf(buf, 1024, "%s already defined as variable", $2.str);
+        yyerrorex(3, buf);
+    } else if (ht_lookup(&types, $2.str)) {
+        char buf[1024];
+        snprintf(buf, 1024, "%s already defined as type", $2.str);
+        yyerrorex(3, buf);
+    }
+    $$.fd = newfuncdecl(); 
+    $$.fd->name = strdup($2.str);
+    $$.fd->p = $4.pl;
+    $$.fd->ret = $6.ty;
+    $$.fd->isconst = isconstant;
+
+    put(&functions, $$.fd->name, $$.fd);
+
+    if( !strcmp("Filter", $$.fd->name) ){
+        fFilter = $$.fd;
+    }else if( !strcmp("Condition", $$.fd->name) ){
+        fCondition = $$.fd;
+    }
+
 }
 ;
 
@@ -337,12 +347,12 @@ funcdefncore: funcbegin localblock codeblock funcend {
             if(retval != gNothing) {
                 if(!getTypeTag($3.ty))
                     yyerrorline(1, lineno - 1, "Missing return");
-                else if (returnbug || fnhasrbannotation)
+                else if ((pjass_flags & flag_rb) || (fnannotations & flag_rb))
                     canconvertreturn($3.ty, retval, -1);
             }
-            fnhasrbannotation = 0;
+            fnannotations = 0;
         }
-       | funcbegin localblock codeblock {yyerrorex(0, "Missing endfunction"); ht_clear(&params); ht_clear(&locals); ht_clear(&initialized); curtab = &globals; fnhasrbannotation = 0;}
+       | funcbegin localblock codeblock {yyerrorex(0, "Missing endfunction"); ht_clear(&params); ht_clear(&locals); ht_clear(&initialized); curtab = &globals; fnannotations = 0;}
 ;
 
 funcend: ENDFUNCTION { ht_clear(&params); ht_clear(&locals); ht_clear(&initialized); curtab = &globals; inblock = 0; inconstant = 0; infunction = 0; }
@@ -388,7 +398,7 @@ funcbegin: FUNCTION rid TAKES optparam_list returnorreturns opttype {
     }
   }
   retval = $$.fd->ret;
-  fnhasrbannotation = rbannotated;
+  fnannotations = annotations;
   inblock = 1;
   inloop = 0;
   //showfuncdecl($$.fd);
@@ -489,7 +499,7 @@ statement:  newline { $$.ty = gEmpty; }
             $$.ty = mkretty($2.ty, 1);
             if(retval == gNothing)
                 yyerrorline(1, lineno - 1, "Cannot return value from function that returns nothing");
-            else if (!returnbug && !fnhasrbannotation)
+            else if (!(pjass_flags & flag_rb) && !(fnannotations & flag_rb))
                 canconvertreturn($2.ty, retval, 0);
          }
        | RETURN newline {
@@ -794,6 +804,6 @@ primtype: HANDLE  { $$.ty = ht_lookup(&types, yytext); }
  | CODE           { $$.ty = ht_lookup(&types, yytext); }
 ;
 
-newline: NEWLINE { rbannotated = 0; }
-       | RETURNBUG { rbannotated = 1; }
+newline: NEWLINE { annotations = 0; }
+       | ANNOTATION { annotations = updateannotation(annotations, yytext); }
 ;

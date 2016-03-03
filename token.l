@@ -38,11 +38,11 @@ TABS     [\x01-\x09\x0B\x0C\x0E-\x1F]
 
 %%
 
-{COMMENTSTART}"#"[ \t]*"+rb"[ \t]*{NEWLINE} {
+{COMMENTSTART}"#".*{NEWLINE} {
     lineno++;
     islinebreak = 1;
     isconstant = 0;
-    return RETURNBUG;
+    return ANNOTATION;
 }
 
 {COMMENTSTART}.*{NEWLINE} {

@@ -12,6 +12,7 @@
 
 #include "misc.h"
 
+int pjass_flags;
 
 int fno;
 int lineno;
@@ -25,8 +26,8 @@ int infunction;
 int inblock;
 int strict;
 int returnbug;
-int fnhasrbannotation;
-int rbannotated;
+int fnannotations;
+int annotations;
 int didparse;
 int inloop;
 int afterendglobals;
@@ -44,8 +45,10 @@ struct hashtable *curtab;
 const struct typenode *retval;
 const char *curfile;
 struct typenode *gInteger, *gReal, *gBoolean, *gString, *gCode, *gHandle, *gNothing, *gNull, *gAny, *gNone, *gEmpty;
+struct typenode *gCodeReturnsNoBoolean, *gCodeReturnsBoolean;
 struct typenode *gEmpty;
 struct funcdecl *fCurrent;
+struct funcdecl *fFilter, *fCondition;
 
 
 void yyerrorline (int errorlevel, int line, const char *s)
@@ -222,15 +225,20 @@ const struct typeandname *getVariable(const char *varname)
 {
     char ebuf[1024];
     struct typeandname *result;
+
     result = ht_lookup(&locals, varname);
     if (result) return result;
+
     result = ht_lookup(&params, varname);
     if (result) return result;
+
     result = ht_lookup(&globals, varname);
     if (result) return result;
+
     snprintf(ebuf, 1024, "Undeclared variable %s", varname);
     getsuggestions(varname, ebuf, 1024, 3, &locals, &params, &globals);
     yyerrorline(2, islinebreak ? lineno - 1 : lineno, ebuf);
+
     // Store it as unidentified variable
     const struct typeandname *newtan = newtypeandname(gAny, varname);
     put(curtab, varname, (void*)newtan);
@@ -240,7 +248,8 @@ const struct typeandname *getVariable(const char *varname)
     return newtan;
 }
 
-void validateGlobalAssignment(const char *varname) {
+void validateGlobalAssignment(const char *varname)
+{
     char ebuf[1024];
     struct typeandname *result;
     result = ht_lookup(&globals, varname);
@@ -251,7 +260,7 @@ void validateGlobalAssignment(const char *varname) {
 }
 
 
-void checkParameters(const struct paramlist *func, const struct paramlist *inp)
+void checkParameters(const struct paramlist *func, const struct paramlist *inp, bool mustretbool)
 {
     const struct typeandname *fi = func->head;
     const struct typeandname *pi = inp->head;
@@ -267,6 +276,11 @@ void checkParameters(const struct paramlist *func, const struct paramlist *inp)
             return;
         }
         canconvert(pi->ty, fi->ty, 0);
+        bool has_flag = (pjass_flags & flag_filter) || (fnannotations & flag_filter);
+        if(has_flag && mustretbool && typeeq(pi->ty, gCodeReturnsNoBoolean)){
+            yyerrorex(semanticerror, "Function passed to Filter or Condition must return a boolean");
+            return;
+        }
         pi = pi->next;
         fi = fi->next;
     }
@@ -290,15 +304,20 @@ const struct typenode *binop(const struct typenode *a, const struct typenode *b)
 const struct typenode *combinetype(const struct typenode *n1, const struct typenode *n2)
 {
     uint8_t ret = getTypeTag(n1) & getTypeTag(n2);
-    if ((typeeq(n1, gNone)) || (typeeq(n2, gNone))) return mkretty(gNone, ret);
-    if (typeeq(n1, n2)) return mkretty(n1, ret);
+    if ((typeeq(n1, gNone)) || (typeeq(n2, gNone)))
+        return mkretty(gNone, ret);
+    if (typeeq(n1, n2))
+        return mkretty(n1, ret);
     if (typeeq(n1, gNull))
         return mkretty(n2, ret);
     if (typeeq(n2, gNull))
         return mkretty(n1, ret);
+
     n1 = getPrimitiveAncestor(n1);
     n2 = getPrimitiveAncestor(n2);
-    if (typeeq(n1, n2)) return mkretty(n1, ret);
+
+    if (typeeq(n1, n2))
+        return mkretty(n1, ret);
     if (typeeq(n1, gNull))
         return mkretty(n2, ret);
     if (typeeq(n2, gNull))
@@ -439,3 +458,26 @@ void checkeqtest(const struct typenode *a, const struct typenode *b)
 }
 
 
+int updateannotation(int cur, char *txt){
+    char sep[] = " \t\n";
+    char *ann;
+    memset(txt, ' ', strlen("//#"));
+    for(ann = strtok(txt, sep); ann; ann = strtok(NULL, sep)){
+        char *name = ann+1;
+        char sgn = ann[0];
+        int flag = 0;
+
+        if(! strcmp(name, "rb")){
+            flag = flag_rb;
+        } else if(! strcmp(name, "filter") ){
+            flag = flag_filter;
+        }
+
+        if(sgn == '+') {
+            cur |= flag;
+        } else if(sgn == '-') {
+            cur &= ~flag;
+        }
+    }
+    return cur;
+}

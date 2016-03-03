@@ -6,16 +6,17 @@
 #ifndef VERSIONSTR
 #define VERSIONSTR "1.0-git"
 #endif
-#define ERRORLEVELNUM 4
 
-static struct typenode* addPrimitiveType(const char *name) {
-    struct typenode *new = newtypenode(name, NULL);
-    put(&types, name, new);
-    return new;
+static struct typenode* addPrimitiveType(const char *name)
+{
+    struct typenode *newty= newtypenode(name, NULL);
+    put(&types, name, newty);
+    return newty;
 }
 
 
-static void init() {
+static void init()
+{
     ht_init(&functions, 8191);
     ht_init(&globals, 8191);
     ht_init(&locals, 23);
@@ -30,6 +31,9 @@ static void init() {
     gString = addPrimitiveType("string");
     gCode = addPrimitiveType("code");
 
+    gCodeReturnsBoolean = newtypenode("codereturnsboolean", gCode);
+    gCodeReturnsNoBoolean = newtypenode("codereturnsboolean", gCode);
+
     gNothing = newtypenode("nothing", NULL);
     gNull = newtypenode("null", NULL);
 
@@ -38,11 +42,14 @@ static void init() {
     gEmpty = newtypenode("empty", NULL);
 
     curtab = &globals;
+
+    pjass_flags = 0;
+
     fno = 0;
     strict = 0;
     returnbug = 0;
-    fnhasrbannotation = 0;
-    rbannotated = 0;
+    fnannotations = 0;
+    annotations = 0;
     haderrors = 0;
     ignorederrors = 0;
     islinebreak = 1;
@@ -50,10 +57,14 @@ static void init() {
     isconstant = 0;
     inconstant = 0;
     infunction = 0;
-    fCurrent = 0;
+
+    fCurrent = NULL;
+    fFilter = NULL;
+    fCondition = NULL;
 }
 
-static void dofile(FILE *fp, const char *name) {
+static void dofile(FILE *fp, const char *name)
+{
     lineno = 1;
     islinebreak = 1;
     isconstant = 0;
@@ -75,11 +86,13 @@ static void dofile(FILE *fp, const char *name) {
     fno++;
 }
 
-static void printversion() {
+static void printversion()
+{
 	printf("Pjass version %s by Rudi Cilibrasi, modified by AIAndy, PitzerMike, Deaod and lep\n", VERSIONSTR);
 }
 
-static void doparse(int argc, char **argv) {
+static void doparse(int argc, char **argv)
+{
 	int i;
 	for (i = 1; i < argc; ++i) {
 		if (argv[i][0] == '-' && argv[i][1] == 0) {
@@ -114,19 +127,19 @@ printf(
 			exit(0);
 		}
 		if (strcmp(argv[i], "+s") == 0) {
-			strict = 1;
+            pjass_flags |= flag_strict;
 			continue;
 		}
 		if (strcmp(argv[i], "-s") == 0) {
-			strict = 0;
+            pjass_flags &= ~flag_strict;
 			continue;
 		}
 		if (strcmp(argv[i], "+rb") == 0) {
-			returnbug = 1;
+            pjass_flags |= flag_rb;
 			continue;
 		}
 		if (strcmp(argv[i], "-rb") == 0) {
-			returnbug = 0;
+            pjass_flags &= ~flag_rb;
 			continue;
 		}
 
@@ -149,23 +162,25 @@ printf(
 }
 int main(int argc, char **argv)
 {
-  init();
-  doparse(argc, argv);
+    init();
+    doparse(argc, argv);
 
-  if (!haderrors && didparse) {
-		printf("Parse successful: %8d lines: %s\n", totlines, "<total>");
-    if (ignorederrors)
-	printf("%d errors ignored", ignorederrors);
+    if (!haderrors && didparse) {
+        printf("Parse successful: %8d lines: %s\n", totlines, "<total>");
+        if (ignorederrors) {
+            printf("%d errors ignored", ignorederrors);
+        }
 
-    return 0;
-  }
-  else {
-		if (haderrors)
-			printf("Parse failed: %d error%s total\n", haderrors, haderrors == 1 ? "" : "s");
-		else
-			printf("Parse failed\n");
-		if (ignorederrors)
-		  printf("%d errors ignored", ignorederrors);
-    return 1;
-	}
+        return 0;
+    } else {
+        if (haderrors) {
+            printf("Parse failed: %d error%s total\n", haderrors, haderrors == 1 ? "" : "s");
+        } else {
+            printf("Parse failed\n");
+        }
+        if (ignorederrors) {
+            printf("%d errors ignored", ignorederrors);
+        }
+        return 1;
+    }
 }
