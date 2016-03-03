@@ -14,19 +14,39 @@ pjass-git-$(VERSION)-src.zip: | test
   endif
 endif
 
+.PHONY: all release clean debug prof
+.PHONY: clean-release-files clean-prof-files clean-build-files
+.PHONY: binary-release src-release
+.PHONY: help
 
-.PHONY: all release clean debug prof clean-release-files clean-prof-files clean-build-files
+all: pjass
 
-all:  pjass
+help:
+	@awk -F ':|##' \
+		'/^[^\t].+?:.*?##/ { \
+			printf "\033[36m%-20s\033[0m %s\n", $$1, $$NF \
+		}' $(MAKEFILE_LIST)
+
+-include $(OBJS:.o=.d)
+
+pjass: token.o grammar.tab.o misc.o ## Builds pjass
+	$(CC) $(CFLAGS) $^ -o $@
+
+test: should-fail should-check map-scripts ## Runs all tests
+
+release: src-release binary-release ## Builds a pjass release with src- and bin-zipballs
+
+clean: clean-build-files clean-release-files clean-prof-files ## Cleans the whole project
+
+
 
 debug: CFLAGS = -w -g
-debug: pjass
+debug: pjass ## Builds pjass with debugging support
 
 prof: CFLAGS = -w -pg
-prof: pjass
+prof: pjass ## Builds pjass with profiling support. You can run all tests with profiling enabled via `PROF=1 make test`
 
-pjass: token.o grammar.tab.o misc.o
-	$(CC) $(CFLAGS) $^ -o $@
+
 
 token.o: token.yy.c grammar.tab.h
 	$(CC) $(CFLAGS) -c -o $@ $<
@@ -44,22 +64,23 @@ misc.o: misc.c misc.h grammar.tab.h
 %.tab.c %.tab.h: %.y
 	bison -d $<
 
-clean: clean-build-files clean-release-files clean-prof-files
 
-clean-build-files:
+clean-build-files: ## Cleans all build files
 	rm -f grammar.tab.h grammar.tab.c token.yy.c token.yy.h \
           misc.o grammar.tab.o token.o \
           pjass.exe pjass
 
-clean-release-files:
+clean-release-files: ## Cleans all release zipballs
 	rm -f pjass-git-*.zip
 
-clean-prof-files:
+clean-prof-files: ## Cleans all profiling files
 	rm -f tests/should-check/*-analysis.txt \
           tests/should-fail/*-analysis.txt \
           gmon.out
 
-release: pjass-git-$(VERSION)-src.zip pjass-git-$(VERSION).zip
+
+src-release: pjass-git-$(VERSION)-src.zip ## Builds the source zipball
+binary-release: pjass-git-$(VERSION).zip ## Builds the exe zipball
 
 pjass-git-$(VERSION)-src.zip: grammar.y token.l misc.c misc.h Makefile notes.txt readme.txt
 	zip -q -r pjass-git-$(VERSION)-src.zip $^ tests/should-check/ tests/should-fail/
@@ -87,11 +108,11 @@ $(SHOULD_CHECK): pjass print-test
 $(SHOULD_FAIL): pjass print-test
 	@./fail.sh $@
 
-should-fail: $(SHOULD_FAIL)
-should-check: $(SHOULD_CHECK)
-map-scripts: $(MAP_SCRIPTS)
 
-test: should-fail should-check map-scripts
+should-fail: $(SHOULD_FAIL) ## Tests that should fail
+should-check: $(SHOULD_CHECK) ## Tests that should check
+map-scripts: $(MAP_SCRIPTS) ## Tests which are run with common.j and Blizzard.j
+
 
 
 print-test: pjass

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-./pjass tests/common.j tests/Blizzard.j "$1" > /dev/null
+./pjass "$1" > /dev/null
 ret=$?
 if [[ "$PROF" ]]; then
 	gprof pjass.exe gmon.out > "$1-analysis.txt"
