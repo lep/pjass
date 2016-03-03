@@ -82,18 +82,18 @@ void * ht_lookup(struct hashtable *h, const char *name)
 
 static void resize(struct hashtable *h)
 {
-    struct hashtable new;
-    ht_init(&new, h->size*2 +1);
+    struct hashtable newht;
+    ht_init(&newht, h->size*2 +1);
     size_t i;
     for(i = 0; i != h->size; i++){
         if(h->bucket[i].name){
-            ht_put(&new, h->bucket[i].name, h->bucket[i].val);
+            ht_put(&newht, h->bucket[i].name, h->bucket[i].val);
         }
     }
     free(h->bucket);
-    h->bucket = new.bucket;
-    h->size = new.size;
-    h->count = new.count;
+    h->bucket = newht.bucket;
+    h->size = newht.size;
+    h->count = newht.count;
 }
 
 bool ht_put(struct hashtable *h, const char *name, void *val)

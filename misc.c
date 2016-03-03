@@ -330,39 +330,32 @@ const struct typenode *combinetype(const struct typenode *n1, const struct typen
 }
 
 // this is used for reducing expressions in many places (if/exitwhen conditions, assignments etc.)
-int canconvert(const struct typenode *ufrom, const struct typenode *uto, const int linemod)
+void canconvert(const struct typenode *ufrom, const struct typenode *uto, const int linemod)
 {
     const struct typenode *from = ufrom, *to = uto;
     char ebuf[1024];
     if (from == NULL || to == NULL)
-        return 0;
+        return;
     if (typeeq(from, gAny) || typeeq(to, gAny))
-        return 1;
+        return;
     if (isDerivedFrom(from, to))
-        return 1;
+        return;
     if (getTypePtr(from)->typename == NULL || getTypePtr(to)->typename == NULL)
-        return 0;
+        return;
     if (typeeq(from, gNone) || typeeq(to, gNone))
-        return 0;
+        return;
     from = getPrimitiveAncestor(from);
     to = getPrimitiveAncestor(to);
     if (typeeq(from, gNull) && !typeeq(to, gInteger) && !typeeq(to, gReal) && !typeeq(to, gBoolean))
-        return 1;
-    if (strict) {
-        if (typeeq(ufrom, gInteger) && (typeeq(to, gReal) || typeeq(to, gInteger)))
-            return 1;
-        if (typeeq(ufrom, to) && (typeeq(ufrom, gBoolean) || typeeq(ufrom, gString) || typeeq(ufrom, gReal) || typeeq(ufrom, gInteger) || typeeq(ufrom, gCode)))
-            return 1;
-    } else {
-        if (typeeq(from, gInteger) && (typeeq(to, gReal) || typeeq(to, gInteger)))
-            return 1;
-        if (typeeq(from, to) && (typeeq(from, gBoolean) || typeeq(from, gString) || typeeq(from, gReal) || typeeq(from, gInteger) || typeeq(from, gCode)))
-            return 1;
-    }
+        return;
+    if (typeeq(from, gInteger) && (typeeq(to, gReal) || typeeq(to, gInteger)))
+        return;
+    if (typeeq(from, to) && (typeeq(from, gBoolean) || typeeq(from, gString) || typeeq(from, gReal) || typeeq(from, gInteger) || typeeq(from, gCode)))
+        return;
 
     snprintf(ebuf, 1024, "Cannot convert %s to %s", ufrom->typename, uto->typename);
     yyerrorline(3, lineno + linemod, ebuf);
-    return 0;
+    return;
 }
 
 // this is used for return statements only
@@ -398,10 +391,7 @@ void canconvertreturn(const struct typenode *ufrom, const struct typenode *uto, 
     if ((typeeq(from, gNull)) && (!typeeq(to, gInteger)) && (!typeeq(to, gReal)) && (!typeeq(to, gBoolean)))
         return; // can't return null when it expects integer, real or boolean (added 9.5.2005)
 
-    if (strict) {
-        if (isDerivedFrom(ufrom, uto))
-            return;
-    } else if (typeeq(ufrom, uto)){
+    if (typeeq(ufrom, uto)){
         return;
     }
 
