@@ -109,18 +109,19 @@ static int editdistance(const char *s, const char *t, int cutoff){
     }
 
     int *v[3];
-    for(int i = 0; i != 3; i++) {
+    int i;
+    for(i = 0; i != 3; i++) {
         v[i] = malloc(sizeof(int) * (size_t)(b+1));
     }
 
-    for(int i = 0; i != b+1; i++){
+    for(i = 0; i != b+1; i++){
         v[0][i] = i;
     }
 
     int pcur;
     int ppcur;
     int cur = 1;
-    for(int i = 0; i != a; i++){
+    for(i = 0; i != a; i++){
         cur = (cur+1) % 3;
         pcur = cur -1;
         if(pcur < 0) pcur += 3;
@@ -153,7 +154,7 @@ static int editdistance(const char *s, const char *t, int cutoff){
     pcur = cur -1;
     if(pcur < 0) pcur += 3;
     int d = v[pcur][b];
-    for(int i = 0; i != 3; i++)
+    for(i = 0; i != 3; i++)
         free(v[i]);
     return d;
 }
@@ -167,17 +168,20 @@ void getsuggestions(const char *name, char *buff, size_t buffsize, int nTables, 
     int count = 0;
 
     struct {int distance; const char *name;} suggestions[3];
-    for(int i = 0; i != 3; i++){
+    int i;
+    for(i = 0; i != 3; i++){
         suggestions[i].distance = INT_MAX;
         suggestions[i].name = NULL;
     }
 
     va_start(ap, nTables);
 
-    for(int i = 0; i != nTables; i++){
+    
+    for(i = 0; i != nTables; i++){
         struct hashtable *ht = va_arg(ap, struct hashtable*);
-
-        for(size_t x = 0; x != ht->size; x++){
+        
+        size_t x;
+        for(x = 0; x != ht->size; x++){
             if(ht->bucket[x].name){
                 const struct typeandname *tan = ht->bucket[x].val;
                 if(typeeq(tan->ty, gAny)){
@@ -187,7 +191,8 @@ void getsuggestions(const char *name, char *buff, size_t buffsize, int nTables, 
                 int dist = editdistance(ht->bucket[x].name, name, cutoff);
                 if(dist <= cutoff){
                     count++;
-                    for(int j = 0; j != 3; j++){
+                    int j;
+                    for(j = 0; j != 3; j++){
                         if(suggestions[j].distance > dist){
                             if(i == 0){
                                 suggestions[2] = suggestions[1];
@@ -469,9 +474,10 @@ int updateflag(int cur, char *txt, struct hashtable *flags){
 }
 
 int updateannotation(int cur, char *txt, struct hashtable *flags){
-    char sep[] = " \t\n";
+    char sep[] = " \t\r\n";
     memset(txt, ' ', strlen("//#"));
-    for(char *ann = strtok(txt, sep); ann; ann = strtok(NULL, sep)){
+    char *ann;
+    for(ann = strtok(txt, sep); ann; ann = strtok(NULL, sep)){
         cur = updateflag(cur, ann, flags);
     }
     return cur;
