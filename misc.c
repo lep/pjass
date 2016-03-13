@@ -278,8 +278,7 @@ void checkParameters(const struct paramlist *func, const struct paramlist *inp, 
             return;
         }
         canconvert(pi->ty, fi->ty, 0);
-        bool has_flag = (pjass_flags & flag_filter) || (fnannotations & flag_filter);
-        if(has_flag && mustretbool && typeeq(pi->ty, gCodeReturnsNoBoolean)){
+        if(flagenabled(flag_filter) && mustretbool && typeeq(pi->ty, gCodeReturnsNoBoolean)){
             yyerrorex(semanticerror, "Function passed to Filter or Condition must return a boolean");
             return;
         }
@@ -476,4 +475,65 @@ int updateannotation(int cur, char *txt, struct hashtable *flags){
         cur = updateflag(cur, ann, flags);
     }
     return cur;
+}
+
+bool flagenabled(int flag)
+{
+    return (pjass_flags & flag) || (fnannotations & flag);
+}
+
+union node checkfunctionheader(char *fnname, struct paramlist *pl, const struct typenode *retty)
+{
+    union node ret;
+
+    if (ht_lookup(&locals, fnname) || ht_lookup(&params, fnname) || ht_lookup(&globals, fnname)) {
+        char buf[1024];
+        snprintf(buf, 1024, "%s already defined as variable", fnname);
+        yyerrorex(3, buf);
+    } else if (ht_lookup(&types, fnname)) {
+        char buf[1024];
+        snprintf(buf, 1024, "%s already defined as type", fnname);
+        yyerrorex(3, buf);
+    }
+
+    curtab = &locals;
+    ret.fd = newfuncdecl(); 
+    ret.fd->name = strdup(fnname);
+    ret.fd->p = pl;
+    ret.fd->ret = retty;
+
+    put(&functions, ret.fd->name, ret.fd);
+
+    fCurrent = ht_lookup(&functions, fnname);
+    fnannotations = annotations;
+
+    struct typeandname *tan = pl->head;
+    for (;tan; tan=tan->next) {
+        tan->lineno = lineno;
+        tan->fn = fno;
+        put(&params, strdup(tan->name), newtypeandname(tan->ty, tan->name));
+        if (ht_lookup(&functions, tan->name)) {
+            char buf[1024];
+            snprintf(buf, 1024, "%s already defined as function", tan->name);
+            yyerrorex(3, buf);
+        } else if (ht_lookup(&types, tan->name)) {
+            char buf[1024];
+            snprintf(buf, 1024, "%s already defined as type", tan->name);
+            yyerrorex(3, buf);
+        }
+
+        if( flagenabled(flag_shadowing) ){
+            if( ht_lookup(&globals, tan->name) ){
+                char buf[1024];
+                snprintf(buf, 1024, "Parmeter %s shadows global variable", tan->name);
+                yyerrorex(3, buf);
+            }
+        }
+
+    }
+    retval = ret.fd->ret;
+    inblock = 1;
+    inloop = 0;
+
+    return ret;
 }

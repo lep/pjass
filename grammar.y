@@ -347,7 +347,7 @@ funcdefncore: funcbegin localblock codeblock funcend {
             if(retval != gNothing) {
                 if(!getTypeTag($3.ty))
                     yyerrorline(1, lineno - 1, "Missing return");
-                else if ((pjass_flags & flag_rb) || (fnannotations & flag_rb))
+                else if ( flagenabled(flag_rb) )
                     canconvertreturn($3.ty, retval, -1);
             }
             fnannotations = 0;
@@ -363,84 +363,17 @@ returnorreturns: RETURNS
 ;
 
 funcbegin: FUNCTION rid TAKES optparam_list returnorreturns opttype {
-  if (ht_lookup(&locals, $2.str) || ht_lookup(&params, $2.str) || ht_lookup(&globals, $2.str)) {
-    char buf[1024];
-    snprintf(buf, 1024, "%s already defined as variable", $2.str);
-    yyerrorex(3, buf);
-  } else if (ht_lookup(&types, $2.str)) {
-    char buf[1024];
-    snprintf(buf, 1024, "%s already defined as type", $2.str);
-    yyerrorex(3, buf);
-  }
-  inconstant = 0;
-  infunction = 1;
-  curtab = &locals;
-  $$.fd = newfuncdecl(); 
-  $$.fd->name = strdup($2.str);
-  $$.fd->p = $4.pl;
-  $$.fd->ret = $6.ty;
-  $$.fd->isconst = 0;
-  put(&functions, $$.fd->name, $$.fd);
-  fCurrent = ht_lookup(&functions, $2.str);
-  struct typeandname *tan = $4.pl->head;
-  for (;tan; tan=tan->next) {
-    tan->lineno = lineno;
-    tan->fn = fno;
-    put(&params, strdup(tan->name), newtypeandname(tan->ty, tan->name));
-    if (ht_lookup(&functions, tan->name)) {
-      char buf[1024];
-      snprintf(buf, 1024, "%s already defined as function", tan->name);
-      yyerrorex(3, buf);
-    } else if (ht_lookup(&types, tan->name)) {
-      char buf[1024];
-      snprintf(buf, 1024, "%s already defined as type", tan->name);
-      yyerrorex(3, buf);
+        inconstant = 0;
+        infunction = 1;
+        $$ = checkfunctionheader($2.str, $4.pl, $6.ty);
+        $$.fd->isconst = 0;
     }
-  }
-  retval = $$.fd->ret;
-  fnannotations = annotations;
-  inblock = 1;
-  inloop = 0;
-  //showfuncdecl($$.fd);
-}
-       | CONSTANT FUNCTION rid TAKES optparam_list returnorreturns opttype {
-  if (ht_lookup(&locals, $3.str) || ht_lookup(&params, $3.str) || ht_lookup(&globals, $3.str)) {
-    char buf[1024];
-    snprintf(buf, 1024, "%s already defined as variable", $3.str);
-    yyerrorex(3, buf);
-  } else if (ht_lookup(&types, $3.str)) {
-    char buf[1024];
-    snprintf(buf, 1024, "%s already defined as type", $3.str);
-    yyerrorex(3, buf);
-  }
-  inconstant = 1;
-  curtab = &locals;
-  $$.fd = newfuncdecl(); 
-  $$.fd->name = strdup($3.str);
-  $$.fd->p = $5.pl;
-  $$.fd->ret = $7.ty;
-  $$.fd->isconst = 1;
-  put(&functions, $$.fd->name, $$.fd);
-  struct typeandname *tan = $5.pl->head;
-  for (;tan; tan=tan->next) {
-    tan->lineno = lineno;
-    tan->fn = fno;
-    put(&params, strdup(tan->name), newtypeandname(tan->ty, tan->name));
-    if (ht_lookup(&functions, tan->name)) {
-      char buf[1024];
-      snprintf(buf, 1024, "%s already defined as function", tan->name);
-      yyerrorex(3, buf);
-    } else if (ht_lookup(&types, tan->name)) {
-      char buf[1024];
-      snprintf(buf, 1024, "%s already defined as type", tan->name);
-      yyerrorex(3, buf);
+    | CONSTANT FUNCTION rid TAKES optparam_list returnorreturns opttype {
+        inconstant = 1;
+        infunction = 1;
+        $$ = checkfunctionheader($3.str, $5.pl, $7.ty);
+        $$.fd->isconst = 1;
     }
-  }
-  retval = $$.fd->ret;
-  inblock = 1;
-  inloop = 0;
-  //showfuncdecl($$.fd);
-}
 ;
 
 codeblock: /* empty */ { $$.ty = gEmpty; }
@@ -499,7 +432,7 @@ statement:  newline { $$.ty = gEmpty; }
             $$.ty = mkretty($2.ty, 1);
             if(retval == gNothing)
                 yyerrorline(1, lineno - 1, "Cannot return value from function that returns nothing");
-            else if (!(pjass_flags & flag_rb) && !(fnannotations & flag_rb))
+            else if (! flagenabled(flag_rb) )
                 canconvertreturn($2.ty, retval, 0);
          }
        | RETURN newline {
@@ -748,6 +681,17 @@ vardecl: vartypedecl newline {
              if (tan->isconst) {
                yyerrorline(3, lineno - 1, "Constants must be initialized");
              }
+             if(infunction && flagenabled(flag_shadowing) ){
+                 if( ht_lookup(&globals, tan->name)){
+                     char buf[1024];
+                     snprintf(buf, 1024, "Local variable %s shadows global variable", tan->name);
+                     yyerrorline(3, lineno -1, buf);
+                 } else if( ht_lookup(&params, tan->name)){
+                     char buf[1024];
+                     snprintf(buf, 1024, "Local variable %s shadows parameter", tan->name);
+                     yyerrorline(3, lineno -1, buf);
+                 }
+             }
              $$.ty = gNothing;
            }
         |  vartypedecl EQUALS expr newline {
@@ -757,6 +701,17 @@ vardecl: vartypedecl newline {
              }
              if(infunction && !ht_lookup(&initialized, tan->name)){
                put(&initialized, tan->name, (void*)1);
+             }
+             if(infunction && flagenabled(flag_shadowing) ){
+                 if( ht_lookup(&globals, tan->name)){
+                     char buf[1024];
+                     snprintf(buf, 1024, "Local variable %s shadows global variable", tan->name);
+                     yyerror(buf);
+                 } else if( ht_lookup(&params, tan->name)){
+                     char buf[1024];
+                     snprintf(buf, 1024, "Local variable %s shadows parameter", tan->name);
+                     yyerror(buf);
+                 }
              }
              canconvert($3.ty, tan->ty, -1);
              $$.ty = gNothing;

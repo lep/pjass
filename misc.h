@@ -68,6 +68,7 @@ void checkeqtest(const struct typenode *a, const struct typenode *b);
 int isflag(char *txt, struct hashtable *flags);
 int updateflag(int cur, char *txt, struct hashtable *flags);
 int updateannotation(int cur, char *txt, struct hashtable *flags);
+bool flagenabled(int flag);
 
 extern int pjass_flags;
 
@@ -94,5 +95,7 @@ extern struct funcdecl *fFilter, *fCondition;
 extern const struct typenode *retval;
 
 extern struct hashtable available_flags;
+
+union node checkfunctionheader(char *fnname, struct paramlist *pl, const struct typenode *retty);
 
 #endif
