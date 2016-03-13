@@ -236,46 +236,12 @@ expr: intexpr      { $$.ty = gInteger; }
 ;
 
 funccall: rid LPAREN exprlistcompl RPAREN {
-          struct funcdecl *fd = ht_lookup(&functions, $1.str);
-          if (fd == NULL) {
-            char ebuf[1024];
-            snprintf(ebuf, 1024, "Undeclared function %s", $1.str);
-            getsuggestions($1.str, ebuf, 1024, 1, &functions);
-            yyerrorex(3, ebuf);
-            $$.ty = gAny;
-          } else {
-            if (inconstant && !(fd->isconst)) {
-              char ebuf[1024];
-              snprintf(ebuf, 1024, "Call to non-constant function %s in constant function", $1.str);
-              yyerrorex(3, ebuf);
-            }
-            if (fd == fCurrent && fCurrent)
-          		yyerrorex(3, "Recursive function calls are not permitted in local declarations");
-            checkParameters(fd->p, $3.pl, fd == fFilter || fd == fCondition);
-            $$.ty = fd->ret;
-          }
-       }
-       |  rid LPAREN exprlistcompl newline {
-          yyerrorex(0, "Missing ')'");
-          struct funcdecl *fd = ht_lookup(&functions, $1.str);
-          if (fd == NULL) {
-            char ebuf[1024];
-            snprintf(ebuf, 1024, "Undeclared function %s", $1.str);
-            getsuggestions($1.str, ebuf, 1024, 1, &functions);
-            yyerrorex(3, ebuf);
-            $$.ty = gAny;
-          } else if (inconstant && !(fd->isconst)) {
-            char ebuf[1024];
-            snprintf(ebuf, 1024, "Call to non-constant function %s in constant function", $1.str);
-            yyerrorex(3, ebuf);
-            $$.ty = gAny;
-          } else {
-          	if (fd == fCurrent && fCurrent)
-          		yyerrorex(3, "Recursive function calls are not permitted in local declarations");
-            checkParameters(fd->p, $3.pl, fd == fCondition || fd == fFilter);
-            $$.ty = fd->ret;
-          }
-       }
+        $$ = checkfunccall($1.str, $3.pl);    
+    }
+    |  rid LPAREN exprlistcompl newline {
+        yyerrorex(0, "Missing ')'");
+        $$ = checkfunccall($1.str, $3.pl);
+    }
 ;
 
 exprlistcompl: /* empty */ { $$.pl = newparamlist(); }
@@ -506,161 +472,47 @@ rid: ID
 ;
 
 vartypedecl: type rid {
-  if (ht_lookup(&functions, $2.str)) {
-    char buf[1024];
-    snprintf(buf, 1024, "Symbol %s already defined as function", $2.str);
-    yyerrorex(3, buf);
-  } else if (ht_lookup(&types, $2.str)) {
-    char buf[1024];
-    snprintf(buf, 1024, "Symbol %s already defined as type", $2.str);
-    yyerrorex(3, buf);
-  }
-  struct typeandname *tan = newtypeandname($1.ty, $2.str);
-  $$.str = $2.str;
-  struct typeandname *existing = ht_lookup(&locals, $2.str);
-  if (!existing) {
-    existing = ht_lookup(&params, $2.str);
-    if (!existing)
-      existing = ht_lookup(&globals, $2.str);
-  }
-  if (existing) {
-    tan->lineno = existing->lineno;
-    tan->fn = existing->fn;
-  } else {
-    tan->lineno = lineno;
-    tan->fn = fno;
-  }
-  put(curtab, $2.str, tan);  }
-       | CONSTANT type rid {
-  if (afterendglobals) {
-    yyerrorex(3, "Local constants are not allowed");
-  }
-  if (ht_lookup(&functions, $3.str)) {
-    char buf[1024];
-    snprintf(buf, 1024, "Symbol %s already defined as function", $3.str);
-    yyerrorex(3, buf);
-  } else if (ht_lookup(&types, $3.str)) {
-    char buf[1024];
-    snprintf(buf, 1024, "Symbol %s already defined as type", $3.str);
-    yyerrorex(3, buf);
-  }
-  struct typeandname *tan = newtypeandname($2.ty, $3.str);
-  $$.str = $3.str;
-  tan->isconst = 1;
-  struct typeandname *existing = ht_lookup(&locals, $3.str);
-  if (!existing) {
-    existing = ht_lookup(&params, $3.str);
-    if (!existing)
-      existing = ht_lookup(&globals, $3.str);
-  }
-  if (existing) {
-    tan->lineno = existing->lineno;
-    tan->fn = existing->fn;
-  } else {
-    tan->lineno = lineno;
-    tan->fn = fno;
-  }
-  put(curtab, $3.str, tan); }
-       | type ARRAY rid {
-  if (ht_lookup(&functions, $3.str)) {
-    char buf[1024];
-    snprintf(buf, 1024, "Symbol %s already defined as function", $3.str);
-    yyerrorex(3, buf);
-  } else if (ht_lookup(&types, $3.str)) {
-    char buf[1024];
-    snprintf(buf, 1024, "Symbol %s already defined as type", $3.str);
-    yyerrorex(3, buf);
-  }
-  if (getPrimitiveAncestor($1.ty) == gCode)
-    yyerrorex(3, "Code arrays are not allowed");
-  struct typeandname *tan = newtypeandname($1.ty, $3.str);
-  $$.str = $3.str;
-  tan->isarray = 1;
-  struct typeandname *existing = ht_lookup(&locals, $3.str);
-  if (!existing) {
-    char buf[1024];
-    existing = ht_lookup(&params, $3.str);
-    if (afterendglobals && existing) {
-    	snprintf(buf, 1024, "Symbol %s already defined as function parameter", $3.str);
-    	yyerrorex(3, buf);
+        struct typeandname *tan = newtypeandname($1.ty, $2.str);
+        $$ = checkvardecl(tan);
     }
-    if (!existing) {
-      existing = ht_lookup(&globals, $3.str);
-      if (afterendglobals && existing) {
-      	snprintf(buf, 1024, "Symbol %s already defined as global variable", $3.str);
-      	yyerrorex(3, buf);
-      }
+    | CONSTANT type rid {
+        if (infunction) {
+            yyerrorex(3, "Local constants are not allowed");
+        }
+        struct typeandname *tan = newtypeandname($2.ty, $3.str);
+        tan->isconst = 1;
+        $$ = checkvardecl(tan);
     }
-  }
-  if (existing) {
-    tan->lineno = existing->lineno;
-    tan->fn = existing->fn;
-  } else {
-    tan->lineno = lineno;
-    tan->fn = fno;
-  }
-  put(curtab, $3.str, tan); }
+    | type ARRAY rid {
+        struct typeandname *tan = newtypeandname($1.ty, $3.str);
+        tan->isarray = 1;
+        $$ = checkarraydecl(tan);
   
- // using "type" as variable name 
-      | type TYPE {
-  yyerrorex(3, "Invalid variable name \"type\"");
-  struct typeandname *tan = newtypeandname($1.ty, "type");
-  $$.str = "type";
-  struct typeandname *existing = ht_lookup(&locals, "type");
-  if (!existing) {
-    existing = ht_lookup(&params, "type");
-    if (!existing)
-      existing = ht_lookup(&globals, "type");
-  }
-  if (existing) {
-    tan->lineno = existing->lineno;
-    tan->fn = existing->fn;
-  } else {
-    tan->lineno = lineno;
-    tan->fn = fno;
-  }
-  put(curtab, "type", tan);  }
-       | CONSTANT type TYPE {
-  if (afterendglobals) {
-    yyerrorex(3, "Local constants are not allowed");
-  }
-  yyerrorex(3, "Invalid variable name \"type\"");
-  struct typeandname *tan = newtypeandname($2.ty, "type");
-  $$.str = "type";
-  tan->isconst = 1;
-  struct typeandname *existing = ht_lookup(&locals, "type");
-  if (!existing) {
-    existing = ht_lookup(&params, "type");
-    if (!existing)
-      existing = ht_lookup(&globals, "type");
-  }
-  if (existing) {
-    tan->lineno = existing->lineno;
-    tan->fn = existing->fn;
-  } else {
-    tan->lineno = lineno;
-    tan->fn = fno;
-  }
-  put(curtab, "type", tan); }
-       | type ARRAY TYPE {
-  yyerrorex(3, "Invalid variable name \"type\"");
-  struct typeandname *tan = newtypeandname($1.ty, "type");
-  $$.str = "type";
-  tan->isarray = 1;
-  struct typeandname *existing = ht_lookup(&locals, "type");
-  if (!existing) {
-    existing = ht_lookup(&params, "type");
-    if (!existing)
-      existing = ht_lookup(&globals, "type");
-  }
-  if (existing) {
-    tan->lineno = existing->lineno;
-    tan->fn = existing->fn;
-  } else {
-    tan->lineno = lineno;
-    tan->fn = fno;
-  }
-  put(curtab, "type", tan); }
+    }
+
+    // using "type" as variable name 
+    | type TYPE {
+        yyerrorex(3, "Invalid variable name \"type\"");
+        struct typeandname *tan = newtypeandname($1.ty, "type");
+        $$ = checkvardecl(tan);
+    }
+
+    | CONSTANT type TYPE {
+        if (infunction) {
+            yyerrorex(3, "Local constants are not allowed");
+        }
+        yyerrorex(3, "Invalid variable name \"type\"");
+        struct typeandname *tan = newtypeandname($2.ty, "type");
+        tan->isconst = 1;
+        $$ = checkvardecl(tan);
+    }
+    | type ARRAY TYPE {
+        yyerrorex(3, "Invalid variable name \"type\"");
+        struct typeandname *tan = newtypeandname($1.ty, "type");
+        tan->isarray = 1;
+        $$ = checkarraydecl(tan);
+
+    }
 ;
 
 localblock: endlocalsmarker

@@ -21,7 +21,7 @@
 #define BUFSIZE (16384)
 
 union node {
-  char *str;
+  const char *str;
   int ival;
   const struct typenode *ty;
   struct paramlist *pl;
@@ -96,6 +96,9 @@ extern const struct typenode *retval;
 
 extern struct hashtable available_flags;
 
-union node checkfunctionheader(char *fnname, struct paramlist *pl, const struct typenode *retty);
+union node checkfunctionheader(const char *fnname, struct paramlist *pl, const struct typenode *retty);
+union node checkfunccall(const char *fnname, struct paramlist *pl);
+union node checkarraydecl(struct typeandname *tan);
+union node checkvardecl(struct typeandname *tan);
 
 #endif

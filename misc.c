@@ -482,7 +482,7 @@ bool flagenabled(int flag)
     return (pjass_flags & flag) || (fnannotations & flag);
 }
 
-union node checkfunctionheader(char *fnname, struct paramlist *pl, const struct typenode *retty)
+union node checkfunctionheader(const char *fnname, struct paramlist *pl, const struct typenode *retty)
 {
     union node ret;
 
@@ -534,6 +534,97 @@ union node checkfunctionheader(char *fnname, struct paramlist *pl, const struct 
     retval = ret.fd->ret;
     inblock = 1;
     inloop = 0;
+
+    return ret;
+}
+
+union node checkfunccall(const char *fnname, struct paramlist *pl)
+{
+    union node ret;
+    struct funcdecl *fd = ht_lookup(&functions, fnname);
+    if (fd == NULL) {
+        char ebuf[1024];
+        snprintf(ebuf, 1024, "Undeclared function %s", fnname);
+        getsuggestions(fnname, ebuf, 1024, 1, &functions);
+        yyerrorex(3, ebuf);
+        ret.ty = gAny;
+    } else {
+        if (inconstant && !(fd->isconst)) {
+            char ebuf[1024];
+            snprintf(ebuf, 1024, "Call to non-constant function %s in constant function", fnname);
+            yyerrorex(3, ebuf);
+        }
+        if (fd == fCurrent && fCurrent)
+            yyerrorex(3, "Recursive function calls are not permitted in local declarations");
+        checkParameters(fd->p, pl, fd == fFilter || fd == fCondition);
+        ret.ty = fd->ret;
+    }
+    return ret;
+}
+
+static void checkvarname(struct typeandname *tan, bool isarray)
+{
+    const char *name = tan->name;
+    if (ht_lookup(&functions, name)) {
+        char buf[1024];
+        snprintf(buf, 1024, "Symbol %s already defined as function", name);
+        yyerrorex(3, buf);
+    } else if (ht_lookup(&types, name)) {
+        char buf[1024];
+        snprintf(buf, 1024, "Symbol %s already defined as type", name);
+        yyerrorex(3, buf);
+    }
+
+    struct typeandname *existing = ht_lookup(&locals, name);
+
+    if (!existing) {
+        char buf[1024];
+        existing = ht_lookup(&params, name);
+        if ( isarray && infunction && existing) {
+            snprintf(buf, 1024, "Symbol %s already defined as function parameter", name);
+            yyerrorex(3, buf);
+        }
+        if (!existing) {
+            existing = ht_lookup(&globals, name);
+            if ( isarray && infunction && existing) {
+                snprintf(buf, 1024, "Symbol %s already defined as global variable", name);
+                yyerrorex(3, buf);
+            }
+        }
+    }
+    if (existing) {
+        tan->lineno = existing->lineno;
+        tan->fn = existing->fn;
+    } else {
+        tan->lineno = lineno;
+        tan->fn = fno;
+    }
+}
+
+union node checkvardecl(struct typeandname *tan)
+{
+    const char *name = tan->name;
+    union node ret;
+    checkvarname(tan, false);
+
+    ret.str = name;
+    put(curtab, name, tan);
+
+    return ret;
+}
+
+union node checkarraydecl(struct typeandname *tan)
+{
+    const char *name = tan->name;
+    union node ret;
+
+    if (getPrimitiveAncestor(tan->ty) == gCode)
+        yyerrorex(3, "Code arrays are not allowed");
+
+    checkvarname(tan, true);
+
+    ret.str = name;
+    put(curtab, name, tan);
 
     return ret;
 }
