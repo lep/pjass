@@ -119,6 +119,8 @@ printf(
 "pjass -v           Display version information and exit\n"
 "pjass +rb          Enable returnbug\n"
 "pjass -rb          Disable returnbug\n"
+"pjass +shadow      Enable error on variable shadowing\n"
+"pjass -shadow      Disable error on variable shadowing\n"
 "pjass -            Read from standard input (may appear in a list)\n"
 );
 			exit(0);
