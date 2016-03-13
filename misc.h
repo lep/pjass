@@ -35,10 +35,10 @@ enum errortype {
     warning,
 };
 
-enum flags {
+enum {
     flag_rb = 1 << 0,
-    flag_strict = 1 << 1,
-    flag_filter = 1 << 2,
+    flag_filter = 1 << 1,
+    flag_shadowing = 1 << 2,
 };
 
 
@@ -65,7 +65,9 @@ void checkcomparison(const struct typenode *a, const struct typenode *b);
 void checkcomparisonsimple(const struct typenode *a);
 void checkeqtest(const struct typenode *a, const struct typenode *b);
 
-int updateannotation(int cur, char *txt);
+int isflag(char *txt, struct hashtable *flags);
+int updateflag(int cur, char *txt, struct hashtable *flags);
+int updateannotation(int cur, char *txt, struct hashtable *flags);
 
 extern int pjass_flags;
 
@@ -90,5 +92,7 @@ extern struct typenode *gCodeReturnsNoBoolean, *gCodeReturnsBoolean;
 extern struct funcdecl *fCurrent;
 extern struct funcdecl *fFilter, *fCondition;
 extern const struct typenode *retval;
+
+extern struct hashtable available_flags;
 
 #endif

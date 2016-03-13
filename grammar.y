@@ -805,5 +805,5 @@ primtype: HANDLE  { $$.ty = ht_lookup(&types, yytext); }
 ;
 
 newline: NEWLINE { annotations = 0; }
-       | ANNOTATION { annotations = updateannotation(annotations, yytext); }
+       | ANNOTATION { annotations = updateannotation(annotations, yytext, &available_flags); }
 ;

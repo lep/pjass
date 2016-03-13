@@ -61,6 +61,11 @@ static void init()
     fCurrent = NULL;
     fFilter = NULL;
     fCondition = NULL;
+
+    ht_init(&available_flags, 11);
+    ht_put(&available_flags, "rb", (void*)flag_rb);
+    ht_put(&available_flags, "shadow", (void*)flag_shadowing);
+    ht_put(&available_flags, "filter", (void*)flag_filter);
 }
 
 static void dofile(FILE *fp, const char *name)
@@ -112,10 +117,6 @@ printf(
 "pjass accepts some options:\n"
 "pjass -h           Display this help\n"
 "pjass -v           Display version information and exit\n"
-"pjass -e1          Ignores error level 1\n"
-"pjass +e2          Undo Ignore of error level 2\n"
-"pjass +s           Enable strict downcast evaluation\n"
-"pjass -s           Disable strict downcast evaluation\n"
 "pjass +rb          Enable returnbug\n"
 "pjass -rb          Disable returnbug\n"
 "pjass -            Read from standard input (may appear in a list)\n"
@@ -126,22 +127,10 @@ printf(
 			printf("%s version %s\n", argv[0], VERSIONSTR);
 			exit(0);
 		}
-		if (strcmp(argv[i], "+s") == 0) {
-            pjass_flags |= flag_strict;
-			continue;
-		}
-		if (strcmp(argv[i], "-s") == 0) {
-            pjass_flags &= ~flag_strict;
-			continue;
-		}
-		if (strcmp(argv[i], "+rb") == 0) {
-            pjass_flags |= flag_rb;
-			continue;
-		}
-		if (strcmp(argv[i], "-rb") == 0) {
-            pjass_flags &= ~flag_rb;
-			continue;
-		}
+        if( isflag(argv[i], &available_flags)){
+            pjass_flags = updateflag(pjass_flags, argv[i], &available_flags);
+            continue;
+        }
 
 		FILE *fp;
 		fp = fopen(argv[i], "rb");

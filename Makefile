@@ -49,7 +49,7 @@ debug: CFLAGS = -w -g
 debug: pjass ## Builds pjass with debugging support
 
 prof: CFLAGS = -w -pg
-prof: pjass ## Builds pjass with profiling support. You can run all tests with profiling enabled via `PROF=1 make test`
+prof: pjass ## Builds pjass with profiling support. You can run all tests with profiling enabled via `make PROF=1 test`
 
 
 

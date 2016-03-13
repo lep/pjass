@@ -51,6 +51,8 @@ struct funcdecl *fCurrent;
 struct funcdecl *fFilter, *fCondition;
 
 
+struct hashtable available_flags;
+
 void yyerrorline (int errorlevel, int line, const char *s)
 {
     //if (showerrorlevel[errorlevel]) {
@@ -447,27 +449,31 @@ void checkeqtest(const struct typenode *a, const struct typenode *b)
     }
 }
 
+int isflag(char *txt, struct hashtable *flags){
+    txt++; // ignore +/- at the start
+    void *flag = ht_lookup(flags, txt);
+    return (int)flag;
+}
 
-int updateannotation(int cur, char *txt){
-    char sep[] = " \t\n";
-    char *ann;
-    memset(txt, ' ', strlen("//#"));
-    for(ann = strtok(txt, sep); ann; ann = strtok(NULL, sep)){
-        char *name = ann+1;
-        char sgn = ann[0];
-        int flag = 0;
+int updateflag(int cur, char *txt, struct hashtable *flags){
+    char sgn = txt[0];
+    int flag = isflag(txt, flags);
 
-        if(! strcmp(name, "rb")){
-            flag = flag_rb;
-        } else if(! strcmp(name, "filter") ){
-            flag = flag_filter;
-        }
-
+    if( flag){
         if(sgn == '+') {
             cur |= flag;
         } else if(sgn == '-') {
             cur &= ~flag;
         }
+    }
+    return cur;
+}
+
+int updateannotation(int cur, char *txt, struct hashtable *flags){
+    char sep[] = " \t\n";
+    memset(txt, ' ', strlen("//#"));
+    for(char *ann = strtok(txt, sep); ann; ann = strtok(NULL, sep)){
+        cur = updateflag(cur, ann, flags);
     }
     return cur;
 }
