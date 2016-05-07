@@ -39,11 +39,13 @@ enum {
     flag_rb = 1 << 0,
     flag_filter = 1 << 1,
     flag_shadowing = 1 << 2,
+    flag_syntaxerror = 1 << 3,
+    flag_semanticerror = 1 << 4,
 };
 
 
-void yyerrorline (int errorlevel, int line, const char *s);
-void yyerrorex (int errorlevel, const char *s);
+void yyerrorline (enum errortype type, int line, const char *s);
+void yyerrorex (enum errortype type, const char *s);
 void yyerror (const char *s);
 
 void put(struct hashtable *h, const char *name, void *val);

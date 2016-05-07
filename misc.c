@@ -53,36 +53,37 @@ struct funcdecl *fFilter, *fCondition;
 
 struct hashtable available_flags;
 
-void yyerrorline (int errorlevel, int line, const char *s)
+void yyerrorline (enum errortype type, int line, const char *s)
 {
-    //if (showerrorlevel[errorlevel]) {
+    if(flagenabled(flag_syntaxerror) && type == syntaxerror){
+        ignorederrors++;
+        return;
+    }
+
+    if(flagenabled(flag_semanticerror) && type == semanticerror){
+        ignorederrors++;
+        return;
+    }
+
     haderrors++;
     printf ("%s:%d: %s\n", curfile, line, s);
-    //}
-    //else
-    //  ignorederrors++;
 }
 
-void yyerrorex (int errorlevel, const char *s)
+void yyerrorex (enum errortype type, const char *s)
 {
-    //if (showerrorlevel[errorlevel]) {
-    haderrors++;
-    printf ("%s:%d: %s\n", curfile, lineno, s);
-    //}
-    //else
-    //  ignorederrors++;
+    yyerrorline(type, lineno, s);
 }
 
 void yyerror (const char *s)  /* Called by yyparse on error */
 {
-    yyerrorex(0, s);
+    yyerrorex(syntaxerror, s);
 }
 
 void put(struct hashtable *h, const char *name, void *val){
     if( !ht_put(h, name, val) ){
         char ebuf[1024];
         snprintf(ebuf, 1024, "Symbol %s multiply defined", name);
-        yyerrorline(3, islinebreak ? lineno - 1 : lineno, ebuf);
+        yyerrorline(semanticerror, islinebreak ? lineno - 1 : lineno, ebuf);
     }
 }
 
@@ -239,7 +240,7 @@ const struct typeandname *getVariable(const char *varname)
 
     snprintf(ebuf, 1024, "Undeclared variable %s", varname);
     getsuggestions(varname, ebuf, 1024, 3, &locals, &params, &globals);
-    yyerrorline(2, islinebreak ? lineno - 1 : lineno, ebuf);
+    yyerrorline(semanticerror, islinebreak ? lineno - 1 : lineno, ebuf);
 
     // Store it as unidentified variable
     const struct typeandname *newtan = newtypeandname(gAny, varname);
@@ -257,7 +258,7 @@ void validateGlobalAssignment(const char *varname)
     result = ht_lookup(&globals, varname);
     if (result) {
         snprintf(ebuf, 1024, "Assignment to global variable %s in constant function", varname);
-        yyerrorline(2, lineno - 1, ebuf);
+        yyerrorline(semanticerror, lineno - 1, ebuf);
     }
 }
 
@@ -270,11 +271,11 @@ void checkParameters(const struct paramlist *func, const struct paramlist *inp, 
         if (fi == NULL && pi == NULL)
             return;
         if (fi == NULL && pi != NULL) {
-            yyerrorex(3, "Too many arguments passed to function");
+            yyerrorex(semanticerror, "Too many arguments passed to function");
             return;
         }
         if (fi != NULL && pi == NULL) {
-            yyerrorex(3, "Not enough arguments passed to function");
+            yyerrorex(semanticerror, "Not enough arguments passed to function");
             return;
         }
         canconvert(pi->ty, fi->ty, 0);
@@ -297,7 +298,7 @@ const struct typenode *binop(const struct typenode *a, const struct typenode *b)
     if (typeeq(b, gAny))
         return a;
     if ((!typeeq(a, gInteger) && !typeeq(a, gReal)) || (!typeeq(b, gInteger) && !typeeq(b, gReal))) {
-        yyerrorline(3, islinebreak ? lineno - 1 : lineno, "Bad types for binary operator");
+        yyerrorline(semanticerror, islinebreak ? lineno - 1 : lineno, "Bad types for binary operator");
     }
     return gReal;
 }
@@ -355,7 +356,7 @@ void canconvert(const struct typenode *ufrom, const struct typenode *uto, const 
         return;
 
     snprintf(ebuf, 1024, "Cannot convert %s to %s", ufrom->typename, uto->typename);
-    yyerrorline(3, lineno + linemod, ebuf);
+    yyerrorline(semanticerror, lineno + linemod, ebuf);
     return;
 }
 
@@ -385,7 +386,7 @@ void canconvertreturn(const struct typenode *ufrom, const struct typenode *uto, 
     if ((typeeq(to, gReal)) && (typeeq(from, gInteger))) {
         // can't return integer when it expects a real (added 9.5.2005)
         snprintf(ebuf, 1024, "Cannot convert returned value from %s to %s", getTypePtr(from)->typename, getTypePtr(to)->typename);
-        yyerrorline(1, lineno + linemod, ebuf);
+        yyerrorline(semanticerror, lineno + linemod, ebuf);
         return;
     }
 
@@ -397,7 +398,7 @@ void canconvertreturn(const struct typenode *ufrom, const struct typenode *uto, 
     }
 
     snprintf(ebuf, 1024, "Cannot convert returned value from %s to %s", getTypePtr(ufrom)->typename, getTypePtr(uto)->typename);
-    yyerrorline(1, lineno + linemod, ebuf);
+    yyerrorline(semanticerror, lineno + linemod, ebuf);
     return;
 }
 
@@ -405,7 +406,7 @@ void isnumeric(const struct typenode *ty)
 {
     ty = getPrimitiveAncestor(ty);
     if (!(ty == gInteger || ty == gReal || ty == gAny))
-        yyerrorline(3, islinebreak ? lineno - 1 : lineno, "Cannot be converted to numeric type");
+        yyerrorline(semanticerror, islinebreak ? lineno - 1 : lineno, "Cannot be converted to numeric type");
 }
 
 void checkcomparisonsimple(const struct typenode *a)
@@ -413,11 +414,11 @@ void checkcomparisonsimple(const struct typenode *a)
     const struct typenode *pa;
     pa = getPrimitiveAncestor(a);
     if (typeeq(pa, gString) || typeeq(pa, gHandle) || typeeq(pa, gCode) || typeeq(pa, gBoolean)) {
-        yyerrorex(3, "Comparing the order/size of 2 variables only works on reals and integers");
+        yyerrorex(semanticerror, "Comparing the order/size of 2 variables only works on reals and integers");
         return;
     }
     if (typeeq(pa, gNull))
-        yyerrorex(3, "Comparing null is not allowed");
+        yyerrorex(semanticerror, "Comparing null is not allowed");
 }
 
 void checkcomparison(const struct typenode *a, const struct typenode *b)
@@ -426,11 +427,11 @@ void checkcomparison(const struct typenode *a, const struct typenode *b)
     pa = getPrimitiveAncestor(a);
     pb = getPrimitiveAncestor(b);
     if (typeeq(pa, gString) || typeeq(pa, gHandle) || typeeq(pa, gCode) || typeeq(pa, gBoolean) || typeeq(pb, gString) || typeeq(pb, gCode) || typeeq(pb, gHandle) || typeeq(pb, gBoolean)) {
-        yyerrorex(3, "Comparing the order/size of 2 variables only works on reals and integers");
+        yyerrorex(semanticerror, "Comparing the order/size of 2 variables only works on reals and integers");
         return;
     }
     if (typeeq(pa, gNull) && typeeq(pb, gNull))
-        yyerrorex(3, "Comparing null is not allowed");
+        yyerrorex(semanticerror, "Comparing null is not allowed");
 }
 
 void checkeqtest(const struct typenode *a, const struct typenode *b)
@@ -443,7 +444,7 @@ void checkeqtest(const struct typenode *a, const struct typenode *b)
     if (typeeq(pa, gNull) || typeeq(pb, gNull))
         return;
     if (!typeeq(pa, pb)) {
-        yyerrorex(3, "Comparing two variables of different primitive types (except real and integer) is not allowed");
+        yyerrorex(semanticerror, "Comparing two variables of different primitive types (except real and integer) is not allowed");
         return;
     }
 }
@@ -489,11 +490,11 @@ union node checkfunctionheader(const char *fnname, struct paramlist *pl, const s
     if (ht_lookup(&locals, fnname) || ht_lookup(&params, fnname) || ht_lookup(&globals, fnname)) {
         char buf[1024];
         snprintf(buf, 1024, "%s already defined as variable", fnname);
-        yyerrorex(3, buf);
+        yyerrorex(semanticerror, buf);
     } else if (ht_lookup(&types, fnname)) {
         char buf[1024];
         snprintf(buf, 1024, "%s already defined as type", fnname);
-        yyerrorex(3, buf);
+        yyerrorex(semanticerror, buf);
     }
 
     curtab = &locals;
@@ -515,18 +516,18 @@ union node checkfunctionheader(const char *fnname, struct paramlist *pl, const s
         if (ht_lookup(&functions, tan->name)) {
             char buf[1024];
             snprintf(buf, 1024, "%s already defined as function", tan->name);
-            yyerrorex(3, buf);
+            yyerrorex(semanticerror, buf);
         } else if (ht_lookup(&types, tan->name)) {
             char buf[1024];
             snprintf(buf, 1024, "%s already defined as type", tan->name);
-            yyerrorex(3, buf);
+            yyerrorex(semanticerror, buf);
         }
 
         if( flagenabled(flag_shadowing) ){
             if( ht_lookup(&globals, tan->name) ){
                 char buf[1024];
                 snprintf(buf, 1024, "Parmeter %s shadows global variable", tan->name);
-                yyerrorex(3, buf);
+                yyerrorex(semanticerror, buf);
             }
         }
 
@@ -546,16 +547,16 @@ union node checkfunccall(const char *fnname, struct paramlist *pl)
         char ebuf[1024];
         snprintf(ebuf, 1024, "Undeclared function %s", fnname);
         getsuggestions(fnname, ebuf, 1024, 1, &functions);
-        yyerrorex(3, ebuf);
+        yyerrorex(semanticerror, ebuf);
         ret.ty = gAny;
     } else {
         if (inconstant && !(fd->isconst)) {
             char ebuf[1024];
             snprintf(ebuf, 1024, "Call to non-constant function %s in constant function", fnname);
-            yyerrorex(3, ebuf);
+            yyerrorex(semanticerror, ebuf);
         }
         if (fd == fCurrent && fCurrent)
-            yyerrorex(3, "Recursive function calls are not permitted in local declarations");
+            yyerrorex(semanticerror, "Recursive function calls are not permitted in local declarations");
         checkParameters(fd->p, pl, fd == fFilter || fd == fCondition);
         ret.ty = fd->ret;
     }
@@ -568,11 +569,11 @@ static void checkvarname(struct typeandname *tan, bool isarray)
     if (ht_lookup(&functions, name)) {
         char buf[1024];
         snprintf(buf, 1024, "Symbol %s already defined as function", name);
-        yyerrorex(3, buf);
+        yyerrorex(semanticerror, buf);
     } else if (ht_lookup(&types, name)) {
         char buf[1024];
         snprintf(buf, 1024, "Symbol %s already defined as type", name);
-        yyerrorex(3, buf);
+        yyerrorex(semanticerror, buf);
     }
 
     struct typeandname *existing = ht_lookup(&locals, name);
@@ -582,13 +583,13 @@ static void checkvarname(struct typeandname *tan, bool isarray)
         existing = ht_lookup(&params, name);
         if ( isarray && infunction && existing) {
             snprintf(buf, 1024, "Symbol %s already defined as function parameter", name);
-            yyerrorex(3, buf);
+            yyerrorex(semanticerror, buf);
         }
         if (!existing) {
             existing = ht_lookup(&globals, name);
             if ( isarray && infunction && existing) {
                 snprintf(buf, 1024, "Symbol %s already defined as global variable", name);
-                yyerrorex(3, buf);
+                yyerrorex(semanticerror, buf);
             }
         }
     }
@@ -619,7 +620,7 @@ union node checkarraydecl(struct typeandname *tan)
     union node ret;
 
     if (getPrimitiveAncestor(tan->ty) == gCode)
-        yyerrorex(3, "Code arrays are not allowed");
+        yyerrorex(semanticerror, "Code arrays are not allowed");
 
     checkvarname(tan, true);
 

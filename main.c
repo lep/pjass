@@ -66,6 +66,8 @@ static void init()
     ht_put(&available_flags, "rb", (void*)flag_rb);
     ht_put(&available_flags, "shadow", (void*)flag_shadowing);
     ht_put(&available_flags, "filter", (void*)flag_filter);
+    ht_put(&available_flags, "nosyntaxerror", (void*)flag_syntaxerror);
+    ht_put(&available_flags, "nosemanticerror", (void*)flag_semanticerror);
 }
 
 static void dofile(FILE *fp, const char *name)
@@ -115,12 +117,18 @@ printf(
 "To test this program, go into your Scripts directory, and type:\n"
 "pjass common.j common.ai Blizzard.j\n"
 "pjass accepts some options:\n"
-"pjass -h           Display this help\n"
-"pjass -v           Display version information and exit\n"
-"pjass +rb          Enable returnbug\n"
-"pjass -rb          Disable returnbug\n"
-"pjass +shadow      Enable error on variable shadowing\n"
-"pjass -shadow      Disable error on variable shadowing\n"
+"pjass -h               Display this help\n"
+"pjass -v               Display version information and exit\n"
+"pjass +rb              Enable returnbug\n"
+"pjass -rb              Disable returnbug\n"
+"pjass +shadow          Enable error on variable shadowing\n"
+"pjass -shadow          Disable error on variable shadowing\n"
+"pjass +filter          Enable error on inappropriate code usage for Filter\n"
+"pjass -filter          Disable error on inappropriate code usage for Filter\n"
+"pjass +nosyntaxerror   Disable all syntax errors\n"
+"pjass -nosyntaxerror   Enable syntax error reporting\n"
+"pjass +nosemanticerror Disable all semantic errors\n"
+"pjass -nosemanticerror Enable semantic error reporting\n"
 "pjass -            Read from standard input (may appear in a list)\n"
 );
 			exit(0);
@@ -159,7 +167,7 @@ int main(int argc, char **argv)
     if (!haderrors && didparse) {
         printf("Parse successful: %8d lines: %s\n", totlines, "<total>");
         if (ignorederrors) {
-            printf("%d errors ignored", ignorederrors);
+            printf("%d errors ignored\n", ignorederrors);
         }
 
         return 0;
@@ -170,7 +178,7 @@ int main(int argc, char **argv)
             printf("Parse failed\n");
         }
         if (ignorederrors) {
-            printf("%d errors ignored", ignorederrors);
+            printf("%d errors ignored\n", ignorederrors);
         }
         return 1;
     }

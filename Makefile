@@ -1,4 +1,4 @@
-CFLAGS = -O3 -Wall -Wextra -std=c11 -MMD -Weverything
+CFLAGS = -O3 -Wall -Wextra -MMD -Weverything
 VERSION := $(shell git rev-parse --short HEAD)
 
 # when testing and releasing, we can't run both in parallel
