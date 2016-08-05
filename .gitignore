@@ -13,3 +13,4 @@ pjass
 tests/Blizzard.j
 tests/common.j
 tests/map-scripts/
+*.d

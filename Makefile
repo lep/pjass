@@ -1,4 +1,5 @@
-CFLAGS = -O3 -flto -Wall -Wextra
+CFLAGS = -O3 -Wall -Wextra -MMD
+#-Weverything
 VERSION := $(shell git rev-parse --short HEAD)
 
 # when testing and releasing, we can't run both in parallel
@@ -13,6 +14,10 @@ pjass-git-$(VERSION)-src.zip: | test
 
   endif
 endif
+
+OBJS := token.yy.o grammar.tab.o misc.o main.o \
+        hashtable.o paramlist.o funcdecl.o typeandname.o
+
 
 .PHONY: all release clean debug prof
 .PHONY: clean-release-files clean-prof-files clean-build-files
@@ -29,7 +34,7 @@ help:
 
 -include $(OBJS:.o=.d)
 
-pjass: token.o grammar.tab.o misc.o ## Builds pjass
+pjass: $(OBJS) ## Builds pjass
 	$(CC) $(CFLAGS) $^ -o $@
 
 test: should-fail should-check map-scripts ## Runs all tests
@@ -44,18 +49,19 @@ debug: CFLAGS = -w -g
 debug: pjass ## Builds pjass with debugging support
 
 prof: CFLAGS = -w -pg
-prof: pjass ## Builds pjass with profiling support. You can run all tests with profiling enabled via `PROF=1 make test`
+prof: pjass ## Builds pjass with profiling support. You can run all tests with profiling enabled via `make PROF=1 test`
 
 
 
-token.o: token.yy.c grammar.tab.h
-	$(CC) $(CFLAGS) -c -o $@ $<
-
-misc.o: misc.c misc.h grammar.tab.h
+main.o: main.c
 	$(CC) $(CFLAGS) -c -o $@ $< -DVERSIONSTR="\"git-$(VERSION)\""
 
 %.o: %.c %.h
 	$(CC) $(CFLAGS) -c -o $@ $<
+
+
+token.yy.o: token.yy.c | grammar.tab.h
+main.o: main.c | grammar.tab.h
 
 # see token.l options block
 %.yy.c %.yy.h: %.l
@@ -67,8 +73,8 @@ misc.o: misc.c misc.h grammar.tab.h
 
 clean-build-files: ## Cleans all build files
 	rm -f grammar.tab.h grammar.tab.c token.yy.c token.yy.h \
-          misc.o grammar.tab.o token.o \
-          pjass.exe pjass
+		$(OBJS) $(OBJS:.o=.d) \
+		pjass.exe pjass
 
 clean-release-files: ## Cleans all release zipballs
 	rm -f pjass-git-*.zip
@@ -117,3 +123,4 @@ map-scripts: $(MAP_SCRIPTS) ## Tests which are run with common.j and Blizzard.j
 
 print-test: pjass
 	@echo 'Testing... '
+

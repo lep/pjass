@@ -8,9 +8,8 @@
 %{
 /* need this for the call to atof() below */
 
-int rawcodelen;
-int rawcodespecial;
-int rawcodestartline;
+static int rawcodelen;
+static int rawcodestartline;
 
 #include "grammar.tab.h" 
 #include "misc.h"
@@ -39,11 +38,11 @@ TABS     [\x01-\x09\x0B\x0C\x0E-\x1F]
 
 %%
 
-{COMMENTSTART}"#"[ \t]*"+rb"[ \t]*{NEWLINE} {
+{COMMENTSTART}"#".*{NEWLINE} {
     lineno++;
     islinebreak = 1;
     isconstant = 0;
-    return RETURNBUG;
+    return ANNOTATION;
 }
 
 {COMMENTSTART}.*{NEWLINE} {
@@ -56,7 +55,7 @@ TABS     [\x01-\x09\x0B\x0C\x0E-\x1F]
 
 [']\\[btrnf\\]['] { return UNITTYPEINT; }
 [']\\(.|[\r\n])['] {
-        yyerrorline(3, lineno, "Invalid escape character sequence");
+        yyerrorline(syntaxerror, lineno, "Invalid escape character sequence");
         return UNITTYPEINT; 
     }
 
@@ -67,7 +66,7 @@ TABS     [\x01-\x09\x0B\x0C\x0E-\x1F]
     }
 <RAWCODE>['] {
         if(rawcodelen != 4 && rawcodelen != 1){
-            yyerrorline(3, rawcodestartline, "Rawcodes must consist of 1 or 4 characters");
+            yyerrorline(syntaxerror, rawcodestartline, "Rawcodes must consist of 1 or 4 characters");
         }
         BEGIN(INITIAL);
         return UNITTYPEINT;
@@ -75,10 +74,10 @@ TABS     [\x01-\x09\x0B\x0C\x0E-\x1F]
 
 <RAWCODE>\\[btrnf"\\] {
         rawcodelen++;
-        yyerrorline(3, rawcodestartline, "Escaped chars are only allowed if they are the only char in the rawcode.");
+        yyerrorline(syntaxerror, rawcodestartline, "Escaped chars are only allowed if they are the only char in the rawcode.");
     }
 <RAWCODE>\\(.|[\r\n]) {
-        yyerrorline(3, lineno, "Invalid escape character sequence");
+        yyerrorline(syntaxerror, lineno, "Invalid escape character sequence");
         rawcodelen++;
     }
 
@@ -89,7 +88,7 @@ TABS     [\x01-\x09\x0B\x0C\x0E-\x1F]
 ["] { BEGIN(INSTRING); }
 <INSTRING>["] { BEGIN(INITIAL); return STRINGLIT; }
 <INSTRING>\\[btrnf"\\] { }
-<INSTRING>\\(.|[\r\n]) { yyerrorline(3, lineno, "Invalid escape character sequence"); }
+<INSTRING>\\(.|[\r\n]) { yyerrorline(syntaxerror, lineno, "Invalid escape character sequence"); }
 
 <INSTRING>\r?\n { lineno++; isconstant = 0; }
 <INSTRING>\r { lineno++; isconstant = 0; }
@@ -99,35 +98,35 @@ TABS     [\x01-\x09\x0B\x0C\x0E-\x1F]
 {NEWLINE} lineno++; islinebreak=1; isconstant=0; return NEWLINE;
 
 {DIGIT}*"."{DIGIT}*  return REALLIT;
-"0"({OCTDIGIT}*("8"|"9"){OCTDIGIT}*)+ yyerrorline(3, lineno, "Invalid digit in octal integer notation"); return INTLIT;
+"0"({OCTDIGIT}*("8"|"9"){OCTDIGIT}*)+ yyerrorline(syntaxerror, lineno, "Invalid digit in octal integer notation"); return INTLIT;
 ({DIGIT}+)|(("0x"|"$"){HEXDIGIT}+) return INTLIT;
 
-"if" if (!islinebreak) yyerrorline(3, lineno, "Missing linebreak before if"); islinebreak=0; return IF;
+"if" if (!islinebreak) yyerrorline(syntaxerror, lineno, "Missing linebreak before if"); islinebreak=0; return IF;
 "not" return NOT;
 "then" return THEN;
-"type" if (!islinebreak) { char ebuf[1024]; sprintf(ebuf, "Missing linebreak before type declaration"); yyerrorline(3, lineno, ebuf); } islinebreak=0; return TYPE;
+"type" if (!islinebreak) { char ebuf[1024]; sprintf(ebuf, "Missing linebreak before type declaration"); yyerrorline(syntaxerror, lineno, ebuf); } islinebreak=0; return TYPE;
 "extends" return EXTENDS;
 "handle" islinebreak=0; return HANDLE;
-"globals" if (!islinebreak) { char ebuf[1024]; sprintf(ebuf, "Missing linebreak before globals block"); yyerrorline(3, lineno, ebuf); } islinebreak=0; inblock=1; return GLOBALS;
+"globals" if (!islinebreak) { char ebuf[1024]; sprintf(ebuf, "Missing linebreak before globals block"); yyerrorline(syntaxerror, lineno, ebuf); } islinebreak=0; inblock=1; return GLOBALS;
 "endglobals" islinebreak=0; inblock=0; return ENDGLOBALS;
 "constant" isconstant = islinebreak; islinebreak=0; return CONSTANT;
-"native" if (!islinebreak && !isconstant) { char ebuf[1024]; sprintf(ebuf, "Missing linebreak before native declaration"); yyerrorline(3, lineno, ebuf); } islinebreak=0; return NATIVE;
+"native" if (!islinebreak && !isconstant) { char ebuf[1024]; sprintf(ebuf, "Missing linebreak before native declaration"); yyerrorline(syntaxerror, lineno, ebuf); } islinebreak=0; return NATIVE;
 "takes" return TAKES;
 "returns" return RETURNS;
-"function" if (!islinebreak && !isconstant && !inblock) { char ebuf[1024]; sprintf(ebuf, "Missing linebreak before function declaration"); yyerrorline(3, lineno, ebuf); } islinebreak=0; return FUNCTION;
+"function" if (!islinebreak && !isconstant && !inblock) { char ebuf[1024]; sprintf(ebuf, "Missing linebreak before function declaration"); yyerrorline(syntaxerror, lineno, ebuf); } islinebreak=0; return FUNCTION;
 "endfunction" islinebreak=0; return ENDFUNCTION;
-"local" if (!islinebreak) { char ebuf[1024]; sprintf(ebuf, "Missing linebreak before local declaration"); yyerrorline(3, lineno, ebuf); } islinebreak=0; return LOCAL;
+"local" if (!islinebreak) { char ebuf[1024]; sprintf(ebuf, "Missing linebreak before local declaration"); yyerrorline(syntaxerror, lineno, ebuf); } islinebreak=0; return LOCAL;
 "array" return ARRAY;
-"set" if (!islinebreak) yyerrorline(3, lineno, "Missing linebreak before assignment"); islinebreak=0; return SET;
-"call" if (!islinebreak) yyerrorline(3, lineno, "Missing linebreak before function call"); islinebreak=0; return CALL;
-"else" if (!islinebreak) yyerrorline(3, lineno, "Missing linebreak before else"); islinebreak=0; return ELSE;
-"elseif" if (!islinebreak) yyerrorline(3, lineno, "Missing linebreak before elseif"); islinebreak=0; return ELSEIF;
-"endif" if (!islinebreak) yyerrorline(3, lineno, "Missing linebreak before endif"); islinebreak=0; return ENDIF;
-"loop" if (!islinebreak) yyerrorline(3, lineno, "Missing linebreak before loop"); islinebreak=0; return LOOP;
-"exitwhen" if (!islinebreak) yyerrorline(3, lineno, "Missing linebreak before exitwhen"); islinebreak=0; return EXITWHEN;
-"return" if (!islinebreak) yyerrorline(3, lineno, "Missing linebreak before return"); islinebreak=0; return RETURN;
+"set" if (!islinebreak) yyerrorline(syntaxerror, lineno, "Missing linebreak before assignment"); islinebreak=0; return SET;
+"call" if (!islinebreak) yyerrorline(syntaxerror, lineno, "Missing linebreak before function call"); islinebreak=0; return CALL;
+"else" if (!islinebreak) yyerrorline(syntaxerror, lineno, "Missing linebreak before else"); islinebreak=0; return ELSE;
+"elseif" if (!islinebreak) yyerrorline(syntaxerror, lineno, "Missing linebreak before elseif"); islinebreak=0; return ELSEIF;
+"endif" if (!islinebreak) yyerrorline(syntaxerror, lineno, "Missing linebreak before endif"); islinebreak=0; return ENDIF;
+"loop" if (!islinebreak) yyerrorline(syntaxerror, lineno, "Missing linebreak before loop"); islinebreak=0; return LOOP;
+"exitwhen" if (!islinebreak) yyerrorline(syntaxerror, lineno, "Missing linebreak before exitwhen"); islinebreak=0; return EXITWHEN;
+"return" if (!islinebreak) yyerrorline(syntaxerror, lineno, "Missing linebreak before return"); islinebreak=0; return RETURN;
 "debug" return DEBUG;
-"endloop" if (!islinebreak) yyerrorline(3, lineno, "Missing linebreak before endloop"); islinebreak=0; return ENDLOOP;
+"endloop" if (!islinebreak) yyerrorline(syntaxerror, lineno, "Missing linebreak before endloop"); islinebreak=0; return ENDLOOP;
 "null" return TNULL;
 "true" return TTRUE;
 "false" return TFALSE;
@@ -165,7 +164,7 @@ TABS     [\x01-\x09\x0B\x0C\x0E-\x1F]
 \xEF\xBB\xBF    /* utf8 bom */
 [\x01-\x09\x0B\x0C\x0E-\x1F]+    /* eat up tabs */
 
-.            { char ebuf[1024]; sprintf(ebuf, "Unrecognized character %s (ASCII %u)", yytext, (unsigned char)yytext[0] ); yyerrorline(3, lineno, ebuf); }
+.            { char ebuf[1024]; sprintf(ebuf, "Unrecognized character %s (ASCII %u)", yytext, (unsigned char)yytext[0] ); yyerrorline(syntaxerror, lineno, ebuf); }
 
 %%
 
