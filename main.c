@@ -129,7 +129,7 @@ printf(
 "pjass -nosyntaxerror   Enable syntax error reporting\n"
 "pjass +nosemanticerror Disable all semantic errors\n"
 "pjass -nosemanticerror Enable semantic error reporting\n"
-"pjass -            Read from standard input (may appear in a list)\n"
+"pjass -                Read from standard input (may appear in a list)\n"
 );
 			exit(0);
 		}
