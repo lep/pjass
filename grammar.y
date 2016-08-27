@@ -318,10 +318,25 @@ funcdefncore: funcbegin localblock codeblock funcend {
             }
             fnannotations = 0;
         }
-       | funcbegin localblock codeblock {yyerrorex(syntaxerror, "Missing endfunction"); ht_clear(&params); ht_clear(&locals); ht_clear(&initialized); curtab = &globals; fnannotations = 0;}
+       | funcbegin localblock codeblock {
+            yyerrorex(syntaxerror, "Missing endfunction");
+            ht_clear(&params);
+            ht_clear(&locals);
+            ht_clear(&initialized);
+            curtab = &globals;
+            fnannotations = 0;
+        }
 ;
 
-funcend: ENDFUNCTION { ht_clear(&params); ht_clear(&locals); ht_clear(&initialized); curtab = &globals; inblock = 0; inconstant = 0; infunction = 0; }
+funcend: ENDFUNCTION {
+        ht_clear(&params);
+        ht_clear(&locals);
+        ht_clear(&initialized);
+        curtab = &globals;
+        inblock = 0;
+        inconstant = 0;
+        infunction = 0;
+    }
 ;
 
 returnorreturns: RETURNS
@@ -520,7 +535,7 @@ localblock: endlocalsmarker
         | newline localblock
 ;
 
-endlocalsmarker: /* empty */ { fCurrent = 0; }
+endlocalsmarker: /* empty */ { fCurrent = NULL; }
 ;
 
 lvardecl: LOCAL vardecl { }

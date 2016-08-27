@@ -263,22 +263,42 @@ void validateGlobalAssignment(const char *varname)
 }
 
 
-void checkParameters(const struct paramlist *func, const struct paramlist *inp, bool mustretbool)
+void checkParameters(const struct funcdecl *fd, const struct paramlist *inp, bool mustretbool)
 {
+    const struct paramlist *func = fd->p;
     const struct typeandname *fi = func->head;
     const struct typeandname *pi = inp->head;
     while(true) {
         if (fi == NULL && pi == NULL)
             return;
         if (fi == NULL && pi != NULL) {
-            yyerrorex(semanticerror, "Too many arguments passed to function");
+            char buf[1024];
+            snprintf(buf, 1024, "Too many arguments passed to function %s. ", fd->name);
+            yyerrorex(semanticerror, buf);
             return;
         }
         if (fi != NULL && pi == NULL) {
-            yyerrorex(semanticerror, "Not enough arguments passed to function");
+            char buf[1024];
+            snprintf(buf, 1024, "Not enough arguments passed to function %s. ", fd->name);
+            strncat(buf, "Still missing: ", 1024);
+            bool addComma = false;
+            for(; fi; fi = fi->next){
+                if(addComma){
+                    strncat(buf, ", ", 1024);
+                }
+                strncat(buf, fi->name, 1024);
+                addComma = true;
+            }
+            yyerrorex(semanticerror, buf);
             return;
         }
-        canconvert(pi->ty, fi->ty, 0);
+        char buf[1024];
+        if(! canconvertbuf(buf, 1024, pi->ty, fi->ty )){
+            char pbuf[1024];
+            snprintf(pbuf, 1024, " in parameter %s in call to %s", fi->name, fd->name);
+            strncat(buf, pbuf, 1024);
+            yyerrorex(semanticerror, buf);
+        }
         if(flagenabled(flag_filter) && mustretbool && typeeq(pi->ty, gCodeReturnsNoBoolean)){
             yyerrorex(semanticerror, "Function passed to Filter or Condition must return a boolean");
             return;
@@ -331,33 +351,39 @@ const struct typenode *combinetype(const struct typenode *n1, const struct typen
     return mkretty(gNone, ret);
 }
 
-// this is used for reducing expressions in many places (if/exitwhen conditions, assignments etc.)
-void canconvert(const struct typenode *ufrom, const struct typenode *uto, const int linemod)
+bool canconvertbuf(char *buf, size_t buflen, const struct typenode *ufrom, const struct typenode *uto)
 {
     const struct typenode *from = ufrom, *to = uto;
-    char ebuf[1024];
     if (from == NULL || to == NULL)
-        return;
+        return true;
     if (typeeq(from, gAny) || typeeq(to, gAny))
-        return;
+        return true;
     if (isDerivedFrom(from, to))
-        return;
+        return true;
     if (getTypePtr(from)->typename == NULL || getTypePtr(to)->typename == NULL)
-        return;
+        return true;
     if (typeeq(from, gNone) || typeeq(to, gNone))
-        return;
+        return true;
     from = getPrimitiveAncestor(from);
     to = getPrimitiveAncestor(to);
     if (typeeq(from, gNull) && !typeeq(to, gInteger) && !typeeq(to, gReal) && !typeeq(to, gBoolean))
-        return;
+        return true;
     if (typeeq(from, gInteger) && (typeeq(to, gReal) || typeeq(to, gInteger)))
-        return;
+        return true;
     if (typeeq(from, to) && (typeeq(from, gBoolean) || typeeq(from, gString) || typeeq(from, gReal) || typeeq(from, gInteger) || typeeq(from, gCode)))
-        return;
+        return true;
 
-    snprintf(ebuf, 1024, "Cannot convert %s to %s", ufrom->typename, uto->typename);
-    yyerrorline(semanticerror, lineno + linemod, ebuf);
-    return;
+    snprintf(buf, buflen, "Cannot convert %s to %s", ufrom->typename, uto->typename);
+    return false;
+}
+
+// this is used for reducing expressions in many places (if/exitwhen conditions, assignments etc.)
+void canconvert(const struct typenode *ufrom, const struct typenode *uto, const int linemod)
+{
+    char buf[1024];
+    if(! canconvertbuf(buf, 1024, ufrom, uto ) ){
+        yyerrorline(semanticerror, lineno + linemod, buf);
+    }
 }
 
 // this is used for return statements only
@@ -557,7 +583,7 @@ union node checkfunccall(const char *fnname, struct paramlist *pl)
         }
         if (fd == fCurrent && fCurrent)
             yyerrorex(semanticerror, "Recursive function calls are not permitted in local declarations");
-        checkParameters(fd->p, pl, fd == fFilter || fd == fCondition);
+        checkParameters(fd, pl, fd == fFilter || fd == fCondition);
         ret.ty = fd->ret;
     }
     return ret;
