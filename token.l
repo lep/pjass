@@ -6,7 +6,6 @@
 /* Released under the BSD license */
 
 %{
-/* need this for the call to atof() below */
 
 static int rawcodelen;
 static int rawcodestartline;
@@ -38,14 +37,14 @@ TABS     [\x01-\x09\x0B\x0C\x0E-\x1F]
 
 %%
 
-{COMMENTSTART}"#".*{NEWLINE} {
+{COMMENTSTART}"#"[^\r\n]*{NEWLINE} {
     lineno++;
     islinebreak = 1;
     isconstant = 0;
     return ANNOTATION;
 }
 
-{COMMENTSTART}.*{NEWLINE} {
+{COMMENTSTART}[^\n\r]*{NEWLINE} {
     lineno++;
     islinebreak = 1;
     isconstant = 0;
@@ -97,7 +96,9 @@ TABS     [\x01-\x09\x0B\x0C\x0E-\x1F]
 
 {NEWLINE} lineno++; islinebreak=1; isconstant=0; return NEWLINE;
 
-{DIGIT}*"."{DIGIT}*  return REALLIT;
+{DIGIT}+"."{DIGIT}+  return REALLIT;
+"."{DIGIT}+  return REALLIT;
+{DIGIT}+"." return REALLIT;
 "0"({OCTDIGIT}*("8"|"9"){OCTDIGIT}*)+ yyerrorline(syntaxerror, lineno, "Invalid digit in octal integer notation"); return INTLIT;
 ({DIGIT}+)|(("0x"|"$"){HEXDIGIT}+) return INTLIT;
 

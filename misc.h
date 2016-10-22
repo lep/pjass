@@ -54,9 +54,10 @@ void getsuggestions(const char*, char*, size_t, int, ...);
 
 const struct typenode *binop(const struct typenode *a, const struct typenode *b);
 const struct typenode *combinetype(const struct typenode *n1, const struct typenode *n2);
-void checkParameters(const struct paramlist *func, const struct paramlist *inp, bool mustretbool);
+void checkParameters(const struct funcdecl *fd, const struct paramlist *inp, bool mustretbool);
 const struct typeandname *getVariable(const char *varname);
 
+bool canconvertbuf(char *buf, size_t buflen, const struct typenode *ufrom, const struct typenode *uto);
 void canconvert(const struct typenode *ufrom, const struct typenode *uto, const int linemod);
 void canconvertreturn(const struct typenode *ufrom, const struct typenode *uto, const int linemod);
 
