@@ -496,7 +496,7 @@ int updateflag(int cur, char *txt, struct hashtable *flags){
 }
 
 int updateannotation(int cur, char *txt, struct hashtable *flags){
-    char sep[] = " \t\n";
+    char sep[] = " \t\n\r";
     memset(txt, ' ', strlen("//#"));
     for(char *ann = strtok(txt, sep); ann; ann = strtok(NULL, sep)){
         cur = updateflag(cur, ann, flags);
