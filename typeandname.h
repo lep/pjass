@@ -1,6 +1,8 @@
 #ifndef TYPEANDNAME_H
 #define TYPEANDNAME_H
 
+// mingw needs this to get a definition of _off_t
+#include <stdio.h>
 #include <stdint.h>
 
 struct typenode {

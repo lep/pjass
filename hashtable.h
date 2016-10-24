@@ -1,8 +1,12 @@
 #ifndef HASHTABLE_H
 #define HASHTABLE_H
 
+// mingw needs this to get a definition of _off_t
+#include <stdio.h>
+
 #include <stdint.h>
 #include <stdbool.h>
+
 
 struct hashnode {
   const char *name;

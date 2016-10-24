@@ -3,6 +3,10 @@
 
 #include "typeandname.h"
 
+#if !(defined __CYGWIN__ || defined linux)
+    extern void * _aligned_malloc(size_t size, size_t alignment);
+#endif
+
 struct typeandname *newtypeandname(const struct typenode *ty, const char *name)
 {
     struct typeandname *tan = calloc(sizeof(struct typeandname), 1);
@@ -15,7 +19,11 @@ struct typeandname *newtypeandname(const struct typenode *ty, const char *name)
 struct typenode *newtypenode(const char *typename, const struct typenode *superclass)
 {
     struct typenode *result;
-    result = aligned_alloc(8, sizeof(struct typenode));
+#if (defined __CYGWIN__ || defined linux)
+    result = memalign(8, sizeof(struct typenode));
+#else
+    result = _aligned_malloc(8, sizeof(struct typenode));
+#endif
     result->typename = strdup(typename);
     result->superclass = superclass;
     return result;
