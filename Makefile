@@ -14,9 +14,10 @@ pjass-git-$(VERSION)-src.zip: | test
   endif
 endif
 
-OBJS := token.yy.o grammar.tab.o misc.o main.o \
-        hashtable.o paramlist.o funcdecl.o typeandname.o
+SRC := misc.c hashtable.c paramlist.c funcdecl.c typeandname.c
 
+OBJS := $(SRC:.c=.o)
+OBJS += main.o token.yy.o grammar.tab.o
 
 .PHONY: all release clean debug prof
 .PHONY: clean-release-files clean-prof-files clean-build-files
@@ -73,7 +74,7 @@ main.o: main.c | grammar.tab.h
 clean-build-files: ## Cleans all build files
 	rm -f grammar.tab.h grammar.tab.c token.yy.c token.yy.h \
 		$(OBJS) $(OBJS:.o=.d) \
-		pjass.exe pjass
+		pjass
 
 clean-release-files: ## Cleans all release zipballs
 	rm -f pjass-git-*.zip
@@ -87,13 +88,13 @@ clean-prof-files: ## Cleans all profiling files
 src-release: pjass-git-$(VERSION)-src.zip ## Builds the source zipball
 binary-release: pjass-git-$(VERSION).zip ## Builds the exe zipball
 
-pjass-git-$(VERSION)-src.zip: grammar.y token.l misc.c misc.h Makefile notes.txt readme.txt
+pjass-git-$(VERSION)-src.zip: main.c grammar.y token.l Makefile notes.txt readme.txt $(SRC:.c=.h) $(SRC)
 	zip -q -r pjass-git-$(VERSION)-src.zip $^ tests/should-check/ tests/should-fail/
 
 pjass-git-$(VERSION).zip: pjass
-	strip pjass.exe
-	upx --best --ultra-brute pjass.exe > /dev/null
-	zip -q pjass-git-$(VERSION).zip pjass.exe
+	strip pjass
+	upx --best --ultra-brute pjass > /dev/null
+	zip -q pjass-git-$(VERSION).zip pjass
 
 
 SHOULD_FAIL := $(wildcard tests/should-fail/*.j)
