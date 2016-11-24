@@ -373,24 +373,36 @@ statement:  newline { $$.ty = gEmpty; }
             canconvert($2.ty, gBoolean, -1);
             $$.ty = combinetype($5.ty, combinetype($6.ty, $7.ty));
        }
-       | SET rid EQUALS expr newline { if (getVariable($2.str)->isarray) {
-                                         char ebuf[1024];
-                                         snprintf(ebuf, 1024, "Index missing for array variable %s", $2.str);
-                                         yyerrorline(semanticerror, lineno - 1,  ebuf);
-                                       }
-                                       canconvert($4.ty, getVariable($2.str)->ty, -1);
-                                       $$.ty = gAny;
-                                       if (getVariable($2.str)->isconst) {
-                                         char ebuf[1024];
-                                         snprintf(ebuf, 1024, "Cannot assign to constant %s", $2.str);
-                                         yyerrorline(semanticerror, lineno - 1, ebuf);
-                                       }
-                                       if (inconstant)
-                                         validateGlobalAssignment($2.str);
-                                       if(infunction && ht_lookup(curtab, $2.str) && !ht_lookup(&initialized, $2.str)){
-                                         put(&initialized, $2.str, (void*)1);
-                                       }
-				    }
+       | SET rid EQUALS expr newline {
+            if (getVariable($2.str)->isarray) {
+                 char ebuf[1024];
+                 snprintf(ebuf, 1024, "Index missing for array variable %s", $2.str);
+                 yyerrorline(semanticerror, lineno - 1,  ebuf);
+               }
+               canconvert($4.ty, getVariable($2.str)->ty, -1);
+               $$.ty = gAny;
+               if (getVariable($2.str)->isconst) {
+                 char ebuf[1024];
+                 snprintf(ebuf, 1024, "Cannot assign to constant %s", $2.str);
+                 yyerrorline(semanticerror, lineno - 1, ebuf);
+               }
+               if (inconstant)
+                 validateGlobalAssignment($2.str);
+               if(infunction && ht_lookup(curtab, $2.str) && !ht_lookup(&initialized, $2.str)){
+                 put(&initialized, $2.str, (void*)1);
+               }
+            }
+       | SET rid rid EQUALS expr newline {
+            char ebuf[1024];
+            if(ht_lookup(&types, $2.str)){
+                snprintf(ebuf, 1024, ">%s< %s is an error here. The type only needs to be stated at declartion time", $2.str, $3.str);
+            }else if(ht_lookup(&types, $3.str)){
+                snprintf(ebuf, 1024, "%s >%s< is an error here. The type only needs to be stated at declartion time", $2.str, $3.str);
+            }else{
+                snprintf(ebuf, 1024, "Unexpected '%s'", $3.str);
+            }
+            yyerrorline(syntaxerror, lineno -1, ebuf);
+       }
        | SET rid LBRACKET expr RBRACKET EQUALS expr newline{ 
            const struct typeandname *tan = getVariable($2.str);
            $$.ty = gAny;
