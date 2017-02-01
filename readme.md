@@ -1,8 +1,11 @@
 # pjass
 
 A lightweight and fast Jass2 parser for bison/yacc
+
 Original by Rudi Cilibrasi
+
 And improved by many others
+
 This repo now maintained by lep
 
 # Usage
