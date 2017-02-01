@@ -12,7 +12,7 @@
     void * _aligned_malloc(size_t size, size_t alignment){
         return memalign(alignment, size);
     }
-#else !(defined __CYGWIN__ || defined linux)
+#elif !(defined __CYGWIN__ || defined linux)
     extern void * _aligned_malloc(size_t size, size_t alignment);
 #endif
 

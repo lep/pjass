@@ -1,4 +1,4 @@
-CFLAGS ?= -O3 -flto -MMD
+CFLAGS += -MMD -g -w
 VERSION := $(shell git rev-parse --short HEAD)
 
 # when testing and releasing, we can't run both in parallel
@@ -19,7 +19,7 @@ SRC := misc.c hashtable.c paramlist.c funcdecl.c typeandname.c
 OBJS := $(SRC:.c=.o)
 OBJS += main.o token.yy.o grammar.tab.o
 
-.PHONY: all release clean debug prof
+.PHONY: all release clean prof
 .PHONY: clean-release-files clean-prof-files clean-build-files
 .PHONY: binary-release src-release
 .PHONY: help
@@ -44,16 +44,12 @@ release: src-release binary-release ## Builds a pjass release with src- and bin-
 clean: clean-build-files clean-release-files clean-prof-files ## Cleans the whole project
 
 
-
-debug: CFLAGS = -w -g
-debug: pjass ## Builds pjass with debugging support
-
 prof: CFLAGS = -w -pg
 prof: pjass ## Builds pjass with profiling support. You can run all tests with profiling enabled via `make PROF=1 test`
 
 
 
-main.o: main.c
+main.o: main.c token.yy.h grammar.tab.h
 	$(CC) $(CFLAGS) -c -o $@ $< -DVERSIONSTR="\"git-$(VERSION)\""
 
 %.o: %.c %.h
@@ -85,16 +81,22 @@ clean-prof-files: ## Cleans all profiling files
           gmon.out
 
 
+
+pjass.exe: CFLAGS=-O3
+pjass.exe: CC=i686-w64-mingw32-gcc
+pjass.exe: $(SRC) main.c token.yy.c grammar.tab.c
+	$(CC) $(CFLAGS) $^ -o pjass.exe -DVERSIONSTR="\"git-$(VERSION)\""
+
 src-release: pjass-git-$(VERSION)-src.zip ## Builds the source zipball
-binary-release: pjass-git-$(VERSION).zip ## Builds the exe zipball
+binary-release: pjass.exe pjass-git-$(VERSION).zip ## Builds the exe zipball
 
 pjass-git-$(VERSION)-src.zip: main.c grammar.y token.l Makefile notes.txt readme.txt $(SRC:.c=.h) $(SRC)
 	zip -q -r pjass-git-$(VERSION)-src.zip $^ tests/should-check/ tests/should-fail/
 
-pjass-git-$(VERSION).zip: pjass
-	strip pjass
-	upx --best --ultra-brute pjass > /dev/null
-	zip -q pjass-git-$(VERSION).zip pjass
+pjass-git-$(VERSION).zip: pjass.exe
+	strip pjass.exe
+	upx --best --ultra-brute pjass.exe > /dev/null
+	zip -q pjass-git-$(VERSION).zip pjass.exe
 
 
 SHOULD_FAIL := $(wildcard tests/should-fail/*.j)
