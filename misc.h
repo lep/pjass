@@ -32,6 +32,7 @@ union node {
 enum errortype {
     syntaxerror = 0,
     semanticerror,
+    runtimeerror,
     warning,
 };
 
@@ -41,8 +42,13 @@ enum {
     flag_shadowing = 1 << 2,
     flag_syntaxerror = 1 << 3,
     flag_semanticerror = 1 << 4,
+    flag_runtimeerror = 1 << 5,
 };
 
+enum {
+    NullInGlobals = 1,
+    CrashInGlobals,
+};
 
 void yyerrorline (enum errortype type, int line, const char *s);
 void yyerrorex (enum errortype type, const char *s);
@@ -75,22 +81,23 @@ bool flagenabled(int flag);
 
 extern int pjass_flags;
 
-extern int fno, lineno, totlines, islinebreak, isconstant, inblock, inconstant, infunction;
+extern int fno, lineno, totlines, islinebreak;
+extern bool isconstant, inconstant, infunction, inblock;
 extern int haderrors;
 extern int ignorederrors;
 extern int didparse;
 extern int inloop;
-extern int strict;
-extern int returnbug;
 extern int fnannotations;
 extern int annotations;
-extern int afterendglobals;
+extern bool afterendglobals;
+extern bool inglobals;
 extern int *showerrorlevel;
 extern char *yytext;
 extern const char *curfile;
 extern int yydebug;
 int *showerrorlevel;
 extern struct hashtable functions, globals, locals, params, types, initialized, *curtab;
+extern struct hashtable bad_natives_in_globals;
 extern struct typenode *gInteger, *gReal, *gBoolean, *gString, *gCode, *gHandle, *gNothing, *gNull, *gAny, *gNone, *gEmpty;
 extern struct typenode *gCodeReturnsNoBoolean, *gCodeReturnsBoolean;
 extern struct funcdecl *fCurrent;

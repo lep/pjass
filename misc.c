@@ -20,17 +20,16 @@ int haderrors;
 int ignorederrors;
 int totlines;
 int islinebreak;
-int isconstant;
-int inconstant;
-int infunction;
-int inblock;
-int strict;
-int returnbug;
+bool isconstant;
+bool inconstant;
+bool infunction;
+bool inblock;
 int fnannotations;
 int annotations;
 int didparse;
 int inloop;
-int afterendglobals;
+bool afterendglobals;
+bool inglobals;
 int *showerrorlevel;
 
 struct hashtable functions;
@@ -39,6 +38,9 @@ struct hashtable locals;
 struct hashtable params;
 struct hashtable types;
 struct hashtable initialized;
+
+struct hashtable bad_natives_in_globals;
+
 
 struct hashtable *curtab;
 
@@ -50,7 +52,6 @@ struct typenode *gEmpty;
 struct funcdecl *fCurrent;
 struct funcdecl *fFilter, *fCondition;
 
-
 struct hashtable available_flags;
 
 void yyerrorline (enum errortype type, int line, const char *s)
@@ -61,6 +62,11 @@ void yyerrorline (enum errortype type, int line, const char *s)
     }
 
     if(flagenabled(flag_semanticerror) && type == semanticerror){
+        ignorederrors++;
+        return;
+    }
+
+    if(flagenabled(flag_runtimeerror) && type == runtimeerror){
         ignorederrors++;
         return;
     }
@@ -512,7 +518,11 @@ int updateannotation(int cur, char *txt, struct hashtable *flags){
 
 bool flagenabled(int flag)
 {
-    return (pjass_flags & flag) || (fnannotations & flag);
+    if(infunction){
+        return (fnannotations & flag);
+    }else{
+        return (pjass_flags & flag);
+    }
 }
 
 union node checkfunctionheader(const char *fnname, struct paramlist *pl, const struct typenode *retty)
@@ -587,8 +597,22 @@ union node checkfunccall(const char *fnname, struct paramlist *pl)
             snprintf(ebuf, 1024, "Call to non-constant function %s in constant function", fnname);
             yyerrorex(semanticerror, ebuf);
         }
+
         if (fd == fCurrent && fCurrent)
             yyerrorex(semanticerror, "Recursive function calls are not permitted in local declarations");
+
+        if( inglobals){
+            char ebuf[1024];
+            int err = (int)ht_lookup(&bad_natives_in_globals, fd->name);
+            if(err == CrashInGlobals){
+                snprintf(ebuf, 1024, "Call to %s in a globals block crashes the game", fd->name);
+                yyerrorex(runtimeerror, ebuf);
+            }else if(err == NullInGlobals){
+                snprintf(ebuf, 1024, "Call to %s in a globals block always returns null", fd->name);
+                yyerrorex(runtimeerror, ebuf);
+            }
+        }
+
         checkParameters(fd, pl, fd == fFilter || fd == fCondition);
         ret.ty = fd->ret;
     }

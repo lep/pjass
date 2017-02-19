@@ -106,12 +106,15 @@ funcdefns: /* empty */
 ;
 
 globdefs: /* empty */
-         | GLOBALS newline vardecls ENDGLOBALS endglobalsmarker
-         | GLOBALS vardecls ENDGLOBALS endglobalsmarker {yyerrorline(syntaxerror, lineno - 1, "Missing linebreak before global declaration");}
+         | globals newline vardecls endglobals endglobalsmarker
+         | globals vardecls endglobals endglobalsmarker {yyerrorline(syntaxerror, lineno - 1, "Missing linebreak before global declaration");}
 ;
 
 endglobalsmarker: /* empty */  {afterendglobals = 1;}
 ;
+
+globals: GLOBALS { inglobals = 1; };
+endglobals: ENDGLOBALS { inglobals = 0; };
 
 vardecls: /* empty */
          | vd vardecls
@@ -300,7 +303,6 @@ nativefuncdecl: NATIVE rid TAKES optparam_list RETURNS opttype
     }else if( !strcmp("Condition", $$.fd->name) ){
         fCondition = $$.fd;
     }
-
 }
 ;
 
@@ -316,7 +318,7 @@ funcdefncore: funcbegin localblock codeblock funcend {
                 else if ( flagenabled(flag_rb) )
                     canconvertreturn($3.ty, retval, -1);
             }
-            fnannotations = 0;
+            fnannotations = pjass_flags;
         }
        | funcbegin localblock codeblock {
             yyerrorex(syntaxerror, "Missing endfunction");
@@ -324,7 +326,7 @@ funcdefncore: funcbegin localblock codeblock funcend {
             ht_clear(&locals);
             ht_clear(&initialized);
             curtab = &globals;
-            fnannotations = 0;
+            fnannotations = pjass_flags;
         }
 ;
 
@@ -638,6 +640,6 @@ primtype: HANDLE  { $$.ty = ht_lookup(&types, yytext); }
  | CODE           { $$.ty = ht_lookup(&types, yytext); }
 ;
 
-newline: NEWLINE { annotations = 0; }
+newline: NEWLINE { annotations = pjass_flags; }
        | ANNOTATION { annotations = updateannotation(annotations, yytext, &available_flags); }
 ;

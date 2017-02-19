@@ -24,6 +24,8 @@ static void init()
     ht_init(&types, 511);
     ht_init(&initialized, 23);
 
+    ht_init(&bad_natives_in_globals, 17);
+
     gHandle = addPrimitiveType("handle");
     gInteger = addPrimitiveType("integer");
     gReal = addPrimitiveType("real");
@@ -46,17 +48,15 @@ static void init()
     pjass_flags = 0;
 
     fno = 0;
-    strict = 0;
-    returnbug = 0;
     fnannotations = 0;
     annotations = 0;
     haderrors = 0;
     ignorederrors = 0;
     islinebreak = 1;
-    inblock = 0;
-    isconstant = 0;
-    inconstant = 0;
-    infunction = 0;
+    inblock = false;
+    isconstant = false;
+    inconstant = false;
+    infunction = false;
 
     fCurrent = NULL;
     fFilter = NULL;
@@ -68,16 +68,27 @@ static void init()
     ht_put(&available_flags, "filter", (void*)flag_filter);
     ht_put(&available_flags, "nosyntaxerror", (void*)flag_syntaxerror);
     ht_put(&available_flags, "nosemanticerror", (void*)flag_semanticerror);
+    ht_put(&available_flags, "noruntimeerror", (void*)flag_runtimeerror);
+
+    ht_put(&bad_natives_in_globals, "OrderId", (void*)NullInGlobals);
+    ht_put(&bad_natives_in_globals, "OrderId2String", (void*)NullInGlobals);
+    ht_put(&bad_natives_in_globals, "UnitId2String", (void*)NullInGlobals);
+
+    ht_put(&bad_natives_in_globals, "GetObjectName", (void*)CrashInGlobals);
+    ht_put(&bad_natives_in_globals, "CreateQuest", (void*)CrashInGlobals);
+    ht_put(&bad_natives_in_globals, "CreateMultiboard", (void*)CrashInGlobals);
+    ht_put(&bad_natives_in_globals, "CreateLeaderboard", (void*)CrashInGlobals);
 }
 
 static void dofile(FILE *fp, const char *name)
 {
     lineno = 1;
     islinebreak = 1;
-    isconstant = 0;
-    inconstant = 0;
-    inblock = 0;
-    afterendglobals = 0;
+    isconstant = false;
+    inconstant = false;
+    inblock = false;
+    afterendglobals = false;
+    inglobals = false;
     int olderrs = haderrors;
     yy_switch_to_buffer(yy_create_buffer(fp, BUFSIZE));
     curfile = name;
@@ -129,6 +140,8 @@ printf(
 "pjass -nosyntaxerror   Enable syntax error reporting\n"
 "pjass +nosemanticerror Disable all semantic errors\n"
 "pjass -nosemanticerror Enable semantic error reporting\n"
+"pjass +noruntimeerror  Disable all runtime errors\n"
+"pjass -noruntimeerror  Enable runtime error reporting\n"
 "pjass -                Read from standard input (may appear in a list)\n"
 );
 			exit(0);
