@@ -25,6 +25,7 @@ static void init()
     ht_init(&initialized, 23);
 
     ht_init(&bad_natives_in_globals, 17);
+    ht_init(&shadowed_variables, 17);
 
     gHandle = addPrimitiveType("handle");
     gInteger = addPrimitiveType("integer");

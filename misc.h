@@ -106,9 +106,13 @@ extern const struct typenode *retval;
 
 extern struct hashtable available_flags;
 
+extern struct hashtable shadowed_variables;
+
 union node checkfunctionheader(const char *fnname, struct paramlist *pl, const struct typenode *retty);
 union node checkfunccall(const char *fnname, struct paramlist *pl);
 union node checkarraydecl(struct typeandname *tan);
-union node checkvardecl(struct typeandname *tan);
+union node checkvartypedecl(struct typeandname *tan);
+void checkwrongshadowing(const struct typeandname *tan, int linemod);
+
 
 #endif

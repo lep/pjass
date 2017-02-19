@@ -202,23 +202,15 @@ expr: intexpr      { $$.ty = gInteger; }
        }
       | rid {
           const struct typeandname *tan = getVariable($1.str);
-          if (tan->lineno == lineno && tan->fn == fno) {
-            char ebuf[1024];
-            snprintf(ebuf, 1024, "Use of variable %s before its declaration", $1.str);
-            yyerrorex(semanticerror, ebuf);
-          } else if (islinebreak && tan->lineno == lineno - 1 && tan->fn == fno) {
-            char ebuf[1024];
-            snprintf(ebuf, 1024, "Use of variable %s before its declaration", $1.str);
-            yyerrorline(semanticerror, lineno - 1, ebuf);
-          } else if (tan->isarray) {
+          if (tan->isarray) {
             char ebuf[1024];
             snprintf(ebuf, 1024, "Index missing for array variable %s", $1.str);
             yyerrorex(semanticerror, ebuf);
           }
+          checkwrongshadowing(tan, 0);
           if(infunction && ht_lookup(curtab, $1.str) && !ht_lookup(&initialized, $1.str) ){
             char ebuf[1024];
             snprintf(ebuf, 1024, "Variable %s is uninitialized", $1.str);
-            //yyerrorex(3, ebuf);
             yyerrorline(semanticerror, lineno - 1, ebuf);
           }
           $$.ty = tan->ty;
@@ -376,14 +368,16 @@ statement:  newline { $$.ty = gEmpty; }
             $$.ty = combinetype($5.ty, combinetype($6.ty, $7.ty));
        }
        | SET rid EQUALS expr newline {
-            if (getVariable($2.str)->isarray) {
+            const struct typeandname *tan = getVariable($2.str);
+            checkwrongshadowing(tan, -1);
+            if (tan->isarray) {
                  char ebuf[1024];
                  snprintf(ebuf, 1024, "Index missing for array variable %s", $2.str);
                  yyerrorline(semanticerror, lineno - 1,  ebuf);
                }
-               canconvert($4.ty, getVariable($2.str)->ty, -1);
+               canconvert($4.ty, tan->ty, -1);
                $$.ty = gAny;
-               if (getVariable($2.str)->isconst) {
+               if (tan->isconst) {
                  char ebuf[1024];
                  snprintf(ebuf, 1024, "Cannot assign to constant %s", $2.str);
                  yyerrorline(semanticerror, lineno - 1, ebuf);
@@ -502,7 +496,8 @@ rid: ID
 
 vartypedecl: type rid {
         struct typeandname *tan = newtypeandname($1.ty, $2.str);
-        $$ = checkvardecl(tan);
+        tan->lineno = lineno;
+        $$ = checkvartypedecl(tan);
     }
     | CONSTANT type rid {
         if (infunction) {
@@ -510,7 +505,7 @@ vartypedecl: type rid {
         }
         struct typeandname *tan = newtypeandname($2.ty, $3.str);
         tan->isconst = 1;
-        $$ = checkvardecl(tan);
+        $$ = checkvartypedecl(tan);
     }
     | type ARRAY rid {
         struct typeandname *tan = newtypeandname($1.ty, $3.str);
@@ -523,7 +518,7 @@ vartypedecl: type rid {
     | type TYPE {
         yyerrorex(syntaxerror, "Invalid variable name \"type\"");
         struct typeandname *tan = newtypeandname($1.ty, "type");
-        $$ = checkvardecl(tan);
+        $$ = checkvartypedecl(tan);
     }
 
     | CONSTANT type TYPE {
@@ -533,7 +528,7 @@ vartypedecl: type rid {
         yyerrorex(syntaxerror, "Invalid variable name \"type\"");
         struct typeandname *tan = newtypeandname($2.ty, "type");
         tan->isconst = 1;
-        $$ = checkvardecl(tan);
+        $$ = checkvartypedecl(tan);
     }
     | type ARRAY TYPE {
         yyerrorex(syntaxerror, "Invalid variable name \"type\"");
@@ -560,18 +555,7 @@ lvardecl: LOCAL vardecl { }
 vardecl: vartypedecl newline {
              const struct typeandname *tan = getVariable($1.str);
              if (tan->isconst) {
-               yyerrorline(syntaxerror, lineno - 1, "Constants must be initialized");
-             }
-             if(infunction && flagenabled(flag_shadowing) ){
-                 if( ht_lookup(&globals, tan->name)){
-                     char buf[1024];
-                     snprintf(buf, 1024, "Local variable %s shadows global variable", tan->name);
-                     yyerrorline(semanticerror, lineno -1, buf);
-                 } else if( ht_lookup(&params, tan->name)){
-                     char buf[1024];
-                     snprintf(buf, 1024, "Local variable %s shadows parameter", tan->name);
-                     yyerrorline(semanticerror, lineno -1, buf);
-                 }
+                 yyerrorline(syntaxerror, lineno - 1, "Constants must be initialized");
              }
              $$.ty = gNothing;
            }
@@ -582,17 +566,6 @@ vardecl: vartypedecl newline {
              }
              if(infunction && !ht_lookup(&initialized, tan->name)){
                put(&initialized, tan->name, (void*)1);
-             }
-             if(infunction && flagenabled(flag_shadowing) ){
-                 if( ht_lookup(&globals, tan->name)){
-                     char buf[1024];
-                     snprintf(buf, 1024, "Local variable %s shadows global variable", tan->name);
-                     yyerrorex(semanticerror, buf);
-                 } else if( ht_lookup(&params, tan->name)){
-                     char buf[1024];
-                     snprintf(buf, 1024, "Local variable %s shadows parameter", tan->name);
-                     yyerrorex(semanticerror, buf);
-                 }
              }
              canconvert($3.ty, tan->ty, -1);
              $$.ty = gNothing;

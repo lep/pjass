@@ -41,6 +41,8 @@ struct hashtable initialized;
 
 struct hashtable bad_natives_in_globals;
 
+struct hashtable shadowed_variables;
+
 
 struct hashtable *curtab;
 
@@ -658,7 +660,30 @@ static void checkvarname(struct typeandname *tan, bool isarray)
     }
 }
 
-union node checkvardecl(struct typeandname *tan)
+void checkallshadowing(struct typeandname *tan){
+    struct typeandname *global = ht_lookup(&globals, tan->name);
+    char buf[1024];
+
+    if( global ){
+
+        // once a variable is shadowed with an incompatible type every usage
+        // of the shadowed variable in the script file (sic) cannot be used
+        // safely anymore. Usages of the shadowed variable in the script
+        // above the shadowing still work fine.
+        tan->lineno = lineno;
+        ht_put(&shadowed_variables, tan->name, tan);
+
+        if(flagenabled(flag_shadowing)){
+            snprintf(buf, 1024, "Local variable %s shadows global variable", tan->name);
+            yyerrorline(semanticerror, lineno, buf);
+        }
+    } else if( flagenabled(flag_shadowing) && ht_lookup(&params, tan->name)){
+        snprintf(buf, 1024, "Local variable %s shadows parameter", tan->name);
+        yyerrorline(semanticerror, lineno, buf);
+    }
+}
+
+union node checkvartypedecl(struct typeandname *tan)
 {
     const char *name = tan->name;
     union node ret;
@@ -667,6 +692,14 @@ union node checkvardecl(struct typeandname *tan)
     ret.str = name;
     put(curtab, name, tan);
 
+
+    if(infunction ){
+        // always an error
+        checkwrongshadowing(tan, 0);
+
+        // flag driven
+        checkallshadowing(tan);
+    }
     return ret;
 }
 
@@ -685,3 +718,15 @@ union node checkarraydecl(struct typeandname *tan)
 
     return ret;
 }
+
+void checkwrongshadowing(const struct typeandname *tan, int linemod){
+    struct typeandname *global;
+    char buf[1024];
+    if( (global = ht_lookup(&shadowed_variables, tan->name)) ){
+        if(! typeeq(getPrimitiveAncestor(global->ty), getPrimitiveAncestor(tan->ty))){
+            snprintf(buf, 1024, "Global variable %s is used after it was shadowed with an incompatible type in line %d", tan->name, global->lineno);
+            yyerrorline(semanticerror, lineno - linemod, buf);
+        }
+    }
+}
+
