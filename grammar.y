@@ -145,26 +145,51 @@ expr: intexpr      { $$.ty = gInteger; }
       | realexpr   { $$.ty = gReal; }
       | stringexpr { $$.ty = gString; }
       | boolexpr   { $$.ty = gBoolean; }
-      | FUNCTION rid { struct funcdecl *fd = ht_lookup(&functions, $2.str);
-                       if (fd == NULL) {
-                           char ebuf[1024];
-                           snprintf(ebuf, 1024, "Undefined function %s", $2.str);
-                           getsuggestions($2.str, ebuf, 1024, 1, &functions);
-                           yyerrorex(semanticerror, ebuf);
-                           $$.ty = gCode;
-                       } else {
-                           if (fd->p->head != NULL) {
-                               char ebuf[1024];
-                               snprintf(ebuf, 1024, "Function %s must not take any arguments when used as code", $2.str);
-                               yyerrorex(semanticerror, ebuf);
-                           }
-                           if( fd->ret == gBoolean) {
-                               $$.ty = gCodeReturnsBoolean;
-                           } else {
-                               $$.ty = gCodeReturnsNoBoolean;
-                           }
-                       }
-                     }
+      | FUNCTION rid LPAREN exprlistcompl RPAREN {
+            struct funcdecl *fd = ht_lookup(&functions, $2.str);
+            if (fd == NULL) {
+                char ebuf[1024];
+                snprintf(ebuf, 1024, "Undefined function %s", $2.str);
+                getsuggestions($2.str, ebuf, 1024, 1, &functions);
+                yyerrorex(semanticerror, ebuf);
+                $$.ty = gCode;
+            } else {
+                char ebuf[1024];
+                if (fd->p->head != NULL) {
+                    snprintf(ebuf, 1024, "Function %s must not take any arguments when used as code", $2.str);
+                }else{
+                    snprintf(ebuf, 1024, "Function must not take any arguments when used as code");
+                }
+                yyerrorex(semanticerror, ebuf);
+                if( fd->ret == gBoolean) {
+                    $$.ty = gCodeReturnsBoolean;
+                } else {
+                    $$.ty = gCodeReturnsNoBoolean;
+                }
+            }
+
+      }
+      | FUNCTION rid {
+            struct funcdecl *fd = ht_lookup(&functions, $2.str);
+            if (fd == NULL) {
+                char ebuf[1024];
+                snprintf(ebuf, 1024, "Undefined function %s", $2.str);
+                getsuggestions($2.str, ebuf, 1024, 1, &functions);
+                yyerrorex(semanticerror, ebuf);
+                $$.ty = gCode;
+            } else {
+                if (fd->p->head != NULL) {
+                    char ebuf[1024];
+                    snprintf(ebuf, 1024, "Function %s must not take any arguments when used as code", $2.str);
+                    yyerrorex(semanticerror, ebuf);
+                }
+                if( fd->ret == gBoolean) {
+                    $$.ty = gCodeReturnsBoolean;
+                } else {
+                    $$.ty = gCodeReturnsNoBoolean;
+                }
+            }
+         }
       | TNULL { $$.ty = gNull; }
       | expr LEQ expr { checkcomparison($1.ty, $3.ty); $$.ty = gBoolean; }
       | expr GEQ expr { checkcomparison($1.ty, $3.ty); $$.ty = gBoolean; }
@@ -548,6 +573,7 @@ endlocalsmarker: /* empty */ { fCurrent = NULL; }
 ;
 
 lvardecl: LOCAL vardecl { }
+        | vardecl { yyerrorex(syntaxerror, "Missing 'local'"); }
         | CONSTANT LOCAL vardecl { yyerrorex(syntaxerror, "Local variables can not be declared constant"); }
         | typedef { yyerrorex(syntaxerror,"Types can not be extended inside functions"); }
 ;
