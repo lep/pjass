@@ -233,7 +233,7 @@ expr: intexpr      { $$.ty = gInteger; }
             yyerrorex(semanticerror, ebuf);
           }
           checkwrongshadowing(tan, 0);
-          if(infunction && ht_lookup(curtab, $1.str) && !ht_lookup(&initialized, $1.str) ){
+          if(!tan->isarray && infunction && ht_lookup(curtab, $1.str) && !ht_lookup(&initialized, $1.str) ){
             char ebuf[1024];
             snprintf(ebuf, 1024, "Variable %s is uninitialized", $1.str);
             yyerrorline(semanticerror, lineno - 1, ebuf);
