@@ -429,8 +429,8 @@ void canconvertreturn(const struct typenode *ufrom, const struct typenode *uto, 
         return;
     }
 
-    if ((typeeq(from, gNull)) && (!typeeq(to, gInteger)) && (!typeeq(to, gReal)) && (!typeeq(to, gBoolean)))
-        return; // can't return null when it expects integer, real or boolean (added 9.5.2005)
+    if( typeeq(from, gNull) && ( typeeq(to, gHandle) || typeeq(to, gCode) ))
+        return;
 
     if (typeeq(ufrom, uto)){
         return;
