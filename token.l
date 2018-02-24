@@ -143,6 +143,7 @@ TABS     [\x01-\x09\x0B\x0C\x0E-\x1F]
 "=" return EQUALS;
 "*" return TIMES;
 "/" return DIV;
+"%" return MOD;
 "+" return PLUS;
 "-" return MINUS;
 "(" return LPAREN;
