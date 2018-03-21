@@ -104,6 +104,21 @@ int abs(int i){
     return i;
 }
 
+static void str_append(char *buf, const char *str, size_t buf_size){
+    size_t str_len = strlen(str);
+    size_t buf_len = strlen(buf);
+    size_t buf_freespace = buf_size - (buf_len+1); // +1 for zero byte at the end
+    size_t to_copy;
+    if(buf_freespace > str_len){
+        to_copy = str_len;
+    }else{
+        to_copy = buf_freespace;
+    }
+    
+    memmove(buf+buf_len, str, to_copy);
+    buf[buf_len + to_copy +1] = 0;
+}
+
 static int editdistance(const char *s, const char *t, int cutoff){
     if(!strcmp(s, t)) return 0;
 
@@ -226,13 +241,13 @@ void getsuggestions(const char *name, char *buff, size_t buffsize, int nTables, 
     char hbuff[1024];
     if(count == 1){
         snprintf(hbuff, 1024, ". Maybe you meant %s", suggestions[0].name);
-        strncat(buff, hbuff, buffsize);
+        str_append(buff, hbuff, buffsize);
     }else if(count == 2){
         snprintf(hbuff, 1024, ". Maybe you meant %s or %s", suggestions[0].name, suggestions[1].name);
-        strncat(buff, hbuff, buffsize);
+        str_append(buff, hbuff, buffsize);
     }else if(count >= 3){
         snprintf(hbuff, 1024, ". Maybe you meant %s, %s or %s", suggestions[0].name, suggestions[1].name, suggestions[2].name);
-        strncat(buff, hbuff, buffsize);
+        str_append(buff, hbuff, buffsize);
     }
 }
 
@@ -275,7 +290,6 @@ void validateGlobalAssignment(const char *varname)
     }
 }
 
-
 void checkParameters(const struct funcdecl *fd, const struct paramlist *inp, bool mustretbool)
 {
     const struct paramlist *func = fd->p;
@@ -293,13 +307,13 @@ void checkParameters(const struct funcdecl *fd, const struct paramlist *inp, boo
         if (fi != NULL && pi == NULL) {
             char buf[1024];
             snprintf(buf, 1024, "Not enough arguments passed to function %s. ", fd->name);
-            strncat(buf, "Still missing: ", 1024);
+            str_append(buf, "Still missing: ", 1024);
             bool addComma = false;
             for(; fi; fi = fi->next){
                 if(addComma){
-                    strncat(buf, ", ", 1024);
+                    str_append(buf, ", ", 1024);
                 }
-                strncat(buf, fi->name, 1024);
+                str_append(buf, fi->name, 1024);
                 addComma = true;
             }
             yyerrorex(semanticerror, buf);
@@ -309,7 +323,7 @@ void checkParameters(const struct funcdecl *fd, const struct paramlist *inp, boo
         if(! canconvertbuf(buf, 1024, pi->ty, fi->ty )){
             char pbuf[1024];
             snprintf(pbuf, 1024, " in parameter %s in call to %s", fi->name, fd->name);
-            strncat(buf, pbuf, 1024);
+            str_append(buf, pbuf, 1024);
             yyerrorex(semanticerror, buf);
         }
         if(flagenabled(flag_filter) && mustretbool && typeeq(pi->ty, gCodeReturnsNoBoolean)){
