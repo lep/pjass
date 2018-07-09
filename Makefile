@@ -14,7 +14,7 @@ pjass-git-$(VERSION)-src.zip: | test
   endif
 endif
 
-SRC := misc.c hashtable.c paramlist.c funcdecl.c typeandname.c
+SRC := misc.c hashtable.c paramlist.c funcdecl.c typeandname.c blocks.c
 
 OBJS := $(SRC:.c=.o)
 OBJS += main.o token.yy.o grammar.tab.o

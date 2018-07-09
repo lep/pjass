@@ -104,7 +104,7 @@ int abs(int i){
     return i;
 }
 
-static void str_append(char *buf, const char *str, size_t buf_size){
+void str_append(char *buf, const char *str, size_t buf_size){
     size_t str_len = strlen(str);
     size_t buf_len = strlen(buf);
     size_t buf_freespace = buf_size - (buf_len+1); // +1 for zero byte at the end
