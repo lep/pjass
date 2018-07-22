@@ -83,7 +83,7 @@ clean-prof-files: ## Cleans all profiling files
 
 
 pjass.exe: CFLAGS=-O3
-pjass.exe: CC=i686-w64-mingw32-gcc
+pjass.exe: CC=mingw32-gcc
 pjass.exe: $(SRC) main.c token.yy.c grammar.tab.c
 	$(CC) $(CFLAGS) $^ -o pjass.exe -DVERSIONSTR="\"git-$(VERSION)\""
 
@@ -94,7 +94,7 @@ pjass-git-$(VERSION)-src.zip: main.c grammar.y token.l Makefile readme.md AUTHOR
 	zip -q -r pjass-git-$(VERSION)-src.zip $^ tests/should-check/ tests/should-fail/
 
 pjass-git-$(VERSION).zip: pjass.exe
-	strip pjass.exe
+	mingw32-strip pjass.exe
 	upx --best --ultra-brute pjass.exe > /dev/null
 	zip -q pjass-git-$(VERSION).zip pjass.exe
 
