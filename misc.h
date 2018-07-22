@@ -114,5 +114,7 @@ union node checkarraydecl(struct typeandname *tan);
 union node checkvartypedecl(struct typeandname *tan);
 void checkwrongshadowing(const struct typeandname *tan, int linemod);
 
+void str_append(char *buf, const char *str, size_t buf_size);
+
 
 #endif
