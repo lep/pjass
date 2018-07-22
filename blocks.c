@@ -36,14 +36,14 @@ void block_push(int lineno, enum block_type type){
 bool block_pop(enum block_type type, char *buf, size_t len){
     if(size == 0){
         // Standalone end* found
-        snprintf(buf, len, "[1] Standalone %s (no corresponding opening block)", names[type]);
+        snprintf(buf, len, "Standalone %s (no corresponding opening block)", names[type]);
         return false;
     }
 
     
     if(blocks[size-1].type != type){
         // Missing end* for blocks[size-1].type
-        snprintf(buf, len,  "[2] Missing end%s for block openend in line %d", names[blocks[size-1].type], blocks[size-1].lineno);
+        snprintf(buf, len,  "Missing end%s for block openend in line %d", names[blocks[size-1].type], blocks[size-1].lineno);
         return false;
     }
     
@@ -56,6 +56,6 @@ void block_missing_error(int x, char *msg, size_t len){
     if(size == 0){
         return;
     }
-    snprintf(msg, len, "[%d] [3] Missing end%s for block opened in line %d.", x, names[blocks[size-1].type], blocks[size-1].lineno);
+    snprintf(msg, len, "Missing end%s for block opened in line %d.", names[blocks[size-1].type], blocks[size-1].lineno);
     size--;
 }
