@@ -24,7 +24,7 @@ void block_push(int lineno, enum block_type type){
         blocks = malloc(sizeof(struct block_start) * capacity);
     }else if(size >= capacity){
         capacity *= 2;
-        realloc(blocks, capacity * sizeof(struct block_start));
+        blocks = realloc(blocks, capacity * sizeof(struct block_start));
     }
     
     blocks[size].type = type;
