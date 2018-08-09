@@ -9,6 +9,7 @@
 #include <string.h>
 #include "token.yy.h"
 #include "misc.h"
+#include "blocks.h"
 
 
 #define YYSTYPE union node
@@ -343,7 +344,11 @@ funcdefncore: funcbegin localblock codeblock funcend {
             fnannotations = pjass_flags;
         }
        | funcbegin localblock codeblock {
-            yyerrorex(syntaxerror, "Missing endfunction");
+       
+            char msg[1024];
+            block_missing_error(2, msg, 1024);
+            yyerrorex(syntaxerror, msg);
+            
             ht_clear(&params);
             ht_clear(&locals);
             ht_clear(&initialized);
@@ -360,6 +365,12 @@ funcend: ENDFUNCTION {
         inblock = 0;
         inconstant = 0;
         infunction = 0;
+        
+        char msg[1024];
+        
+        if(! block_pop(Function, msg, 1024)){
+            yyerrorex(syntaxerror, msg);
+        }
     }
 ;
 
@@ -372,12 +383,14 @@ funcbegin: FUNCTION rid TAKES optparam_list returnorreturns opttype {
         infunction = 1;
         $$ = checkfunctionheader($2.str, $4.pl, $6.ty);
         $$.fd->isconst = 0;
+        block_push(lineno, Function);
     }
     | CONSTANT FUNCTION rid TAKES optparam_list returnorreturns opttype {
         inconstant = 1;
         infunction = 1;
         $$ = checkfunctionheader($3.str, $5.pl, $7.ty);
         $$.fd->isconst = 1;
+        block_push(lineno, Function);
     }
 ;
 
@@ -393,7 +406,7 @@ codeblock: /* empty */ { $$.ty = gEmpty; }
 statement:  newline { $$.ty = gEmpty; }
        | CALL funccall newline{ $$.ty = gAny;}
        /*1    2    3     4        5        6        7      8      9 */
-       | IF expr THEN newline codeblock elsifseq elseseq ENDIF newline {
+       | ifstart expr THEN newline codeblock elsifseq elseseq ifend newline {
             canconvert($2.ty, gBoolean, -1);
             $$.ty = combinetype($5.ty, combinetype($6.ty, $7.ty));
        }
@@ -445,7 +458,14 @@ statement:  newline { $$.ty = gEmpty; }
              }
            }
        | loopstart newline codeblock loopend newline {$$.ty = $3.ty;}
-       | loopstart newline codeblock {$$.ty = $3.ty; yyerrorex(syntaxerror, "Missing endloop");}
+       | loopstart newline codeblock {
+             $$.ty = $3.ty;
+             
+             char msg[1024];
+             block_missing_error(0, msg, 1024);
+             yyerrorex(syntaxerror, msg);
+
+         }
        | EXITWHEN expr newline { canconvert($2.ty, gBoolean, -1); if (!inloop) yyerrorline(syntaxerror, lineno - 1, "Exitwhen outside of loop"); $$.ty = gAny;}
        | RETURN expr newline {
             $$.ty = mkretty($2.ty, 1);
@@ -461,12 +481,15 @@ statement:  newline { $$.ty = gEmpty; }
             }
        | DEBUG statement {$$.ty = gAny;}
        /*1    2   3      4        5         6        7 */
-       | IF expr THEN newline codeblock elsifseq elseseq {
+       | ifstart expr THEN newline codeblock elsifseq elseseq {
             canconvert($2.ty, gBoolean, -1);
             $$.ty = combinetype($5.ty, combinetype($6.ty, $7.ty));
-            yyerrorex(syntaxerror, "Missing endif");
+            
+            char msg[1024];
+            block_missing_error(1, msg, 1024);
+            yyerrorex(syntaxerror, msg);
         }
-       | IF expr newline {
+       | ifstart expr newline {
             canconvert($2.ty, gBoolean, -1);
             $$.ty = gAny;
             yyerrorex(syntaxerror, "Missing then or non valid expression");
@@ -479,11 +502,30 @@ statement:  newline { $$.ty = gEmpty; }
        | error {$$.ty = gAny; }
 ;
 
-loopstart: LOOP {inloop++;}
-;
+loopstart: LOOP {
+    inloop++;
+    block_push(lineno, Loop);
+};
 
-loopend: ENDLOOP {inloop--;}
-;
+loopend: ENDLOOP {
+    inloop--;
+    
+    char msg[1024];
+    if(! block_pop(Loop, msg, 1024)){
+        yyerrorex(syntaxerror, msg);
+    }
+};
+
+ifstart: IF {
+    block_push(lineno, If);
+};
+
+ifend: ENDIF {
+    char msg[1024];
+    if(! block_pop(If, msg, 1024)){
+        yyerrorex(syntaxerror, msg);
+    }
+};
 
 elseseq: /* empty */ { $$.ty = gAny; }
         | ELSE newline codeblock {
