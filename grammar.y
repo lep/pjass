@@ -60,6 +60,7 @@
 %token EQUALS
 %token TIMES
 %token DIV
+%token MOD
 %token PLUS
 %token MINUS
 %token LPAREN
@@ -84,7 +85,7 @@
 %left LESS GREATER EQCOMP NEQ LEQ GEQ
 %left NOT
 %left MINUS PLUS
-%left TIMES DIV
+%left TIMES DIV MOD
 
 %%
 
@@ -202,6 +203,10 @@ expr: intexpr      { $$.ty = gInteger; }
       | NOT expr { canconvert($2.ty, gBoolean, 0); $$.ty = gBoolean; }
       | expr TIMES expr { $$.ty = binop($1.ty, $3.ty); }
       | expr DIV expr { $$.ty = binop($1.ty, $3.ty); }
+      | expr MOD expr {
+	    checkmodulo($1.ty, $3.ty);
+	    $$.ty = gInteger;
+	  }
       | expr MINUS expr { $$.ty = binop($1.ty, $3.ty); }
       | expr PLUS expr { 
                          if ($1.ty == gString && $3.ty == gString)

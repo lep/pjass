@@ -487,6 +487,26 @@ void checkcomparison(const struct typenode *a, const struct typenode *b)
         yyerrorex(semanticerror, "Comparing null is not allowed");
 }
 
+void checkmodulo(const struct typenode *a, const struct typenode *b)
+{
+    const struct typenode *pa, *pb;
+    pa = getPrimitiveAncestor(a);
+    pb = getPrimitiveAncestor(b);
+
+    bool fst = typeeq(pa, gInteger);
+    bool snd = typeeq(pb, gInteger);
+
+    if(! fst && ! snd){
+	yyerrorex(semanticerror, "Both arguments of the modulo-operator must be integers");
+    }else if(! fst){
+	yyerrorex(semanticerror, "First argument of the modulo-operator must be an integer");
+    }else if(! snd){
+	yyerrorex(semanticerror, "Second argument of the modulo-operator must be an integer");
+    }
+
+
+}
+
 void checkeqtest(const struct typenode *a, const struct typenode *b)
 {
     const struct typenode *pa, *pb;
