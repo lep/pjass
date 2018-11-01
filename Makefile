@@ -70,7 +70,7 @@ main.o: main.c | grammar.tab.h
 clean-build-files: ## Cleans all build files
 	rm -f grammar.tab.h grammar.tab.c token.yy.c token.yy.h \
 		$(OBJS) $(OBJS:.o=.d) \
-		pjass
+		pjass pjass.exe
 
 clean-release-files: ## Cleans all release zipballs
 	rm -f pjass-git-*.zip

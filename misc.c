@@ -109,6 +109,7 @@ void str_append(char *buf, const char *str, size_t buf_size){
     size_t buf_len = strlen(buf);
     size_t buf_freespace = buf_size - (buf_len+1); // +1 for zero byte at the end
     size_t to_copy;
+
     if(buf_freespace > str_len){
         to_copy = str_len;
     }else{
@@ -116,7 +117,7 @@ void str_append(char *buf, const char *str, size_t buf_size){
     }
     
     memmove(buf+buf_len, str, to_copy);
-    buf[buf_len + to_copy +1] = 0;
+    buf[buf_len + to_copy] = 0;
 }
 
 static int editdistance(const char *s, const char *t, int cutoff){
