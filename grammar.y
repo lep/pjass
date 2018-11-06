@@ -239,13 +239,28 @@ expr: intexpr      { $$.ty = gInteger; }
             yyerrorex(semanticerror, ebuf);
           }
           checkwrongshadowing(tan, 0);
-          if(!tan->isarray && infunction && ht_lookup(curtab, $1.str) && !ht_lookup(&initialized, $1.str) ){
-            char ebuf[1024];
-            snprintf(ebuf, 1024, "Variable %s is uninitialized", $1.str);
-            yyerrorline(semanticerror, lineno - 1, ebuf);
-          }
-          $$.ty = tan->ty;
+          if( !tan->isarray && !ht_lookup(&initialized, $1.str) ){
+            char buf[1024];
+            
+            if( ht_lookup(&locals, $1.str)){
+                snprintf(buf, 1024, "Variable %s is uninitialized", $1.str);
+                yyerrorline(semanticerror, lineno - 1, buf);
+            }else if(ht_lookup(&uninitialized_globals, $1.str)){
+                if(infunction ){
+                    if( flagenabled(flag_checkglobalsinit) ){
+                        snprintf(buf, 1024, "Variable %s might be uninitalized", $1.str);
+                        yyerrorline(semanticerror, lineno, buf);
+                    }
+                }else{
+                    snprintf(buf, 1024, "Variable %s is uninitalized", $1.str);
+                    yyerrorline(semanticerror, lineno, buf);
+                }
+            }
+
+          
        }
+       $$.ty = tan->ty;
+      }
       | expr EQUALS expr {yyerrorex(syntaxerror, "Single = in expression, should probably be =="); checkeqtest($1.ty, $3.ty); $$.ty = gBoolean;}
       | LPAREN expr {yyerrorex(syntaxerror, "Mssing ')'"); $$.ty = $2.ty;}
       
@@ -427,9 +442,10 @@ statement:  newline { $$.ty = gEmpty; }
                }
                if (inconstant)
                  validateGlobalAssignment($2.str);
-               if(infunction && ht_lookup(curtab, $2.str) && !ht_lookup(&initialized, $2.str)){
-                 put(&initialized, $2.str, (void*)1);
+               if(infunction && !ht_lookup(&initialized, $2.str)){
+                 ht_put(&initialized, $2.str, (void*)1);
                }
+
             }
        | SET rid rid EQUALS expr newline {
             char ebuf[1024];
@@ -630,6 +646,7 @@ vardecl: vartypedecl newline {
              if (tan->isconst) {
                  yyerrorline(syntaxerror, lineno - 1, "Constants must be initialized");
              }
+             ht_put(&uninitialized_globals, $1.str, (void*)1);
              $$.ty = gNothing;
            }
         |  vartypedecl EQUALS expr newline {

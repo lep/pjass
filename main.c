@@ -26,6 +26,8 @@ static void init()
 
     ht_init(&bad_natives_in_globals, 17);
     ht_init(&shadowed_variables, 17);
+    
+    ht_init(&uninitialized_globals, 511);
 
     gHandle = addPrimitiveType("handle");
     gInteger = addPrimitiveType("integer");
@@ -70,6 +72,7 @@ static void init()
     ht_put(&available_flags, "nosyntaxerror", (void*)flag_syntaxerror);
     ht_put(&available_flags, "nosemanticerror", (void*)flag_semanticerror);
     ht_put(&available_flags, "noruntimeerror", (void*)flag_runtimeerror);
+    ht_put(&available_flags, "checkglobalsinit", (void*)flag_checkglobalsinit);
 
     ht_put(&bad_natives_in_globals, "OrderId", (void*)NullInGlobals);
     ht_put(&bad_natives_in_globals, "OrderId2String", (void*)NullInGlobals);

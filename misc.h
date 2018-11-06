@@ -43,6 +43,7 @@ enum {
     flag_syntaxerror = 1 << 3,
     flag_semanticerror = 1 << 4,
     flag_runtimeerror = 1 << 5,
+    flag_checkglobalsinit = 1 << 6,
 };
 
 enum {
@@ -98,6 +99,7 @@ extern int yydebug;
 int *showerrorlevel;
 extern struct hashtable functions, globals, locals, params, types, initialized, *curtab;
 extern struct hashtable bad_natives_in_globals;
+extern struct hashtable uninitialized_globals;
 extern struct typenode *gInteger, *gReal, *gBoolean, *gString, *gCode, *gHandle, *gNothing, *gNull, *gAny, *gNone, *gEmpty;
 extern struct typenode *gCodeReturnsNoBoolean, *gCodeReturnsBoolean;
 extern struct funcdecl *fCurrent;

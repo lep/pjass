@@ -43,6 +43,8 @@ struct hashtable bad_natives_in_globals;
 
 struct hashtable shadowed_variables;
 
+struct hashtable uninitialized_globals;
+
 
 struct hashtable *curtab;
 
