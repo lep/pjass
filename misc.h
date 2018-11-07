@@ -115,6 +115,7 @@ union node checkfunccall(const char *fnname, struct paramlist *pl);
 union node checkarraydecl(struct typeandname *tan);
 union node checkvartypedecl(struct typeandname *tan);
 void checkwrongshadowing(const struct typeandname *tan, int linemod);
+void checkmodulo(const struct typenode *a, const struct typenode *b);
 
 void str_append(char *buf, const char *str, size_t buf_size);
 

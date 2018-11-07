@@ -19,7 +19,7 @@ static void init()
 {
     ht_init(&functions, 10009);
     ht_init(&globals, 8191);
-    ht_init(&locals, 27);
+    ht_init(&locals, 57);
     ht_init(&params, 23);
     ht_init(&types, 149);
     ht_init(&initialized, 2047);

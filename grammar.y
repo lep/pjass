@@ -361,7 +361,7 @@ funcdefncore: funcbegin localblock codeblock funcend {
        | funcbegin localblock codeblock {
        
             char msg[1024];
-            block_missing_error(2, msg, 1024);
+            block_missing_error(msg, 1024);
             yyerrorex(syntaxerror, msg);
             
             ht_clear(&params);
@@ -478,11 +478,16 @@ statement:  newline { $$.ty = gEmpty; }
              $$.ty = $3.ty;
              
              char msg[1024];
-             block_missing_error(0, msg, 1024);
+             block_missing_error(msg, 1024);
              yyerrorex(syntaxerror, msg);
 
          }
-       | EXITWHEN expr newline { canconvert($2.ty, gBoolean, -1); if (!inloop) yyerrorline(syntaxerror, lineno - 1, "Exitwhen outside of loop"); $$.ty = gAny;}
+       | EXITWHEN expr newline {
+            canconvert($2.ty, gBoolean, -1);
+            if (!inloop)
+                yyerrorline(syntaxerror, lineno - 1, "Exitwhen outside of loop");
+            $$.ty = gAny;
+        }
        | RETURN expr newline {
             $$.ty = mkretty($2.ty, 1);
             if(retval == gNothing)
@@ -502,7 +507,7 @@ statement:  newline { $$.ty = gEmpty; }
             $$.ty = combinetype($5.ty, combinetype($6.ty, $7.ty));
             
             char msg[1024];
-            block_missing_error(1, msg, 1024);
+            block_missing_error(msg, 1024);
             yyerrorex(syntaxerror, msg);
         }
        | ifstart expr newline {
