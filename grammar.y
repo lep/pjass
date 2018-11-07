@@ -646,7 +646,9 @@ vardecl: vartypedecl newline {
              if (tan->isconst) {
                  yyerrorline(syntaxerror, lineno - 1, "Constants must be initialized");
              }
-             ht_put(&uninitialized_globals, $1.str, (void*)1);
+             if(inglobals){ 
+                ht_put(&uninitialized_globals, $1.str, (void*)1);
+             }
              $$.ty = gNothing;
            }
         |  vartypedecl EQUALS expr newline {
