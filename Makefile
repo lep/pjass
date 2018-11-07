@@ -78,6 +78,7 @@ clean-release-files: ## Cleans all release zipballs
 clean-prof-files: ## Cleans all profiling files
 	rm -f tests/should-check/*-analysis.txt \
           tests/should-fail/*-analysis.txt \
+          tests/map-scripts/*-analysis.txt \
           gmon.out
 
 

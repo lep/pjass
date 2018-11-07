@@ -17,17 +17,17 @@ static struct typenode* addPrimitiveType(const char *name)
 
 static void init()
 {
-    ht_init(&functions, 8191);
+    ht_init(&functions, 10009);
     ht_init(&globals, 8191);
-    ht_init(&locals, 23);
-    ht_init(&params, 11);
-    ht_init(&types, 511);
-    ht_init(&initialized, 23);
+    ht_init(&locals, 27);
+    ht_init(&params, 23);
+    ht_init(&types, 149);
+    ht_init(&initialized, 2047);
 
     ht_init(&bad_natives_in_globals, 17);
     ht_init(&shadowed_variables, 17);
     
-    ht_init(&uninitialized_globals, 511);
+    ht_init(&uninitialized_globals, 2047);
 
     gHandle = addPrimitiveType("handle");
     gInteger = addPrimitiveType("integer");
@@ -176,6 +176,7 @@ printf(
         dofile(stdin, "<stdin>");
     }
 }
+
 int main(int argc, char **argv)
 {
     init();
@@ -186,7 +187,6 @@ int main(int argc, char **argv)
         if (ignorederrors) {
             printf("%d errors ignored\n", ignorederrors);
         }
-
         return 0;
     } else {
         if (haderrors) {
