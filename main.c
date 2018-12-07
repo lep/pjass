@@ -21,7 +21,7 @@ static void init()
     ht_init(&globals, 8191);
     ht_init(&locals, 57);
     ht_init(&params, 23);
-    ht_init(&types, 149);
+    ht_init(&types, 151);
     ht_init(&initialized, 2047);
 
     ht_init(&bad_natives_in_globals, 17);

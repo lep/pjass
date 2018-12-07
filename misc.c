@@ -500,11 +500,11 @@ void checkmodulo(const struct typenode *a, const struct typenode *b)
     bool snd = typeeq(pb, gInteger);
 
     if(! fst && ! snd){
-        yyerrorex(semanticerror, "Both arguments of the modulo-operator must be integers");
+        yyerrorex(semanticerror, "Both operands of the modulo-operator must be integers");
     }else if(! fst){
-        yyerrorex(semanticerror, "First argument of the modulo-operator must be an integer");
+        yyerrorex(semanticerror, "First operand of the modulo-operator must be an integer");
     }else if(! snd){
-        yyerrorex(semanticerror, "Second argument of the modulo-operator must be an integer");
+        yyerrorex(semanticerror, "Second operand of the modulo-operator must be an integer");
     }
 
 
