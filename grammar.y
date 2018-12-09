@@ -691,15 +691,14 @@ typeandname: type rid { $$.tan = newtypeandname($1.ty, $2.str); }
   
 type: primtype { $$.ty = $1.ty; }
   | rid {
-   if (ht_lookup(&types, $1.str) == NULL) {
-     char buf[1024];
-     snprintf(buf, 1024, "Undefined type %s", $1.str);
-     getsuggestions($1.str, buf, 1024, 1, &types);
-     yyerrorex(semanticerror, buf);
-     $$.ty = gAny;
-   }
-   else
-     $$.ty = ht_lookup(&types, $1.str);
+    $$.ty = ht_lookup(&types, $1.str);
+    if ($$.ty == NULL) {
+	char buf[1024];
+	snprintf(buf, 1024, "Undefined type %s", $1.str);
+	getsuggestions($1.str, buf, 1024, 1, &types);
+	yyerrorex(semanticerror, buf);
+	$$.ty = gAny;
+    }
 }
 ;
 
