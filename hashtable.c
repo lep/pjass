@@ -22,9 +22,9 @@ void ht_init(struct hashtable *h, size_t size)
 
 void * ht_lookup(struct hashtable *h, const char *name)
 {
-    size_t start = hashfunc(name);
-    size_t idx = (start + 1) % h->size;
-    for(; idx != start; idx = (idx + 1) % h->size){
+    size_t start = hashfunc(name) & (h->size -1);
+    size_t idx = (start + 1) & (h->size -1);
+    for(; idx != start; idx = (idx + 1) & (h->size -1)){
         if(h->bucket[idx].name){
             if( !strcmp(h->bucket[idx].name, name)){
                 return h->bucket[idx].val;
@@ -39,7 +39,7 @@ void * ht_lookup(struct hashtable *h, const char *name)
 static void resize(struct hashtable *h)
 {
     struct hashtable newht;
-    ht_init(&newht, h->size*2 +1);
+    ht_init(&newht, h->size*2);
     size_t i;
     for(i = 0; i != h->size; i++){
         if(h->bucket[i].name){
@@ -54,9 +54,9 @@ static void resize(struct hashtable *h)
 
 bool ht_put(struct hashtable *h, const char *name, void *val)
 {
-    size_t start = hashfunc(name);
-    size_t idx = (start + 1) % h->size;
-    for(; /*idx != start*/; idx = (idx + 1) % h->size){
+    size_t start = hashfunc(name) & (h->size-1);
+    size_t idx = (start + 1) & (h->size-1);
+    for(; /*idx != start*/; idx = (idx + 1) & (h->size-1)){
         if(!h->bucket[idx].name){
             h->bucket[idx].name = name;
             h->bucket[idx].val = val;

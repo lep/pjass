@@ -17,17 +17,17 @@ static struct typenode* addPrimitiveType(const char *name)
 
 static void init()
 {
-    ht_init(&functions, 10009);
-    ht_init(&globals, 8191);
-    ht_init(&locals, 57);
-    ht_init(&params, 23);
-    ht_init(&types, 151);
-    ht_init(&initialized, 2047);
+    ht_init(&functions, 1 << 13);
+    ht_init(&globals, 1 << 13);
+    ht_init(&locals, 1 << 6);
+    ht_init(&params, 1 << 5);
+    ht_init(&types, 1 << 7);
+    ht_init(&initialized, 1 << 11);
 
-    ht_init(&bad_natives_in_globals, 17);
-    ht_init(&shadowed_variables, 17);
+    ht_init(&bad_natives_in_globals, 1 << 4);
+    ht_init(&shadowed_variables, 1 << 4);
     
-    ht_init(&uninitialized_globals, 2047);
+    ht_init(&uninitialized_globals, 1 << 11);
 
     gHandle = addPrimitiveType("handle");
     gInteger = addPrimitiveType("integer");
@@ -65,7 +65,7 @@ static void init()
     fFilter = NULL;
     fCondition = NULL;
 
-    ht_init(&available_flags, 11);
+    ht_init(&available_flags, 16);
     ht_put(&available_flags, "rb", (void*)flag_rb);
     ht_put(&available_flags, "shadow", (void*)flag_shadowing);
     ht_put(&available_flags, "filter", (void*)flag_filter);
