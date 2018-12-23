@@ -221,13 +221,11 @@ expr: intexpr      { $$.ty = gInteger; }
       | rid LBRACKET expr RBRACKET {
           const struct typeandname *tan = getVariable($1.str);
           if (!typeeq(tan->ty, gAny)) {
+	    checkarrayindex(tan->name, $3.ty, lineno);
             if (!tan->isarray) {
               char ebuf[1024];
               snprintf(ebuf, 1024, "%s not an array", $1.str);
               yyerrorex(semanticerror, ebuf);
-            }
-            else {
-              canconvert($3.ty, gInteger, 0);
             }
           }
           $$.ty = tan->ty;
@@ -461,9 +459,10 @@ statement:  newline { $$.ty = gEmpty; }
        }
        | SET rid LBRACKET expr RBRACKET EQUALS expr newline{ 
            const struct typeandname *tan = getVariable($2.str);
+	   char buf[1024];
            $$.ty = gAny;
            if (tan->ty != gAny) {
-             canconvert($4.ty, gInteger, -1);
+	     checkarrayindex(tan->name, $4.ty, lineno -1);
              if (!tan->isarray) {
                char ebuf[1024];
                snprintf(ebuf, 1024, "%s is not an array", $2.str);

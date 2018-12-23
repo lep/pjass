@@ -337,6 +337,18 @@ void checkParameters(const struct funcdecl *fd, const struct paramlist *inp, boo
         fi = fi->next;
     }
 }
+
+
+void checkarrayindex(const char *name, const struct typenode *ty, int lineno)
+{
+    char buf[1024];
+    if(! canconvertbuf(buf, 1024, ty, gInteger)){
+        str_append(buf, " as index for array ", 1024);
+        str_append(buf, name, 1024);
+        yyerrorline(semanticerror, lineno, buf);
+    }
+}
+
 const struct typenode *binop(const struct typenode *a, const struct typenode *b)
 {
     a = getPrimitiveAncestor(a);
