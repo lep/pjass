@@ -86,7 +86,7 @@ clean-prof-files: ## Cleans all profiling files
 pjass.exe: CFLAGS=-O3 -march=native
 pjass.exe: CC=mingw32-gcc
 pjass.exe: $(SRC) main.c token.yy.c grammar.tab.c
-	find $(SRC) main.c | awk '{print "#include \"" $$1 "\""}' | $(CC) $(CFLAGS) -x c -o pjass.exe - token.yy.c grammar.tab.c -DVERSIONSTR="\"git-$(VERSION)\""
+	find $^ | awk '{ print "#include \"" $$1 "\""}' | $(CC) $(CFLAGS) -x c -o $@ - -DVERSIONSTR="\"git-$(VERSION)\"" -DPJASS_AMALGATION
 
 src-release: pjass-git-$(VERSION)-src.zip ## Builds the source zipball
 binary-release: pjass.exe pjass-git-$(VERSION).zip ## Builds the exe zipball

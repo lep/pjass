@@ -11,12 +11,12 @@
 #include "misc.h"
 #include "blocks.h"
 
-
-#define YYSTYPE union node
 #define YYMAXDEPTH 100000
 #define YYDEBUG 1
 
 %}
+
+%define api.value.type {union node}
 
 %token IF
 %token THEN

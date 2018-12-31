@@ -20,6 +20,21 @@
 
 #define BUFSIZE (16384)
 
+/*
+For some reason flex produces the exact same #ifndef block in the .h and
+the .c file except for these three defines which works out in the normal
+build but not in the amalagamation.
+We don't even need this ifdef as it builds w/o errors but this seems a
+bit cleaner.
+*/
+#ifdef PJASS_AMALGATION
+
+#define YY_BUFFER_NEW 0
+#define YY_BUFFER_NORMAL 1
+#define YY_BUFFER_EOF_PENDING 2
+
+#endif
+
 union node {
   const char *str;
   int ival;
