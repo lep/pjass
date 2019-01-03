@@ -14,6 +14,12 @@
     }
 #elif defined(_WIN32)
     extern void * _aligned_malloc(size_t, size_t);
+#elif defined(__APPLE__)
+    void * _aligned_malloc(size_t size, size_t alignment){
+        void *mem;
+        posix_memalign(&mem, size, alignment);
+        return mem;
+    }
 #else
 #error "Please add a definition for some aligned malloc function"
 #endif
