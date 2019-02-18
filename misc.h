@@ -27,7 +27,10 @@ build but not in the amalagamation.
 We don't even need this ifdef as it builds w/o errors but this seems a
 bit cleaner.
 */
-#ifdef PJASS_AMALGATION
+#if defined(PJASS_AMALGATION)	  \
+    && !defined(YY_BUFFER_NEW)	  \
+    && !defined(YY_BUFFER_NORMAL) \
+    && !defined(YY_BUFFER_EOF_PENDING)
 
 #define YY_BUFFER_NEW 0
 #define YY_BUFFER_NORMAL 1

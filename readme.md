@@ -27,8 +27,8 @@ Also look at the output of `pjass -h`.
 
 # Building
 
-This uses flex and bison, so install them first.
-Then just run GNU-make (e.g. `make` or `gmake`).
+This uses flex and bison (atleast version 3.0), so install them first.
+Then just run GNUMake (e.g. `make` or `gmake`).
 
 You can also run `make help` to get a bunch of options but the other most
 important make-target is probably `test` which builds pjass and runs all
