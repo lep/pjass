@@ -107,6 +107,7 @@ extern int fnannotations;
 extern int annotations;
 extern bool afterendglobals;
 extern bool inglobals;
+extern bool encoutered_first_function;
 extern int *showerrorlevel;
 extern char *yytext;
 extern const char *curfile;

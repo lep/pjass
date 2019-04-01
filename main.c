@@ -92,6 +92,7 @@ static void dofile(FILE *fp, const char *name)
     inconstant = false;
     inblock = false;
     afterendglobals = false;
+    encoutered_first_function = false;
     inglobals = false;
     int olderrs = haderrors;
     yy_switch_to_buffer(yy_create_buffer(fp, BUFSIZE));

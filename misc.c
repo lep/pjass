@@ -30,6 +30,7 @@ int didparse;
 int inloop;
 bool afterendglobals;
 bool inglobals;
+bool encoutered_first_function;
 int *showerrorlevel;
 
 struct hashtable functions;

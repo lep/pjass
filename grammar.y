@@ -327,6 +327,9 @@ nativefuncdecl: NATIVE rid TAKES optparam_list RETURNS opttype
         snprintf(buf, 1024, "%s already defined as type", $2.str);
         yyerrorex(semanticerror, buf);
     }
+    if(encoutered_first_function){
+        yyerrorex(semanticerror, "Native declared after functions");
+    }
     $$.fd = newfuncdecl(); 
     $$.fd->name = strdup($2.str);
     $$.fd->p = $4.pl;
@@ -395,6 +398,7 @@ returnorreturns: RETURNS
 funcbegin: FUNCTION rid TAKES optparam_list returnorreturns opttype {
         inconstant = 0;
         infunction = 1;
+        encoutered_first_function = 1;
         $$ = checkfunctionheader($2.str, $4.pl, $6.ty);
         $$.fd->isconst = 0;
         block_push(lineno, Function);
@@ -402,6 +406,7 @@ funcbegin: FUNCTION rid TAKES optparam_list returnorreturns opttype {
     | CONSTANT FUNCTION rid TAKES optparam_list returnorreturns opttype {
         inconstant = 1;
         infunction = 1;
+        encoutered_first_function = 1;
         $$ = checkfunctionheader($3.str, $5.pl, $7.ty);
         $$.fd->isconst = 1;
         block_push(lineno, Function);
