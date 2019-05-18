@@ -243,7 +243,7 @@ expr: intexpr      { $$.ty = gInteger; }
             
             if( ht_lookup(&locals, $1.str)){
                 snprintf(buf, 1024, "Variable %s is uninitialized", $1.str);
-                yyerrorline(semanticerror, lineno - 1, buf);
+                yyerrorline(semanticerror, lineno, buf);
             }else if(ht_lookup(&uninitialized_globals, $1.str)){
                 if(infunction ){
                     if( flagenabled(flag_checkglobalsinit) ){

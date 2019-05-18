@@ -23,7 +23,7 @@ static int rawcodestartline;
 %option header-file="token.yy.h"
 
 COMMENTSTART [/][/]
-NEWLINE  (\r*\n)|\r*
+NEWLINE  (\r*\n)|\r
 OCTDIGIT [0-7]
 DIGIT    [0-9]
 HEXDIGIT [0-9a-fA-F]
