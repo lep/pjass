@@ -34,22 +34,34 @@ TABS     [\x01-\x09\x0B\x0C\x0E-\x1F]
 
 %x RAWCODE
 %x INSTRING
+%x xANNOTATION
+%x xCOMMENT
 
 %%
 
-{COMMENTSTART}"#"[^\r\n]*{NEWLINE} {
+{COMMENTSTART}"#" {
     lineno++;
     islinebreak = 1;
     isconstant = 0;
-    return ANNOTATION;
+    BEGIN(xANNOTATION);
 }
 
-{COMMENTSTART}[^\n\r]*{NEWLINE} {
+
+{COMMENTSTART} {
     lineno++;
     islinebreak = 1;
     isconstant = 0;
-    return NEWLINE;
+    annotations = pjass_flags;
+    BEGIN(xCOMMENT);
 }
+
+<xCOMMENT>[^\r\n]* { }
+<xCOMMENT>{NEWLINE} { BEGIN(INITIAL); return NEWLINE; }
+<xCOMMENT><<EOF>> { BEGIN(INITIAL); return NEWLINE; }
+
+<xANNOTATION>[^\r\n]* { annotations = updateannotation(annotations, yytext, &available_flags); }
+<xANNOTATION>{NEWLINE} { BEGIN(INITIAL); return NEWLINE; }
+<xANNOTATION><<EOF>> { BEGIN(INITIAL); return NEWLINE; }
 
 
 [']\\[btrnf\\]['] { return UNITTYPEINT; }
@@ -94,7 +106,13 @@ TABS     [\x01-\x09\x0B\x0C\x0E-\x1F]
 <INSTRING>. {}
 
 
-{NEWLINE} lineno++; islinebreak=1; isconstant=0; return NEWLINE;
+{NEWLINE} {
+    lineno++;
+    islinebreak=1;
+    isconstant=0;
+    annotations = pjass_flags;
+    return NEWLINE;
+}
 
 {DIGIT}+"."{DIGIT}+  return REALLIT;
 "."{DIGIT}+  return REALLIT;
@@ -139,6 +157,7 @@ TABS     [\x01-\x09\x0B\x0C\x0E-\x1F]
 "nothing" return NOTHING;
 "and" return AND;
 "or" return OR;
+"alias" return ALIAS;
 "," return COMMA;
 "=" return EQUALS;
 "*" return TIMES;

@@ -79,6 +79,7 @@
 %token REALLIT
 %token UNITTYPEINT
 %token ANNOTATION
+%token ALIAS
 
 %right EQUALS
 %left AND
@@ -588,8 +589,13 @@ param_list: typeandname { $$.pl = newparamlist(); addParam($$.pl, $1.tan); }
           | typeandname COMMA param_list { addParam($3.pl, $1.tan); $$.pl = $3.pl; }
 ;
 
-rid: ID
-{ $$.str = strdup(yytext); }
+rid: ID {
+        $$.str = strdup(yytext);
+    }
+    | ALIAS {
+        $$.str = strdup("alias");
+        yyerrorex(syntaxerror, "Invalid name \"alias\"");
+    }
 ;
 
 vartypedecl: type rid {
@@ -714,6 +720,4 @@ primtype: HANDLE  { $$.ty = ht_lookup(&types, yytext); }
  | CODE           { $$.ty = ht_lookup(&types, yytext); }
 ;
 
-newline: NEWLINE { annotations = pjass_flags; }
-       | ANNOTATION { annotations = updateannotation(annotations, yytext, &available_flags); }
-;
+newline: NEWLINE;
