@@ -91,7 +91,7 @@ pjass.exe: $(SRC) main.c token.yy.c grammar.tab.c
 src-release: pjass-git-$(VERSION)-src.zip ## Builds the source zipball
 binary-release: pjass.exe pjass-git-$(VERSION).zip ## Builds the exe zipball
 
-pjass-git-$(VERSION)-src.zip: main.c grammar.y token.l Makefile readme.md AUTHORS LICENSE $(SRC:.c=.h) $(SRC)
+pjass-git-$(VERSION)-src.zip: main.c grammar.y token.l GNUmakefile readme.md AUTHORS LICENSE $(SRC:.c=.h) $(SRC)
 	zip -q -r pjass-git-$(VERSION)-src.zip $^ tests/should-check/ tests/should-fail/
 
 pjass-git-$(VERSION).zip: pjass.exe
