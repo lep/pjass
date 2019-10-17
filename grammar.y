@@ -596,6 +596,10 @@ rid: ID {
         $$.str = strdup("alias");
         yyerrorex(syntaxerror, "Invalid name \"alias\"");
     }
+    | TYPE {
+        $$.str = strdup("type");
+        yyerrorex(syntaxerror, "Invalid name \"type\"");
+    }
 ;
 
 vartypedecl: type rid {
@@ -616,30 +620,6 @@ vartypedecl: type rid {
         tan->isarray = 1;
         $$ = checkarraydecl(tan);
   
-    }
-
-    // using "type" as variable name 
-    | type TYPE {
-        yyerrorex(syntaxerror, "Invalid variable name \"type\"");
-        struct typeandname *tan = newtypeandname($1.ty, "type");
-        $$ = checkvartypedecl(tan);
-    }
-
-    | CONSTANT type TYPE {
-        if (infunction) {
-            yyerrorex(semanticerror, "Local constants are not allowed");
-        }
-        yyerrorex(syntaxerror, "Invalid variable name \"type\"");
-        struct typeandname *tan = newtypeandname($2.ty, "type");
-        tan->isconst = 1;
-        $$ = checkvartypedecl(tan);
-    }
-    | type ARRAY TYPE {
-        yyerrorex(syntaxerror, "Invalid variable name \"type\"");
-        struct typeandname *tan = newtypeandname($1.ty, "type");
-        tan->isarray = 1;
-        $$ = checkarraydecl(tan);
-
     }
 ;
 
