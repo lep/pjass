@@ -28,6 +28,10 @@ static void init()
     ht_init(&shadowed_variables, 1 << 4);
     
     ht_init(&uninitialized_globals, 1 << 11);
+    
+    ht_init(&string_literals, 1 << 10);
+    
+    tree_init(&stringlit_hashes);
 
     gHandle = addPrimitiveType("handle");
     gInteger = addPrimitiveType("integer");
@@ -64,6 +68,7 @@ static void init()
     fCurrent = NULL;
     fFilter = NULL;
     fCondition = NULL;
+    fStringHash = NULL;
 
     ht_init(&available_flags, 16);
     ht_put(&available_flags, "rb", (void*)flag_rb);
@@ -73,6 +78,8 @@ static void init()
     ht_put(&available_flags, "nosemanticerror", (void*)flag_semanticerror);
     ht_put(&available_flags, "noruntimeerror", (void*)flag_runtimeerror);
     ht_put(&available_flags, "checkglobalsinit", (void*)flag_checkglobalsinit);
+    ht_put(&available_flags, "checkstringhash", (void*)flag_checkstringhash);
+    
 
     ht_put(&bad_natives_in_globals, "OrderId", (void*)NullInGlobals);
     ht_put(&bad_natives_in_globals, "OrderId2String", (void*)NullInGlobals);
@@ -135,8 +142,10 @@ printf(
 "pjass accepts some options:\n"
 "pjass -h               Display this help\n"
 "pjass -v               Display version information and exit\n"
-"pjass +rb              Enable returnbug\n"
-"pjass -rb              Disable returnbug\n"
+"pjass +rb              Enable returnbug checking\n"
+"pjass -rb              Disable returnbug checking\n"
+"pjass +checkstringhash Enable StringHash collision checking"
+"pjass -checkstringhash Disable StringHash collision checking"
 "pjass +shadow          Enable error on variable shadowing\n"
 "pjass -shadow          Disable error on variable shadowing\n"
 "pjass +filter          Enable error on inappropriate code usage for Filter\n"

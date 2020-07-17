@@ -45,7 +45,13 @@ struct hashtable bad_natives_in_globals;
 struct hashtable shadowed_variables;
 
 struct hashtable uninitialized_globals;
+struct hashtable string_literals;
 
+size_t stringlit_buffsize = 2048;
+char stringlit_buffer[2048] = {0};
+size_t stringlit_length = 0;
+
+struct tree stringlit_hashes;
 
 struct hashtable *curtab;
 
@@ -55,7 +61,7 @@ struct typenode *gInteger, *gReal, *gBoolean, *gString, *gCode, *gHandle, *gNoth
 struct typenode *gCodeReturnsNoBoolean, *gCodeReturnsBoolean;
 struct typenode *gEmpty;
 struct funcdecl *fCurrent;
-struct funcdecl *fFilter, *fCondition;
+struct funcdecl *fFilter, *fCondition, *fStringHash;
 
 struct hashtable available_flags;
 
@@ -356,6 +362,8 @@ const struct typenode *binop(const struct typenode *a, const struct typenode *b)
     b = getPrimitiveAncestor(b);
     if (typeeq(a, gInteger) && typeeq(b, gInteger))
         return gInteger;
+    if (typeeq(a, gString) && typeeq(b, gString))
+        return gString;
     if (typeeq(a, gAny))
         return b;
     if (typeeq(b, gAny))
@@ -661,6 +669,23 @@ union node checkfunccall(const char *fnname, struct paramlist *pl)
             }else if(err == NullInGlobals){
                 snprintf(ebuf, 1024, "Call to %s in a globals block always returns null", fd->name);
                 yyerrorex(runtimeerror, ebuf);
+            }
+        }
+        
+        if( fd == fStringHash && pl->head && flagenabled(flag_checkstringhash) ){
+            const struct typenode *a1 = pl->head->ty;
+            if( ! typeeq(a1, gString) && isDerivedFrom(a1, gString) ){
+                //printf("Got call to StringHash with argument %s\n", a1->typename);
+                uint32_t strhash = SStrHash2(a1->typename);
+                char *name = tree_lookup(&stringlit_hashes, strhash);
+                if( name == NULL ){
+                    tree_put(&stringlit_hashes, strhash, a1->typename);
+                }else if( strcmp(name, a1->typename)){
+                    char ebuf[1024];
+                    snprintf(ebuf, 1024, "String %s produces the same hash as %s", name, a1->typename);
+                    yyerrorex(semanticerror, ebuf);
+                }
+                
             }
         }
 

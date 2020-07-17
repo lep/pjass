@@ -96,14 +96,28 @@ TABS     [\x01-\x09\x0B\x0C\x0E-\x1F]
 <RAWCODE>\r { lineno++; isconstant = 0; rawcodelen++; }
 <RAWCODE>.  { rawcodelen++; }
 
-["] { BEGIN(INSTRING); }
+["] {
+    stringlit_length = 0;
+    stringlit_buff[0] = 0;
+    BEGIN(INSTRING);
+}
 <INSTRING>["] { BEGIN(INITIAL); return STRINGLIT; }
-<INSTRING>\\[btrnf"\\] { }
+<INSTRING>\\[btrnf"\\] {
+    strncat(stringlit_buff, yytext, stringlit_buffsize);
+}
 <INSTRING>\\(.|[\r\n]) { yyerrorline(syntaxerror, lineno, "Invalid escape character sequence"); }
 
-<INSTRING>\r?\n { lineno++; isconstant = 0; }
-<INSTRING>\r { lineno++; isconstant = 0; }
-<INSTRING>. {}
+<INSTRING>\r?\n {
+    strncat(stringlit_buff, yytext, stringlit_buffsize);
+    lineno++;
+    isconstant = 0;
+}
+<INSTRING>\r {
+    strncat(stringlit_buff, yytext, stringlit_buffsize);
+    lineno++;
+    isconstant = 0;
+}
+<INSTRING>. { strncat(stringlit_buff, yytext, stringlit_buffsize); }
 
 
 {NEWLINE} {

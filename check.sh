@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 
+[[ -n "$VERBOSE" ]] && echo "$0 $1"
+
 if [[ "$MAPSCRIPT" ]]; then
-    msg=$(./pjass tests/common.j tests/Blizzard.j "$1" )
+    msg=$(./pjass +checkstringhash tests/common.j tests/Blizzard.j "$1" )
     ret=$?
 else
     msg=$(./pjass "$1")

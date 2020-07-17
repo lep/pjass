@@ -146,7 +146,7 @@ td:      newline
 // Returns a typenode
 expr: intexpr      { $$.ty = gInteger; }
       | realexpr   { $$.ty = gReal; }
-      | stringexpr { $$.ty = gString; }
+      | stringexpr { $$.ty = $1.ty; }
       | boolexpr   { $$.ty = gBoolean; }
       | FUNCTION rid LPAREN exprlistcompl RPAREN {
             struct funcdecl *fd = ht_lookup(&functions, $2.str);
@@ -294,8 +294,17 @@ exprlist: expr         { $$.pl = newparamlist(); addParam($$.pl, newtypeandname(
 ;
 
 
-stringexpr: STRINGLIT { $$.ty = gString; }
-;
+stringexpr: STRINGLIT {
+    if(flagenabled(flag_checkstringhash)){
+        $$.ty = ht_lookup(&string_literals, stringlit_buff);
+        if( $$.ty == NULL ) {
+            $$.ty = newtypenode(stringlit_buff, gString);
+            ht_put(&string_literals, $$.ty->typename, $$.ty);
+        }
+    }else{
+        $$.ty = gString;
+    }
+};
 
 realexpr: REALLIT { $$.ty = gReal; }
 ;
@@ -343,6 +352,8 @@ nativefuncdecl: NATIVE rid TAKES optparam_list RETURNS opttype
         fFilter = $$.fd;
     }else if( !strcmp("Condition", $$.fd->name) ){
         fCondition = $$.fd;
+    }else if( !strcmp("StringHash", $$.fd->name) ){
+        fStringHash = $$.fd;
     }
 }
 ;

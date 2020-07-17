@@ -14,9 +14,12 @@
 #include <stdint.h>
 
 #include "hashtable.h"
+#include "tree.h"
 #include "typeandname.h"
 #include "paramlist.h"
 #include "funcdecl.h"
+
+#include "sstrhash.h"
 
 #define BUFSIZE (16384)
 
@@ -62,6 +65,7 @@ enum {
     flag_semanticerror = 1 << 4,
     flag_runtimeerror = 1 << 5,
     flag_checkglobalsinit = 1 << 6,
+    flag_checkstringhash = 1 << 7,
 };
 
 enum {
@@ -119,15 +123,22 @@ int *showerrorlevel;
 extern struct hashtable functions, globals, locals, params, types, initialized, *curtab;
 extern struct hashtable bad_natives_in_globals;
 extern struct hashtable uninitialized_globals;
+extern struct hashtable string_literals;
 extern struct typenode *gInteger, *gReal, *gBoolean, *gString, *gCode, *gHandle, *gNothing, *gNull, *gAny, *gNone, *gEmpty;
 extern struct typenode *gCodeReturnsNoBoolean, *gCodeReturnsBoolean;
 extern struct funcdecl *fCurrent;
-extern struct funcdecl *fFilter, *fCondition;
+extern struct funcdecl *fFilter, *fCondition, *fStringHash;
 extern const struct typenode *retval;
 
 extern struct hashtable available_flags;
 
 extern struct hashtable shadowed_variables;
+
+extern struct tree stringlit_hashes;
+
+size_t stringlit_buffsize;
+char stringlit_buff[2048];
+size_t stringlit_length;
 
 union node checkfunctionheader(const char *fnname, struct paramlist *pl, const struct typenode *retty);
 union node checkfunccall(const char *fnname, struct paramlist *pl);

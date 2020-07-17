@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+[[ -n "$VERBOSE" ]] && echo "$0 $1"
+
 ./pjass "$1" > /dev/null
 ret=$?
 if [[ "$PROF" ]]; then
