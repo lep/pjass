@@ -6,7 +6,7 @@ if [[ "$MAPSCRIPT" ]]; then
     msg=$(./pjass +checkstringhash tests/common.j tests/Blizzard.j "$1" )
     ret=$?
 else
-    msg=$(./pjass "$1")
+    msg=$(./pjass +checkstringhash "$1")
     ret=$?
 fi
 

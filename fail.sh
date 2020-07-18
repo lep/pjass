@@ -2,7 +2,7 @@
 
 [[ -n "$VERBOSE" ]] && echo "$0 $1"
 
-./pjass "$1" > /dev/null
+./pjass +checkstringhash "$1" > /dev/null
 ret=$?
 if [[ "$PROF" ]]; then
 	gprof pjass.exe gmon.out > "$1-analysis.txt"
