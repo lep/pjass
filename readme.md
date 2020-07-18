@@ -20,10 +20,23 @@ To test this program:
 $ pjass common.j common.ai Blizzard.j
 ```
 
+## Installation for JNGP
+
 If you are using pjass via JNGP replace the `pjass.exe` in `JNGP/jasshelper/`
 with the updated one.
 
-Also look at the output of `pjass -h`.
+## Installation for bundled JassHelper for Patches 1.31+
+
+Blizzard ships their own pjass signed by them so you can't just replace the
+.exe-file. But you can still use the new pjass by using `jasshelper.conf`
+like this:
+
+    [jasscompiler]
+    "pjass-fresh.exe"
+    "$COMMONJ $BLIZZARDJ $WAR3MAPJ"
+
+`pjass-fresh.exe` is of course the newly downloaded pjass executable (just put
+it next to the original pjass.exe).
 
 ## Command line arguments
 
