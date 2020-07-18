@@ -25,6 +25,45 @@ with the updated one.
 
 Also look at the output of `pjass -h`.
 
+## Command line arguments
+
+pjass provides a bunch of command line flags to customize and turn on specific
+checks. pjass provides a special system to easily enable and disable features
+for specific files. Say you want to enable the "returnbug" but only for
+`Blizzard.j`, here is how you would do that:
+
+    $ pjass common.j +rb Blizzard.j -rb war3map.j
+
+So any `+`-flag enables the flag until the next `-`-flag. If you want to have
+flag on for all your files just put before any file arguments.
+
+    $ pjass +checkstringhash common.j Blizzard.j war3map.j
+
+You can also (de)activate the flags on a per function base directly in your
+.j-file like this:
+
+    //# +rb 
+    function H2I takes handle h returns integer
+        return h
+        return 0
+    endfunction
+
+
+Here is a table of all currently supported flags.
+All of these options are off by default.
+
+
+ Flag               | Description
+--------------------|-------------------
+ `rb`               | When enabled pjass allows the old returnbug usage.
+ `filter`           | When enabled pjass checks for functions in `Filter` or `Condition` to return boolean.
+ `shadow`           | When enabled this checks if a local variable name is same as a previously defined global variable name.
+ `checkglobalsinit` | When enabled pjass checks for potentially usage uninitialized global variables.
+ `checkstringhash`  | When enabled pjass checks for calls to `StringHash` and reports when two different strings hash to the same integer.
+  `noruntimeerror`  | When enabled pjass ignores all runtime errors. Runtime errors are wrong usage of specific natives for example.
+  `nosemanticerror` | When enabled pjass ignores all semantic errors. This is/was used to be able to check the memhack scripts.
+  `nosyntaxerror`   | When enabled pjass ignores all syntax errors.
+
 # Building
 
 This uses flex and bison (atleast version 3.0), so install them first.
