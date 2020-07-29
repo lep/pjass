@@ -2,9 +2,6 @@
 
 #include <stdint.h>
 
-typedef  uint32_t ub4;   /* unsigned 4-byte quantities */
-typedef  uint8_t ub1;   /* unsigned 1-byte quantities */
-
 #define mix(a,b,c) \
 { \
   a -= b; a -= c; a ^= (c>>13); \
@@ -18,12 +15,12 @@ typedef  uint8_t ub1;   /* unsigned 1-byte quantities */
   c -= a; c -= b; c ^= (b>>15); \
 }
 
-static ub4 hash( k, length, initval)
-register ub1 *k;        /* the key */
-register ub4  length;   /* the length of the key */
-register ub4  initval;  /* the previous hash, or an arbitrary value */
+static uint32_t hash(k, length, initval)
+register uint8_t *k;        /* the key */
+register uint32_t length;   /* the length of the key */
+register uint32_t initval;  /* the previous hash, or an arbitrary value */
 {
-   register ub4 a,b,c,len;
+   register uint32_t a,b,c,len;
 
    /* Set up the internal state */
    len = length;
@@ -33,9 +30,9 @@ register ub4  initval;  /* the previous hash, or an arbitrary value */
    /*---------------------------------------- handle most of the key */
    while (len >= 12)
    {
-      a += (k[0] +((ub4)k[1]<<8) +((ub4)k[2]<<16) +((ub4)k[3]<<24));
-      b += (k[4] +((ub4)k[5]<<8) +((ub4)k[6]<<16) +((ub4)k[7]<<24));
-      c += (k[8] +((ub4)k[9]<<8) +((ub4)k[10]<<16)+((ub4)k[11]<<24));
+      a += (k[0] +((uint32_t)k[1]<<8) +((uint32_t)k[2]<<16) +((uint32_t)k[3]<<24));
+      b += (k[4] +((uint32_t)k[5]<<8) +((uint32_t)k[6]<<16) +((uint32_t)k[7]<<24));
+      c += (k[8] +((uint32_t)k[9]<<8) +((uint32_t)k[10]<<16)+((uint32_t)k[11]<<24));
       mix(a,b,c);
       k += 12; len -= 12;
    }
@@ -44,17 +41,17 @@ register ub4  initval;  /* the previous hash, or an arbitrary value */
    c += length;
    switch(len)              /* all the case statements fall through */
    {
-   case 11: c+=((ub4)k[10]<<24);
-   case 10: c+=((ub4)k[9]<<16);
-   case 9 : c+=((ub4)k[8]<<8);
+   case 11: c+=((uint32_t)k[10]<<24);
+   case 10: c+=((uint32_t)k[9]<<16);
+   case 9 : c+=((uint32_t)k[8]<<8);
       /* the first byte of c is reserved for the length */
-   case 8 : b+=((ub4)k[7]<<24);
-   case 7 : b+=((ub4)k[6]<<16);
-   case 6 : b+=((ub4)k[5]<<8);
+   case 8 : b+=((uint32_t)k[7]<<24);
+   case 7 : b+=((uint32_t)k[6]<<16);
+   case 6 : b+=((uint32_t)k[5]<<8);
    case 5 : b+=k[4];
-   case 4 : a+=((ub4)k[3]<<24);
-   case 3 : a+=((ub4)k[2]<<16);
-   case 2 : a+=((ub4)k[1]<<8);
+   case 4 : a+=((uint32_t)k[3]<<24);
+   case 3 : a+=((uint32_t)k[2]<<16);
+   case 2 : a+=((uint32_t)k[1]<<8);
    case 1 : a+=k[0];
      /* case 0: nothing left to add */
    }
@@ -63,9 +60,15 @@ register ub4  initval;  /* the previous hash, or an arbitrary value */
    return c;
 }
 
-ub4 SStrHash2(ub1 *key){
-    ub1 buff[0x400];
-    ub4 len=0;
+#undef mix
+
+uint32_t hashfunc(uint8_t *key){
+    return hash(key, strlen(key), 0);
+}
+
+uint32_t SStrHash2(uint8_t *key){
+    uint8_t buff[0x400];
+    uint32_t len=0;
     while(*key){
         if(*key <'a' || *key>'z'){
             if(*key == '/'){

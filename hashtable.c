@@ -3,15 +3,7 @@
 #include <stdlib.h>
 
 #include "hashtable.h"
-
-static uint32_t hashfunc(const char *key)
-{
-    // fnv
-    uint32_t hash = 2166136261;
-    while(*key)
-        hash = (hash ^ *key++) * 16777619;
-    return hash;
-}
+#include "sstrhash.h"
 
 void ht_init(struct hashtable *h, size_t size)
 {

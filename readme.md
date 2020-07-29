@@ -73,9 +73,9 @@ All of these options are off by default.
  `shadow`           | When enabled this checks if a local variable name is same as a previously defined global variable name.
  `checkglobalsinit` | When enabled pjass checks for potentially usage uninitialized global variables.
  `checkstringhash`  | When enabled pjass checks for calls to `StringHash` and reports when two different strings hash to the same integer.
-  `noruntimeerror`  | When enabled pjass ignores all runtime errors. Runtime errors are wrong usage of specific natives for example.
-  `nosemanticerror` | When enabled pjass ignores all semantic errors. This is/was used to be able to check the memhack scripts.
-  `nosyntaxerror`   | When enabled pjass ignores all syntax errors.
+ `noruntimeerror`   | When enabled pjass ignores all runtime errors. Runtime errors are wrong usage of specific natives for example.
+ `nosemanticerror`  | When enabled pjass ignores all semantic errors. This is/was used to be able to check the memhack scripts.
+ `nosyntaxerror`    | When enabled pjass ignores all syntax errors.
 
 # Building
 
