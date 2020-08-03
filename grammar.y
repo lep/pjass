@@ -186,6 +186,11 @@ expr: intexpr      { $$.ty = gInteger; }
                     snprintf(ebuf, 1024, "Function %s must not take any arguments when used as code", $2.str);
                     yyerrorex(semanticerror, ebuf);
                 }
+                if( fd->isnative ) {
+                    char ebuf[1024];
+                    snprintf(ebuf, 1024, "Cannot use native '%s' as code", $2.str);
+                    yyerrorline(runtimeerror, islinebreak ? lineno - 1 : lineno, ebuf);
+                }
                 if( fd->ret == gBoolean) {
                     $$.ty = gCodeReturnsBoolean;
                 } else {
@@ -345,6 +350,7 @@ nativefuncdecl: NATIVE rid TAKES optparam_list RETURNS opttype
     $$.fd->p = $4.pl;
     $$.fd->ret = $6.ty;
     $$.fd->isconst = isconstant;
+    $$.fd->isnative = true;
 
     put(&functions, $$.fd->name, $$.fd);
 

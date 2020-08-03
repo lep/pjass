@@ -8,5 +8,7 @@ struct funcdecl *newfuncdecl()
     fd->name = NULL;
     fd->p = NULL;
     fd->ret = NULL;
+    fd->isnative = false;
+    fd->isconst = false;
     return fd;
 }
