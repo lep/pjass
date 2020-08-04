@@ -132,7 +132,7 @@ TABS     [\x01-\x09\x0B\x0C\x0E-\x1F]
 "."{DIGIT}+  return REALLIT;
 {DIGIT}+"." return REALLIT;
 "0"({OCTDIGIT}*("8"|"9"){OCTDIGIT}*)+ yyerrorline(syntaxerror, lineno, "Invalid digit in octal integer notation"); return INTLIT;
-({DIGIT}+)|(("0x"|"$"){HEXDIGIT}+) return INTLIT;
+({DIGIT}+)|(("0x"|"0X"|"$"){HEXDIGIT}+) return INTLIT;
 
 "if" if (!islinebreak) yyerrorline(syntaxerror, lineno, "Missing linebreak before if"); islinebreak=0; return IF;
 "not" return NOT;
