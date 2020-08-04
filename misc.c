@@ -292,9 +292,8 @@ const struct typeandname *getVariable(const char *varname)
 void validateGlobalAssignment(const char *varname)
 {
     char ebuf[1024];
-    struct typeandname *result;
-    result = ht_lookup(&globals, varname);
-    if (result) {
+    // check if the variable exists in global scope but not in params or locals
+    if( ht_lookup(&globals, varname) && !ht_lookup(&locals, varname) && !ht_lookup(&params, varname) ){
         snprintf(ebuf, 1024, "Assignment to global variable %s in constant function", varname);
         yyerrorline(semanticerror, lineno - 1, ebuf);
     }
