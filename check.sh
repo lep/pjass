@@ -3,10 +3,10 @@
 [[ -n "$VERBOSE" ]] && echo "$0 $1"
 
 if [[ "$MAPSCRIPT" ]]; then
-    msg=$(./pjass +checkstringhash tests/common.j tests/Blizzard.j "$1" )
+    msg=$(./pjass tests/common.j tests/Blizzard.j "$1" )
     ret=$?
 else
-    msg=$(./pjass +checkstringhash "$1")
+    msg=$(./pjass "$1")
     ret=$?
 fi
 
