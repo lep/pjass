@@ -1,5 +1,6 @@
 #include <string.h>
 #include <stdbool.h>
+#include <stdlib.h>
 
 #include "tree.h"
 
@@ -57,3 +58,4 @@ void tree_put(struct tree *t, uint32_t key, void *value){
         }
     }
 }
+

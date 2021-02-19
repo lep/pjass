@@ -103,21 +103,21 @@ TABS     [\x01-\x09\x0B\x0C\x0E-\x1F]
 }
 <INSTRING>["] { BEGIN(INITIAL); return STRINGLIT; }
 <INSTRING>\\[btrnf"\\] {
-    strncat(stringlit_buff, yytext, stringlit_buffsize);
+    str_append(stringlit_buff, yytext, stringlit_buffsize);
 }
 <INSTRING>\\(.|[\r\n]) { yyerrorline(syntaxerror, lineno, "Invalid escape character sequence"); }
 
 <INSTRING>\r?\n {
-    strncat(stringlit_buff, yytext, stringlit_buffsize);
+    str_append(stringlit_buff, yytext, stringlit_buffsize);
     lineno++;
     isconstant = 0;
 }
 <INSTRING>\r {
-    strncat(stringlit_buff, yytext, stringlit_buffsize);
+    str_append(stringlit_buff, yytext, stringlit_buffsize);
     lineno++;
     isconstant = 0;
 }
-<INSTRING>. { strncat(stringlit_buff, yytext, stringlit_buffsize); }
+<INSTRING>. { str_append(stringlit_buff, yytext, stringlit_buffsize); }
 
 
 {NEWLINE} {

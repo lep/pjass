@@ -136,9 +136,9 @@ extern struct hashtable shadowed_variables;
 
 extern struct tree stringlit_hashes;
 
-size_t stringlit_buffsize;
-char stringlit_buff[2048];
-size_t stringlit_length;
+extern size_t stringlit_buffsize;
+extern char stringlit_buff[2048];
+extern size_t stringlit_length;
 
 union node checkfunctionheader(const char *fnname, struct paramlist *pl, const struct typenode *retty);
 union node checkfunccall(const char *fnname, struct paramlist *pl);
@@ -146,6 +146,8 @@ union node checkarraydecl(struct typeandname *tan);
 union node checkvartypedecl(struct typeandname *tan);
 void checkwrongshadowing(const struct typeandname *tan, int linemod);
 void checkmodulo(const struct typenode *a, const struct typenode *b);
+void checkallshadowing(struct typeandname *tan);
+void checkarrayindex(const char *name, const struct typenode *ty, int lineno);
 
 void str_append(char *buf, const char *str, size_t buf_size);
 
