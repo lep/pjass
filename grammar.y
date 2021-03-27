@@ -482,7 +482,6 @@ statement:  newline { $$.ty = gEmpty; }
        }
        | SET rid LBRACKET expr RBRACKET EQUALS expr newline{ 
            const struct typeandname *tan = getVariable($2.str);
-	   char buf[1024];
            $$.ty = gAny;
            if (tan->ty != gAny) {
 	     checkarrayindex(tan->name, $4.ty, lineno -1);

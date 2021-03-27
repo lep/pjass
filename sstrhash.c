@@ -1,6 +1,7 @@
 #include "sstrhash.h"
 
 #include <stdint.h>
+#include <string.h>
 
 #define mix(a,b,c) \
 { \
@@ -84,3 +85,4 @@ uint32_t SStrHash2(uint8_t *key){
     }
     return hash(buff, len, 0);
 }
+

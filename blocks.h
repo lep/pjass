@@ -14,3 +14,4 @@ bool block_pop(enum block_type type, char *buf, size_t len);
 void block_missing_error(char *msg, size_t len);
 
 #endif
+

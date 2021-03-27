@@ -48,7 +48,7 @@ struct hashtable uninitialized_globals;
 struct hashtable string_literals;
 
 size_t stringlit_buffsize = 2048;
-char stringlit_buffer[2048] = {0};
+char stringlit_buff[2048] = {0};
 size_t stringlit_length = 0;
 
 struct tree stringlit_hashes;
