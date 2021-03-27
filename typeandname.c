@@ -7,6 +7,10 @@
     void * _aligned_malloc(size_t size, size_t alignment){
         return aligned_alloc(alignment, size);
     }
+#elif defined(__OpenBSD__)
+    void * _aligned_malloc(size_t size, size_t alignment){
+        return aligned_alloc(alignment, size);
+    }
 #elif defined(__linux__) || defined(__CYGWIN__)
 #include <malloc.h>
     void * _aligned_malloc(size_t size, size_t alignment){
@@ -36,7 +40,7 @@ struct typeandname *newtypeandname(const struct typenode *ty, const char *name)
 struct typenode *newtypenode(const char *typename, const struct typenode *superclass)
 {
     struct typenode *result;
-    result = _aligned_malloc(8, sizeof(struct typenode));
+    result = _aligned_malloc(sizeof(struct typenode), 8);
     result->typename = strdup(typename);
     result->superclass = superclass;
     return result;
