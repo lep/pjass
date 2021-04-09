@@ -440,109 +440,117 @@ codeblock: /* empty */ { $$.ty = gEmpty; }
         }
 ;
 
-statement:  newline { $$.ty = gEmpty; }
-       | CALL funccall newline{ $$.ty = gAny;}
-       /*1    2    3     4        5        6        7      8      9 */
-       | ifstart expr THEN newline codeblock elsifseq elseseq ifend newline {
-            canconvert($2.ty, gBoolean, -1);
-            $$.ty = combinetype($5.ty, combinetype($6.ty, $7.ty));
-       }
-       | SET rid EQUALS expr newline {
-            const struct typeandname *tan = getVariable($2.str);
-            checkwrongshadowing(tan, -1);
-            if (tan->isarray) {
-                 char ebuf[1024];
-                 snprintf(ebuf, 1024, "Index missing for array variable %s", $2.str);
-                 yyerrorline(semanticerror, lineno - 1,  ebuf);
-               }
-               canconvert($4.ty, tan->ty, -1);
-               $$.ty = gAny;
-               if (tan->isconst) {
-                 char ebuf[1024];
-                 snprintf(ebuf, 1024, "Cannot assign to constant %s", $2.str);
-                 yyerrorline(semanticerror, lineno - 1, ebuf);
-               }
-               if (inconstant)
-                 validateGlobalAssignment($2.str);
-               if(infunction && !ht_lookup(&initialized, $2.str)){
-                 ht_put(&initialized, $2.str, (void*)1);
-               }
-
-            }
-       | SET rid rid EQUALS expr newline {
+statement:
+      newline { $$.ty = gEmpty; }
+    | CALL funccall newline { $$.ty = gAny; }
+    /*1    2    3     4        5        6        7      8      9 */
+    | ifstart expr THEN newline codeblock elsifseq elseseq ifend newline {
+        canconvert($2.ty, gBoolean, -1);
+        $$.ty = combinetype($5.ty, combinetype($6.ty, $7.ty));
+    }
+    | SET rid EQUALS expr newline {
+        const struct typeandname *tan = getVariable($2.str);
+        checkwrongshadowing(tan, -1);
+        if (tan->isarray) {
             char ebuf[1024];
-            if(ht_lookup(&types, $2.str)){
-                snprintf(ebuf, 1024, ">%s< %s is an error here. The type only needs to be stated at declartion time", $2.str, $3.str);
-            }else if(ht_lookup(&types, $3.str)){
-                snprintf(ebuf, 1024, "%s >%s< is an error here. The type only needs to be stated at declartion time", $2.str, $3.str);
-            }else{
-                snprintf(ebuf, 1024, "Unexpected '%s'", $3.str);
+            snprintf(ebuf, 1024, "Index missing for array variable %s", $2.str);
+            yyerrorline(semanticerror, lineno - 1,  ebuf);
+        }
+        canconvert($4.ty, tan->ty, -1);
+        $$.ty = gAny;
+        if (tan->isconst) {
+            char ebuf[1024];
+            snprintf(ebuf, 1024, "Cannot assign to constant %s", $2.str);
+            yyerrorline(semanticerror, lineno - 1, ebuf);
+        }
+        if (inconstant)
+            validateGlobalAssignment($2.str);
+        if(infunction && !ht_lookup(&initialized, $2.str)){
+            ht_put(&initialized, $2.str, (void*)1);
+        }
+        $$.ty = gAny;
+    }
+    | SET rid rid EQUALS expr newline {
+        char ebuf[1024];
+        if(ht_lookup(&types, $2.str)){
+            snprintf(ebuf, 1024, ">%s< %s is an error here. The type only needs to be stated at declartion time", $2.str, $3.str);
+        }else if(ht_lookup(&types, $3.str)){
+            snprintf(ebuf, 1024, "%s >%s< is an error here. The type only needs to be stated at declartion time", $2.str, $3.str);
+        }else{
+            snprintf(ebuf, 1024, "Unexpected '%s'", $3.str);
+        }
+        yyerrorline(syntaxerror, lineno -1, ebuf);
+        $$.ty = gAny;
+    }
+    | SET rid LBRACKET expr RBRACKET EQUALS expr newline{
+        const struct typeandname *tan = getVariable($2.str);
+        $$.ty = gAny;
+        if (tan->ty != gAny) {
+            checkarrayindex(tan->name, $4.ty, lineno -1);
+            if (!tan->isarray) {
+                char ebuf[1024];
+                snprintf(ebuf, 1024, "%s is not an array", $2.str);
+                yyerrorline(semanticerror, lineno - 1, ebuf);
             }
-            yyerrorline(syntaxerror, lineno -1, ebuf);
-       }
-       | SET rid LBRACKET expr RBRACKET EQUALS expr newline{ 
-           const struct typeandname *tan = getVariable($2.str);
-           $$.ty = gAny;
-           if (tan->ty != gAny) {
-	     checkarrayindex(tan->name, $4.ty, lineno -1);
-             if (!tan->isarray) {
-               char ebuf[1024];
-               snprintf(ebuf, 1024, "%s is not an array", $2.str);
-               yyerrorline(semanticerror, lineno - 1, ebuf);
-             }
-             canconvert($7.ty, tan->ty, -1);
-             if (inconstant)
-               validateGlobalAssignment($2.str);
-             }
-           }
-       | loopstart newline codeblock loopend newline {$$.ty = $3.ty;}
-       | loopstart newline codeblock {
-             $$.ty = $3.ty;
-             
-             char msg[1024];
-             block_missing_error(msg, 1024);
-             yyerrorex(syntaxerror, msg);
-
-         }
-       | EXITWHEN expr newline {
-            canconvert($2.ty, gBoolean, -1);
-            if (!inloop)
-                yyerrorline(syntaxerror, lineno - 1, "Exitwhen outside of loop");
-            $$.ty = gAny;
+            canconvert($7.ty, tan->ty, -1);
+            if (inconstant)
+                validateGlobalAssignment($2.str);
         }
-       | RETURN expr newline {
-            $$.ty = mkretty($2.ty, 1);
-            if(retval == gNothing)
-                yyerrorline(semanticerror, lineno - 1, "Cannot return value from function that returns nothing");
-            else if (! flagenabled(flag_rb) )
-                canconvertreturn($2.ty, retval, 0);
-         }
-       | RETURN newline {
-            if (retval != gNothing)
-                yyerrorline(semanticerror, lineno - 1, "Return nothing in function that should return value");
-                $$.ty = mkretty(gAny, 1);
-            }
-       | DEBUG statement {$$.ty = gAny;}
-       /*1    2   3      4        5         6        7 */
-       | ifstart expr THEN newline codeblock elsifseq elseseq {
-            canconvert($2.ty, gBoolean, -1);
-            $$.ty = combinetype($5.ty, combinetype($6.ty, $7.ty));
-            
-            char msg[1024];
-            block_missing_error(msg, 1024);
-            yyerrorex(syntaxerror, msg);
-        }
-       | ifstart expr newline {
-            canconvert($2.ty, gBoolean, -1);
-            $$.ty = gAny;
-            yyerrorex(syntaxerror, "Missing then or non valid expression");
-        }
-       | SET funccall newline{ $$.ty = gAny; yyerrorline(semanticerror, lineno - 1, "Call expected instead of set");}
-       | lvardecl {
-            $$.ty = gAny;
-            yyerrorex(semanticerror, "Local declaration after first statement");
-        }
-       | error {$$.ty = gAny; }
+        $$.ty = gAny;
+    }
+    | loopstart newline codeblock loopend newline { $$.ty = $3.ty; }
+    | loopstart newline codeblock {
+        char msg[1024];
+        block_missing_error(msg, 1024);
+        yyerrorex(syntaxerror, msg);
+        $$.ty = $3.ty;
+     }
+    | EXITWHEN expr newline {
+        canconvert($2.ty, gBoolean, -1);
+        if (!inloop)
+            yyerrorline(syntaxerror, lineno - 1, "Exitwhen outside of loop");
+        $$.ty = gAny;
+    }
+    | RETURN expr newline {
+        if(retval == gNothing)
+            yyerrorline(semanticerror, lineno - 1, "Cannot return value from function that returns nothing");
+        else if (! flagenabled(flag_rb) )
+            canconvertreturn($2.ty, retval, 0);
+        $$.ty = mkretty($2.ty, 1);
+     }
+    | RETURN newline {
+        if (retval != gNothing)
+            yyerrorline(semanticerror, lineno - 1, "Return nothing in function that should return value");
+        $$.ty = mkretty(gAny, 1);
+    }
+    | DEBUG statement { $$.ty = gAny; }
+   /*1    2   3      4        5         6        7 */
+    | ifstart expr THEN newline codeblock elsifseq elseseq {
+        canconvert($2.ty, gBoolean, -1);
+        $$.ty = combinetype($5.ty, combinetype($6.ty, $7.ty));
+        
+        char msg[1024];
+        block_missing_error(msg, 1024);
+        yyerrorex(syntaxerror, msg);
+    }
+    | ifstart expr newline {
+        canconvert($2.ty, gBoolean, -1);
+        $$.ty = gAny;
+        yyerrorex(syntaxerror, "Missing then or non valid expression");
+    }
+    | SET funccall newline {
+        $$.ty = gAny;
+        yyerrorline(semanticerror, lineno - 1, "Call expected instead of set");
+    }
+    | lvardecl {
+        $$.ty = gAny;
+        yyerrorex(semanticerror, "Local declaration after first statement");
+    }
+    | funccall newline {
+        yyerrorline(syntaxerror, lineno-1, "Missing 'call'");
+        $$.ty = gAny;
+    }
+    | error { $$.ty = gAny; }
 ;
 
 loopstart: LOOP {
