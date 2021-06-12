@@ -276,9 +276,16 @@ const struct typeandname *getVariable(const char *varname)
     result = ht_lookup(&globals, varname);
     if (result) return result;
 
-    snprintf(ebuf, 1024, "Undeclared variable %s", varname);
-    getsuggestions(varname, ebuf, 1024, 3, &locals, &params, &globals);
-    yyerrorline(semanticerror, islinebreak ? lineno - 1 : lineno, ebuf);
+    struct funcdecl *fd = ht_lookup(&functions, varname);
+    
+    if( fd ) {
+        snprintf(ebuf, 1024, "Cannot use function %s as variable", varname);
+        yyerrorline(semanticerror, islinebreak ? lineno - 1 : lineno, ebuf);
+    }else{
+        snprintf(ebuf, 1024, "Undeclared variable %s", varname);
+        getsuggestions(varname, ebuf, 1024, 3, &locals, &params, &globals);
+        yyerrorline(semanticerror, islinebreak ? lineno - 1 : lineno, ebuf);
+    }
 
     // Store it as unidentified variable
     const struct typeandname *newtan = newtypeandname(gAny, varname);
