@@ -659,6 +659,10 @@ lvardecl: LOCAL vardecl { }
         | vardecl { yyerrorex(syntaxerror, "Missing 'local'"); }
         | CONSTANT LOCAL vardecl { yyerrorex(syntaxerror, "Local variables can not be declared constant"); }
         | typedef { yyerrorex(syntaxerror,"Types can not be extended inside functions"); }
+        | funccall newline {
+            yyerrorline(syntaxerror, lineno-1, "Missing 'call'");
+            $$.ty = gAny;
+        }
 ;
 
 vardecl: vartypedecl newline {

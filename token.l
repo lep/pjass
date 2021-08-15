@@ -28,8 +28,6 @@ OCTDIGIT [0-7]
 DIGIT    [0-9]
 HEXDIGIT [0-9a-fA-F]
 ID       [a-zA-Z]([a-zA-Z0-9_]*[a-zA-Z0-9])?
-SPACE    [ \t]
-TABS     [\x01-\x09\x0B\x0C\x0E-\x1F]
 
 
 %x RAWCODE
@@ -197,7 +195,6 @@ TABS     [\x01-\x09\x0B\x0C\x0E-\x1F]
 
 [ \t]+          /* eat up whitespace */
 \xEF\xBB\xBF    /* utf8 bom */
-[\x01-\x09\x0B\x0C\x0E-\x1F]+    /* eat up tabs */
 
 .            { char ebuf[1024]; sprintf(ebuf, "Unrecognized character %s (ASCII %u)", yytext, (unsigned char)yytext[0] ); yyerrorline(syntaxerror, lineno, ebuf); }
 
