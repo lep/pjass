@@ -119,7 +119,6 @@ extern int *showerrorlevel;
 extern char *yytext;
 extern const char *curfile;
 extern int yydebug;
-int *showerrorlevel;
 extern struct hashtable functions, globals, locals, params, types, initialized, *curtab;
 extern struct hashtable bad_natives_in_globals;
 extern struct hashtable uninitialized_globals;
