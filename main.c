@@ -26,11 +26,11 @@ static void init()
 
     ht_init(&bad_natives_in_globals, 1 << 4);
     ht_init(&shadowed_variables, 1 << 4);
-    
+
     ht_init(&uninitialized_globals, 1 << 11);
-    
+
     ht_init(&string_literals, 1 << 10);
-    
+
     tree_init(&stringlit_hashes);
 
     gHandle = addPrimitiveType("handle");
@@ -79,7 +79,18 @@ static void init()
     ht_put(&available_flags, "noruntimeerror", (void*)flag_runtimeerror);
     ht_put(&available_flags, "checkglobalsinit", (void*)flag_checkglobalsinit);
     ht_put(&available_flags, "checkstringhash", (void*)flag_checkstringhash);
-    
+
+    ht_init(&flags_helpstring, 16);
+    ht_put(&flags_helpstring, "rb", "Toggle returnbug checking");
+    ht_put(&flags_helpstring, "shadow", "Toggle error on variable shadowing");
+    ht_put(&flags_helpstring, "filter", "Toggle error on inappropriate code usage for Filter");
+    ht_put(&flags_helpstring, "nosyntaxerror", "Toggle syntax error reporting");
+    ht_put(&flags_helpstring, "nosemanticerror", "Toggle semantic error reporting");
+    ht_put(&flags_helpstring, "noruntimeerror", "Toggle runtime error reporting");
+    ht_put(&flags_helpstring, "checkglobalsinit", "Toggle a very bad checker for uninitialized globals usage");
+    ht_put(&flags_helpstring, "checkstringhash", "Toggle StringHash collision checking");
+
+
 
     ht_put(&bad_natives_in_globals, "OrderId", (void*)NullInGlobals);
     ht_put(&bad_natives_in_globals, "OrderId2String", (void*)NullInGlobals);
@@ -118,69 +129,86 @@ static void dofile(FILE *fp, const char *name)
 
 static void printversion()
 {
-	printf("Pjass version %s by Rudi Cilibrasi, modified by AIAndy, PitzerMike, Deaod and lep\n", VERSIONSTR);
+    printf("Pjass version %s by Rudi Cilibrasi, modified by AIAndy, PitzerMike, Deaod and lep\n", VERSIONSTR);
+}
+
+static void printhelp()
+{
+    printversion();
+    printf("\n");
+    printf(
+        "To use this program, list the files you would like to parse in order\n"
+        "If you would like to parse from standard input (the keyboard), then\n"
+        "use - as an argument.  If you supply no arguments to pjass, it will\n"
+        "parse the console standard input by default.\n"
+        "The most common usage of pjass would be like this:\n"
+        "pjass common.j Blizzard.j war3map.j\n"
+        "\n"
+        "pjass accepts some flags:\n"
+        "%-20s print this help message and exit\n"
+        "%-20s print pjass version and exit\n"
+        "\n"
+        "But pjass also allows to toggle some flags with either + or - in front of them.\n"
+        "Once a flag is activated it will stay on until disabled and then it will stay disabled\n"
+        "until potentially turned on again, and so on, and so forth.\n"
+        "Usage could look like this:\n"
+        "\n"
+        "\tpjass +shadow file1.j +rb file2.j -rb file3.j\n"
+        "\n"
+        "Which would check all three files with shadow enabled and only file2 with rb enabled.\n"
+        "Below you can see a list of all available options. They are all off by default.\n"
+        "\n"
+        , "-h", "-v"
+    );
+
+
+    for(int i = 0; i < available_flags.size; i++){
+        struct hashnode hn = available_flags.bucket[i];
+        if( hn.name ) {
+            const char *helpstr = ht_lookup(&flags_helpstring, hn.name);
+            if( helpstr ){
+                printf("%-20s %s\n", hn.name, helpstr);
+            }else{
+                printf("%-20s\n", hn.name);
+            }
+        }
+    }
 }
 
 static void doparse(int argc, char **argv)
 {
-	int i;
-	for (i = 1; i < argc; ++i) {
-		if (argv[i][0] == '-' && argv[i][1] == 0) {
-			dofile(stdin, "<stdin>");
-			didparse = 1;
-			continue;
-		}
-		if (strcmp(argv[i], "-h") == 0) {
-			printversion();
-printf(
-"To use this program, list the files you would like to parse in order.\n"
-"If you would like to parse from standard input (the keyboard), then\n"
-"use - as an argument.  If you supply no arguments to pjass, it will\n"
-"parse the console standard input by default.\n"
-"To test this program, go into your Scripts directory, and type:\n"
-"pjass common.j common.ai Blizzard.j\n"
-"pjass accepts some options:\n"
-"pjass -h               Display this help\n"
-"pjass -v               Display version information and exit\n"
-"pjass +rb              Enable returnbug checking\n"
-"pjass -rb              Disable returnbug checking\n"
-"pjass +checkstringhash Enable StringHash collision checking"
-"pjass -checkstringhash Disable StringHash collision checking"
-"pjass +shadow          Enable error on variable shadowing\n"
-"pjass -shadow          Disable error on variable shadowing\n"
-"pjass +filter          Enable error on inappropriate code usage for Filter\n"
-"pjass -filter          Disable error on inappropriate code usage for Filter\n"
-"pjass +nosyntaxerror   Disable all syntax errors\n"
-"pjass -nosyntaxerror   Enable syntax error reporting\n"
-"pjass +nosemanticerror Disable all semantic errors\n"
-"pjass -nosemanticerror Enable semantic error reporting\n"
-"pjass +noruntimeerror  Disable all runtime errors\n"
-"pjass -noruntimeerror  Enable runtime error reporting\n"
-"pjass -                Read from standard input (may appear in a list)\n"
-);
-			exit(0);
-		}
-		if (strcmp(argv[i], "-v") == 0) {
-			printf("%s version %s\n", argv[0], VERSIONSTR);
-			exit(0);
-		}
+    int i;
+    for (i = 1; i < argc; ++i) {
+        if (argv[i][0] == '-' && argv[i][1] == 0) {
+            dofile(stdin, "<stdin>");
+            didparse = 1;
+            continue;
+        }
+        if (strcmp(argv[i], "-h") == 0) {
+            printhelp();
+            exit(0);
+        }
+        if (strcmp(argv[i], "-v") == 0) {
+            printf("%s version %s\n", argv[0], VERSIONSTR);
+            exit(0);
+        }
         if( isflag(argv[i], &available_flags)){
             pjass_flags = updateflag(pjass_flags, argv[i], &available_flags);
             continue;
         }
 
-		FILE *fp;
-		fp = fopen(argv[i], "rb");
-		if (fp == NULL) {
-			printf("Error: Cannot open %s\n", argv[i]);
-			haderrors++;
-			continue;
-		}
+        FILE *fp;
+        fp = fopen(argv[i], "rb");
+        if (fp == NULL) {
+            printf("Error: Cannot open %s\n", argv[i]);
+            haderrors++;
+            continue;
+        }
 
-		dofile(fp, argv[i]);
-		didparse = 1;
-		fclose(fp);
-	}
+        dofile(fp, argv[i]);
+        didparse = 1;
+        fclose(fp);
+    }
     if (argc == 1) {
         didparse = 1;
         dofile(stdin, "<stdin>");
