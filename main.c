@@ -161,8 +161,8 @@ static void printhelp()
         , "-h", "-v"
     );
 
-
-    for(int i = 0; i < available_flags.size; i++){
+    int i;
+    for(i = 0; i < available_flags.size; i++){
         struct hashnode hn = available_flags.bucket[i];
         if( hn.name ) {
             const char *helpstr = ht_lookup(&flags_helpstring, hn.name);
