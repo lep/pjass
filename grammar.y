@@ -222,6 +222,7 @@ expr: intexpr      { $$.ty = gInteger; }
                 $$.ty = binop($1.ty, $3.ty);
         }
       | MINUS expr { isnumeric($2.ty); $$.ty = $2.ty; }
+      | PLUS expr { isnumeric($2.ty); $$.ty = $2.ty; }
       | LPAREN expr RPAREN { $$.ty = $2.ty; }
       | funccall { $$.ty = $1.ty; }
       | rid LBRACKET expr RBRACKET {
