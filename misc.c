@@ -64,6 +64,7 @@ struct funcdecl *fCurrent;
 struct funcdecl *fFilter, *fCondition, *fStringHash;
 
 struct hashtable available_flags;
+struct hashtable flags_helpstring;
 
 void yyerrorline (enum errortype type, int line, const char *s)
 {

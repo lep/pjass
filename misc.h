@@ -130,6 +130,7 @@ extern struct funcdecl *fFilter, *fCondition, *fStringHash;
 extern const struct typenode *retval;
 
 extern struct hashtable available_flags;
+extern struct hashtable flags_helpstring;
 
 extern struct hashtable shadowed_variables;
 
