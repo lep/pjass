@@ -307,12 +307,26 @@ void validateGlobalAssignment(const char *varname)
     }
 }
 
+void check_too_many_params(int num_params, const struct paramlist *inp, const struct funcdecl *fd)
+{
+    // We use exact comparison to only report it once
+    if(num_params == 32 && inp)
+    {
+            char buf[1024];
+            snprintf(buf, 1024, "A function call can have at most 31 arguments");
+            yyerrorex(runtimeerror, buf);
+    }
+}
+
 void checkParameters(const struct funcdecl *fd, const struct paramlist *inp, bool mustretbool)
 {
     const struct paramlist *func = fd->p;
     const struct typeandname *fi = func->head;
     const struct typeandname *pi = inp->head;
+
+    int num_params = 1;
     while(true) {
+        check_too_many_params(num_params, pi, fd);
         if (fi == NULL && pi == NULL)
             return;
         if (fi == NULL && pi != NULL) {
@@ -349,6 +363,7 @@ void checkParameters(const struct funcdecl *fd, const struct paramlist *inp, boo
         }
         pi = pi->next;
         fi = fi->next;
+        num_params++;
     }
 }
 
