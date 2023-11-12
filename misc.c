@@ -544,6 +544,10 @@ void checkmodulo(const struct typenode *a, const struct typenode *b)
     bool fst = typeeq(pa, gInteger);
     bool snd = typeeq(pb, gInteger);
 
+    if( flagenabled(flag_nomodulo) ){
+        yyerrorex(warning, "Using modulo operator '%'");
+    }
+
     if(! fst && ! snd){
         yyerrorex(semanticerror, "Both operands of the modulo-operator must be integers");
     }else if(! fst){
@@ -828,3 +832,21 @@ void checkwrongshadowing(const struct typeandname *tan, int linemod){
     }
 }
 
+void checkidlength(char *name)
+{
+    
+    int len;
+    if( flagenabled(flag_verylongnames) && (len = strlen(name)) > MAX_IDENT_LENGTH ){
+        char first_few[10] = {0};
+        char last_few[10] = {0};
+        char ebuf[1024] = {0};
+
+        // We assume that MAX_IDENT_LENGTH is way bigger than 10.
+        memcpy(first_few, yytext, 9);
+        memcpy(last_few, yytext+len-10, 9);
+
+        snprintf(ebuf, 1024, "Name '%s...%s' is too long (%d)", first_few, last_few, len);
+        yyerror(ebuf);
+        
+    }
+}

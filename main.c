@@ -1,7 +1,10 @@
+#include "hashtable.h"
 #include "token.yy.h"
 #include "grammar.tab.h"
 
 #include "misc.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 #ifndef VERSIONSTR
 #define VERSIONSTR "1.0-git"
@@ -14,6 +17,29 @@ static struct typenode* addPrimitiveType(const char *name)
     return newty;
 }
 
+
+static const char **flags_in_order;
+static int count_flags_in_order;
+static int limit_flags_in_order;
+
+static void add_flag(struct hashtable *available_flags, struct hashtable *flags_helpstring, const char *name, void *data, const char *helptext)
+{
+    ht_put(available_flags, name, data);
+    ht_put(flags_helpstring, name, (void*)helptext);
+
+    if( count_flags_in_order+1 >= limit_flags_in_order )
+    {
+        limit_flags_in_order++;
+        const char **new_ptr = realloc(flags_in_order, sizeof(char*) * limit_flags_in_order);
+        if( new_ptr ){
+            flags_in_order = new_ptr;
+        }else{
+            fprintf(stderr, "err: realloc\n");
+            exit(1);
+        }
+    }
+    flags_in_order[count_flags_in_order++] = name;
+}
 
 static void init()
 {
@@ -71,25 +97,24 @@ static void init()
     fStringHash = NULL;
 
     ht_init(&available_flags, 16);
-    ht_put(&available_flags, "rb", (void*)flag_rb);
-    ht_put(&available_flags, "shadow", (void*)flag_shadowing);
-    ht_put(&available_flags, "filter", (void*)flag_filter);
-    ht_put(&available_flags, "nosyntaxerror", (void*)flag_syntaxerror);
-    ht_put(&available_flags, "nosemanticerror", (void*)flag_semanticerror);
-    ht_put(&available_flags, "noruntimeerror", (void*)flag_runtimeerror);
-    ht_put(&available_flags, "checkglobalsinit", (void*)flag_checkglobalsinit);
-    ht_put(&available_flags, "checkstringhash", (void*)flag_checkstringhash);
-
     ht_init(&flags_helpstring, 16);
-    ht_put(&flags_helpstring, "rb", "Toggle returnbug checking");
-    ht_put(&flags_helpstring, "shadow", "Toggle error on variable shadowing");
-    ht_put(&flags_helpstring, "filter", "Toggle error on inappropriate code usage for Filter");
-    ht_put(&flags_helpstring, "nosyntaxerror", "Toggle syntax error reporting");
-    ht_put(&flags_helpstring, "nosemanticerror", "Toggle semantic error reporting");
-    ht_put(&flags_helpstring, "noruntimeerror", "Toggle runtime error reporting");
-    ht_put(&flags_helpstring, "checkglobalsinit", "Toggle a very bad checker for uninitialized globals usage");
-    ht_put(&flags_helpstring, "checkstringhash", "Toggle StringHash collision checking");
 
+    limit_flags_in_order = 10;
+    count_flags_in_order = 0;
+    flags_in_order = malloc(sizeof(char*) * limit_flags_in_order);
+
+    add_flag(&available_flags, &flags_helpstring, "rb", (void*)flag_rb, "Toggle returnbug checking");
+    add_flag(&available_flags, &flags_helpstring, "shadow", (void*)flag_shadowing, "Toggle error on variable shadowing");
+    add_flag(&available_flags, &flags_helpstring, "filter", (void*)flag_filter,"Toggle error on inappropriate code usage for Filter");
+    add_flag(&available_flags, &flags_helpstring, "noruntimeerror", (void*)flag_runtimeerror, "Toggle runtime error reporting");
+    add_flag(&available_flags, &flags_helpstring, "checkglobalsinit", (void*)flag_checkglobalsinit, "Toggle a very bad checker for uninitialized globals usage");
+    add_flag(&available_flags, &flags_helpstring, "checkstringhash", (void*)flag_checkstringhash, "Toggle StringHash collision checking");
+    add_flag(&available_flags, &flags_helpstring, "nomodulooperator", (void*)flag_nomodulo, "Error when using the modulo-operator '%'");
+    add_flag(&available_flags, &flags_helpstring, "checklongnames", (void*)flag_verylongnames, "Error on very long names");
+    add_flag(&available_flags, &flags_helpstring, "nosyntaxerror", (void*)flag_syntaxerror, "Toggle syntax error reporting");
+    add_flag(&available_flags, &flags_helpstring, "nosemanticerror", (void*)flag_semanticerror, "Toggle semantic error reporting");
+
+    add_flag(&available_flags, &flags_helpstring, "oldpatch", (void*)(flag_verylongnames | flag_nomodulo | flag_filter | flag_rb), "Combined options for older patches");
 
 
     ht_put(&bad_natives_in_globals, "OrderId", (void*)NullInGlobals);
@@ -162,15 +187,13 @@ static void printhelp()
     );
 
     int i;
-    for(i = 0; i < available_flags.size; i++){
-        struct hashnode hn = available_flags.bucket[i];
-        if( hn.name ) {
-            const char *helpstr = ht_lookup(&flags_helpstring, hn.name);
-            if( helpstr ){
-                printf("%-20s %s\n", hn.name, helpstr);
-            }else{
-                printf("%-20s\n", hn.name);
-            }
+    for(i = 0; i < count_flags_in_order; i++ ) {
+        const char *name = flags_in_order[i];
+        const char *helpstr = ht_lookup(&flags_helpstring, name);
+        if( helpstr ){
+            printf("%-20s %s\n", name, helpstr);
+        }else{
+            printf("%-20s\n", name);
         }
     }
 }
