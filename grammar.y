@@ -616,6 +616,7 @@ param_list: typeandname { $$.pl = newparamlist(); addParam($$.pl, $1.tan); }
 
 rid: ID {
         $$.str = strdup(yytext);
+        checkidlength($$.str);
     }
     | ALIAS {
         $$.str = strdup("alias");

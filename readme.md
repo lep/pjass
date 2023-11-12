@@ -66,16 +66,19 @@ Here is a table of all currently supported flags.
 All of these options are **off** by default.
 
 
- Flag               | Description
---------------------|-------------------
- `rb`               | When enabled pjass allows the old returnbug usage.
- `filter`           | When enabled pjass checks for functions in `Filter` or `Condition` to return boolean.
- `shadow`           | When enabled this checks if a local variable name is same as a previously defined global variable name.
- `checkglobalsinit` | When enabled pjass checks for potentially usage of uninitialized global variables.
- `checkstringhash`  | When enabled pjass checks for calls to `StringHash` and reports when two different strings hash to the same integer.
- `noruntimeerror`   | When enabled pjass ignores all runtime errors. Runtime errors are wrong usage of specific natives for example.
- `nosemanticerror`  | When enabled pjass ignores all semantic errors. This is/was used to be able to check the memhack scripts.
- `nosyntaxerror`    | When enabled pjass ignores all syntax errors.
+ Flag                | Description
+---------------------|-------------------
+ `rb`                | When enabled pjass allows the old returnbug usage.
+ `filter`            | When enabled pjass checks for functions in `Filter` or `Condition` to return boolean.
+ `shadow`            | When enabled this checks if a local variable name is same as a previously defined global variable name.
+ `checkglobalsinit`  | When enabled pjass checks for potentially usage of uninitialized global variables.
+ `checkstringhash`   | When enabled pjass checks for calls to `StringHash` and reports when two different strings hash to the same integer.
+ `noruntimeerror`    | When enabled pjass ignores all runtime errors. Runtime errors are wrong usage of specific natives for example.
+ `nosemanticerror`   | When enabled pjass ignores all semantic errors. This is/was used to be able to check the memhack scripts.
+ `nosyntaxerror`     | When enabled pjass ignores all syntax errors.
+ `nomodulooperator`  | When enabled pjass reports any usage of the modulo (`%`) operator.
+ `checklongnames`    | When enabled pjass checks if any name is longer than 3958 characters.
+ `oldpatch`          | Enables `+rb`, `+filter`, `+nomodulooperator` and `+checklongnames` at once.
 
 # Building
 

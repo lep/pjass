@@ -12,6 +12,7 @@
 #include <limits.h>
 #include <stdarg.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "hashtable.h"
 #include "tree.h"
@@ -22,6 +23,8 @@
 #include "sstrhash.h"
 
 #define BUFSIZE (16384)
+
+#define MAX_IDENT_LENGTH (3958)
 
 /*
 For some reason flex produces the exact same #ifndef block in the .h and
@@ -66,6 +69,8 @@ enum {
     flag_runtimeerror = 1 << 5,
     flag_checkglobalsinit = 1 << 6,
     flag_checkstringhash = 1 << 7,
+    flag_nomodulo = 1 << 8,
+    flag_verylongnames = 1 << 9,
 };
 
 enum {
@@ -150,6 +155,8 @@ void checkallshadowing(struct typeandname *tan);
 void checkarrayindex(const char *name, const struct typenode *ty, int lineno);
 
 void str_append(char *buf, const char *str, size_t buf_size);
+
+void checkidlength(char *name);
 
 
 #endif
