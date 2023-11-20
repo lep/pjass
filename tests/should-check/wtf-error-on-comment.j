@@ -1,1 +1,3 @@
-function a takes nothing returns nothing//endfunction
+function a takes nothing returns nothing
+//
+endfunction

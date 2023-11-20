@@ -23,7 +23,7 @@ static int rawcodestartline;
 %option header-file="token.yy.h"
 
 COMMENTSTART [/][/]
-NEWLINE  (\r*\n)|\r
+NEWLINE  (\r?\n)
 OCTDIGIT [0-7]
 DIGIT    [0-9]
 HEXDIGIT [0-9a-fA-F]
@@ -196,6 +196,12 @@ ID       [a-zA-Z]([a-zA-Z0-9_]*[a-zA-Z0-9])?
 [ \t]+          /* eat up whitespace */
 \xEF\xBB\xBF    /* utf8 bom */
 
+\r {
+    lineno++;
+    char ebuf[1024];
+    sprintf(ebuf, "MacOS style newline");
+    yyerrorline(syntaxerror, lineno-1, ebuf);
+}
 .            { char ebuf[1024]; sprintf(ebuf, "Unrecognized character %s (ASCII %u)", yytext, (unsigned char)yytext[0] ); yyerrorline(syntaxerror, lineno, ebuf); }
 
 %%
