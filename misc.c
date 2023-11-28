@@ -632,10 +632,10 @@ union node checkfunctionheader(const char *fnname, struct paramlist *pl, const s
     ret.fd->p = pl;
     ret.fd->ret = retty;
 
+    fnannotations = annotations;
     put(&functions, ret.fd->name, ret.fd);
 
     fCurrent = ht_lookup(&functions, fnname);
-    fnannotations = annotations;
 
     struct typeandname *tan = pl->head;
     for (;tan; tan=tan->next) {
