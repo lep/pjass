@@ -137,7 +137,6 @@ ID       [a-zA-Z]([a-zA-Z0-9_]*[a-zA-Z0-9])?
 "then" return THEN;
 "type" if (!islinebreak) { char ebuf[1024]; sprintf(ebuf, "Missing linebreak before type declaration"); yyerrorline(syntaxerror, lineno, ebuf); } islinebreak=0; return TYPE;
 "extends" return EXTENDS;
-"handle" islinebreak=0; return HANDLE;
 "globals" if (!islinebreak) { char ebuf[1024]; sprintf(ebuf, "Missing linebreak before globals block"); yyerrorline(syntaxerror, lineno, ebuf); } islinebreak=0; inblock=1; return GLOBALS;
 "endglobals" islinebreak=0; inblock=0; return ENDGLOBALS;
 "constant" isconstant = islinebreak; islinebreak=0; return CONSTANT;
@@ -161,11 +160,6 @@ ID       [a-zA-Z]([a-zA-Z0-9_]*[a-zA-Z0-9])?
 "null" return TNULL;
 "true" return TTRUE;
 "false" return TFALSE;
-"code" islinebreak=0; return CODE;
-"string" islinebreak=0; return STRING;
-"integer" islinebreak=0; return INTEGER;
-"real" islinebreak=0; return REAL;
-"boolean" islinebreak=0; return BOOLEAN;
 "nothing" return NOTHING;
 "and" return AND;
 "or" return OR;
