@@ -101,7 +101,11 @@ pjass-git-$(VERSION).zip: pjass.exe
 
 
 SHOULD_FAIL := $(wildcard tests/should-fail/*.j)
+SHOULD_FAIL += $(wildcard tests/should-fail/**/*.j)
+
 SHOULD_CHECK := $(wildcard tests/should-check/*.j)
+SHOULD_CHECK += $(wildcard tests/should-check/**/*.j)
+
 MAP_SCRIPTS := $(wildcard tests/map-scripts/*.j)
 
 .PHONY: test print-test should-check should-fail map-scripts
