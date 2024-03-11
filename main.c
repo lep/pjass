@@ -13,7 +13,7 @@
 static struct typenode* addPrimitiveType(const char *name)
 {
     struct typenode *newty= newtypenode(name, NULL);
-    put(&types, name, newty);
+    ht_put(&builtin_types, name, newty);
     return newty;
 }
 
@@ -43,10 +43,10 @@ static void add_flag(struct hashtable *available_flags, struct hashtable *flags_
 
 static void init()
 {
+    ht_init(&builtin_types, 1 << 4);
     ht_init(&functions, 1 << 13);
     ht_init(&globals, 1 << 13);
     ht_init(&locals, 1 << 6);
-    ht_init(&params, 1 << 5);
     ht_init(&types, 1 << 7);
     ht_init(&initialized, 1 << 11);
 
@@ -75,8 +75,6 @@ static void init()
     gAny = newtypenode("any", NULL);
     gNone = newtypenode("none", NULL);
     gEmpty = newtypenode("empty", NULL);
-
-    curtab = &globals;
 
     pjass_flags = 0;
 
@@ -134,7 +132,6 @@ static void dofile(FILE *fp, const char *name)
     isconstant = false;
     inconstant = false;
     inblock = false;
-    afterendglobals = false;
     encoutered_first_function = false;
     inglobals = false;
     int olderrs = haderrors;

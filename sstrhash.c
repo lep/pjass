@@ -16,10 +16,7 @@
   c -= a; c -= b; c ^= (b>>15); \
 }
 
-static uint32_t hash(k, length, initval)
-register uint8_t *k;        /* the key */
-register uint32_t length;   /* the length of the key */
-register uint32_t initval;  /* the previous hash, or an arbitrary value */
+static uint32_t hash(uint8_t *k, uint32_t length, uint32_t initval)
 {
    register uint32_t a,b,c,len;
 
