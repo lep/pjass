@@ -84,7 +84,8 @@
 %right EQUALS
 %left AND
 %left OR
-%left LESS GREATER EQCOMP NEQ LEQ GEQ
+%left EQCOMP NEQ
+%left LESS GREATER LEQ GEQ
 %left NOT
 %left MINUS PLUS
 %left TIMES DIV MOD
