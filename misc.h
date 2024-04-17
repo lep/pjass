@@ -82,8 +82,6 @@ void yyerrorline (enum errortype type, int line, const char *s);
 void yyerrorex (enum errortype type, const char *s);
 void yyerror (const char *s);
 
-void put(struct hashtable *h, const char *name, void *val);
-
 void getsuggestions(const char*, char*, size_t, int, ...);
 
 const struct typenode *binop(const struct typenode *a, const struct typenode *b);
@@ -122,7 +120,7 @@ extern int *showerrorlevel;
 extern char *yytext;
 extern const char *curfile;
 extern int yydebug;
-extern struct hashtable functions, globals, locals, params, types, initialized, *curtab;
+extern struct hashtable builtin_types, functions, globals, locals, params, types, initialized;
 extern struct hashtable bad_natives_in_globals;
 extern struct hashtable uninitialized_globals;
 extern struct hashtable string_literals;
