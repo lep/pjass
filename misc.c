@@ -307,7 +307,7 @@ void validateGlobalAssignment(const char *varname)
     }
 }
 
-void check_too_many_params(int num_params, const struct paramlist *inp, const struct funcdecl *fd)
+static void check_too_many_params(int num_params, const struct typeandname *inp)
 {
     // We use exact comparison to only report it once
     if(num_params == 32 && inp)
@@ -318,7 +318,33 @@ void check_too_many_params(int num_params, const struct paramlist *inp, const st
     }
 }
 
-void checkParameters(const struct funcdecl *fd, const struct paramlist *inp, bool mustretbool)
+static bool canconvertbuf(char *buf, size_t buflen, const struct typenode *ufrom, const struct typenode *uto)
+{
+    const struct typenode *from = ufrom, *to = uto;
+    if (from == NULL || to == NULL)
+        return true;
+    if (typeeq(from, gAny) || typeeq(to, gAny))
+        return true;
+    if (isDerivedFrom(from, to))
+        return true;
+    if (getTypePtr(from)->typename == NULL || getTypePtr(to)->typename == NULL)
+        return true;
+    if (typeeq(from, gNone) || typeeq(to, gNone))
+        return true;
+    from = getPrimitiveAncestor(from);
+    to = getPrimitiveAncestor(to);
+    if (typeeq(from, gNull) && !typeeq(to, gInteger) && !typeeq(to, gReal) && !typeeq(to, gBoolean))
+        return true;
+    if (typeeq(from, gInteger) && (typeeq(to, gReal) || typeeq(to, gInteger)))
+        return true;
+    if (typeeq(from, to) && (typeeq(from, gBoolean) || typeeq(from, gString) || typeeq(from, gReal) || typeeq(from, gInteger) || typeeq(from, gCode)))
+        return true;
+
+    snprintf(buf, buflen, "Cannot convert %s to %s", ufrom->typename, uto->typename);
+    return false;
+}
+
+static void checkParameters(const struct funcdecl *fd, const struct paramlist *inp, bool mustretbool)
 {
     const struct paramlist *func = fd->p;
     const struct typeandname *fi = func->head;
@@ -326,7 +352,7 @@ void checkParameters(const struct funcdecl *fd, const struct paramlist *inp, boo
 
     int num_params = 1;
     while(true) {
-        check_too_many_params(num_params, pi, fd);
+        check_too_many_params(num_params, pi);
         if (fi == NULL && pi == NULL)
             return;
         if (fi == NULL && pi != NULL) {
@@ -424,31 +450,6 @@ const struct typenode *combinetype(const struct typenode *n1, const struct typen
     return mkretty(gNone, ret);
 }
 
-bool canconvertbuf(char *buf, size_t buflen, const struct typenode *ufrom, const struct typenode *uto)
-{
-    const struct typenode *from = ufrom, *to = uto;
-    if (from == NULL || to == NULL)
-        return true;
-    if (typeeq(from, gAny) || typeeq(to, gAny))
-        return true;
-    if (isDerivedFrom(from, to))
-        return true;
-    if (getTypePtr(from)->typename == NULL || getTypePtr(to)->typename == NULL)
-        return true;
-    if (typeeq(from, gNone) || typeeq(to, gNone))
-        return true;
-    from = getPrimitiveAncestor(from);
-    to = getPrimitiveAncestor(to);
-    if (typeeq(from, gNull) && !typeeq(to, gInteger) && !typeeq(to, gReal) && !typeeq(to, gBoolean))
-        return true;
-    if (typeeq(from, gInteger) && (typeeq(to, gReal) || typeeq(to, gInteger)))
-        return true;
-    if (typeeq(from, to) && (typeeq(from, gBoolean) || typeeq(from, gString) || typeeq(from, gReal) || typeeq(from, gInteger) || typeeq(from, gCode)))
-        return true;
-
-    snprintf(buf, buflen, "Cannot convert %s to %s", ufrom->typename, uto->typename);
-    return false;
-}
 
 // this is used for reducing expressions in many places (if/exitwhen conditions, assignments etc.)
 void canconvert(const struct typenode *ufrom, const struct typenode *uto, const int linemod)
@@ -762,7 +763,7 @@ static void checkvarname(struct typeandname *tan, bool isarray)
     }
 }
 
-void checkallshadowing(struct typeandname *tan){
+static void checkallshadowing(struct typeandname *tan){
     struct typeandname *global = ht_lookup(&globals, tan->name);
     char buf[1024];
 

@@ -88,10 +88,8 @@ void getsuggestions(const char*, char*, size_t, int, ...);
 
 const struct typenode *binop(const struct typenode *a, const struct typenode *b);
 const struct typenode *combinetype(const struct typenode *n1, const struct typenode *n2);
-void checkParameters(const struct funcdecl *fd, const struct paramlist *inp, bool mustretbool);
 const struct typeandname *getVariable(const char *varname);
 
-bool canconvertbuf(char *buf, size_t buflen, const struct typenode *ufrom, const struct typenode *uto);
 void canconvert(const struct typenode *ufrom, const struct typenode *uto, const int linemod);
 void canconvertreturn(const struct typenode *ufrom, const struct typenode *uto, const int linemod);
 
@@ -151,7 +149,6 @@ union node checkarraydecl(struct typeandname *tan);
 union node checkvartypedecl(struct typeandname *tan);
 void checkwrongshadowing(const struct typeandname *tan, int linemod);
 void checkmodulo(const struct typenode *a, const struct typenode *b);
-void checkallshadowing(struct typeandname *tan);
 void checkarrayindex(const char *name, const struct typenode *ty, int lineno);
 
 void str_append(char *buf, const char *str, size_t buf_size);
