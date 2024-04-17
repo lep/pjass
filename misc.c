@@ -10,7 +10,9 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+#include "hashtable.h"
 #include "misc.h"
+#include "typeandname.h"
 
 int pjass_flags;
 
@@ -28,15 +30,14 @@ int fnannotations;
 int annotations;
 int didparse;
 int inloop;
-bool afterendglobals;
 bool inglobals;
 bool encoutered_first_function;
 int *showerrorlevel;
 
+struct hashtable builtin_types;
 struct hashtable functions;
 struct hashtable globals;
 struct hashtable locals;
-struct hashtable params;
 struct hashtable types;
 struct hashtable initialized;
 
@@ -53,8 +54,6 @@ size_t stringlit_length = 0;
 
 struct tree stringlit_hashes;
 
-struct hashtable *curtab;
-
 const struct typenode *retval;
 const char *curfile;
 struct typenode *gInteger, *gReal, *gBoolean, *gString, *gCode, *gHandle, *gNothing, *gNull, *gAny, *gNone, *gEmpty;
@@ -65,6 +64,48 @@ struct funcdecl *fFilter, *fCondition, *fStringHash;
 
 struct hashtable available_flags;
 struct hashtable flags_helpstring;
+
+
+
+void check_name_allready_defined(struct hashtable *ht, const char *name, const char *msg)
+{
+  char buf[1024];
+  if( ht_lookup(ht, name ) )
+  {
+    snprintf(buf, 1024, msg, name);
+    yyerrorex(semanticerror, buf);
+  }
+
+}
+
+// Checks a newly created typeandname for potential name conflicts.
+// Locals can shadow global variables and locals and parameters share
+// a namespace. This all has changed over the years.
+static void checkvarname(struct typeandname *tan)
+{
+  check_name_allready_defined(&builtin_types, tan->name, "Name %s allready defined as type");
+  if( infunction ) {
+    check_name_allready_defined(&locals, tan->ty->typename, "Type %s was shadowed previously");
+  } else {
+    // global names all share a namespace
+    check_name_allready_defined(&types, tan->name, "Name %s allready defined as type");
+    check_name_allready_defined(&functions, tan->name, "Name %s allready defined as function");
+    check_name_allready_defined(&globals, tan->name, "Name %s allready defined as global");
+    
+  }
+  
+}
+
+static void check_lawful_shadowing(struct hashtable *ht, const char *name, const char *msg)
+{
+  char buf[1024];
+  if( ht_lookup(ht, name )) {
+    snprintf(buf, 1024, msg, name);
+    yyerror(buf);
+  }
+  
+}
+
 
 void yyerrorline (enum errortype type, int line, const char *s)
 {
@@ -95,14 +136,6 @@ void yyerrorex (enum errortype type, const char *s)
 void yyerror (const char *s)  /* Called by yyparse on error */
 {
     yyerrorex(syntaxerror, s);
-}
-
-void put(struct hashtable *h, const char *name, void *val){
-    if( !ht_put(h, name, val) ){
-        char ebuf[1024];
-        snprintf(ebuf, 1024, "Symbol %s multiply defined", name);
-        yyerrorline(semanticerror, islinebreak ? lineno - 1 : lineno, ebuf);
-    }
 }
 
 
@@ -262,6 +295,23 @@ void getsuggestions(const char *name, char *buff, size_t buffsize, int nTables, 
     }
 }
 
+// Stores a typeandname as a name in either the local or global hashtable
+// depending on the inglobals and infunction global variables.
+// This doesn't check for allready defined names.
+static void store_variable(const char *name, struct typeandname *tan)
+{
+    struct hashtable *ht;
+    if( inglobals ){
+        ht = &globals;
+    } else {
+        // This assertion can be false if the syntax is exceptionally broken,
+        // like in the tests/should-fail/crashes files.
+        // In any "normal" script though this assertion is sound.
+        // assert(infunction);
+        ht = &locals;
+    }
+    ht_put(ht, name, tan);
+}
 
 const struct typeandname *getVariable(const char *varname)
 {
@@ -269,9 +319,6 @@ const struct typeandname *getVariable(const char *varname)
     struct typeandname *result;
 
     result = ht_lookup(&locals, varname);
-    if (result) return result;
-
-    result = ht_lookup(&params, varname);
     if (result) return result;
 
     result = ht_lookup(&globals, varname);
@@ -284,15 +331,15 @@ const struct typeandname *getVariable(const char *varname)
         yyerrorline(semanticerror, islinebreak ? lineno - 1 : lineno, ebuf);
     }else{
         snprintf(ebuf, 1024, "Undeclared variable %s", varname);
-        getsuggestions(varname, ebuf, 1024, 3, &locals, &params, &globals);
+        getsuggestions(varname, ebuf, 1024, 2, &locals, &globals);
         yyerrorline(semanticerror, islinebreak ? lineno - 1 : lineno, ebuf);
     }
 
     // Store it as unidentified variable
-    const struct typeandname *newtan = newtypeandname(gAny, varname);
-    put(curtab, varname, (void*)newtan);
+    struct typeandname *newtan = newtypeandname(gAny, varname);
+    store_variable(varname, newtan);
     if(infunction && !ht_lookup(&initialized, varname)){
-        put(&initialized, varname, (void*)1);
+        ht_put(&initialized, varname, (void*)1);
     }
     return newtan;
 }
@@ -300,8 +347,7 @@ const struct typeandname *getVariable(const char *varname)
 void validateGlobalAssignment(const char *varname)
 {
     char ebuf[1024];
-    // check if the variable exists in global scope but not in params or locals
-    if( ht_lookup(&globals, varname) && !ht_lookup(&locals, varname) && !ht_lookup(&params, varname) ){
+    if( ht_lookup(&globals, varname) && !ht_lookup(&locals, varname) ){
         snprintf(ebuf, 1024, "Assignment to global variable %s in constant function", varname);
         yyerrorline(semanticerror, lineno - 1, ebuf);
     }
@@ -613,28 +659,24 @@ bool flagenabled(int flag)
     }
 }
 
+
+
 union node checkfunctionheader(const char *fnname, struct paramlist *pl, const struct typenode *retty)
 {
     union node ret;
 
-    if (ht_lookup(&locals, fnname) || ht_lookup(&params, fnname) || ht_lookup(&globals, fnname)) {
-        char buf[1024];
-        snprintf(buf, 1024, "%s already defined as variable", fnname);
-        yyerrorex(semanticerror, buf);
-    } else if (ht_lookup(&types, fnname)) {
-        char buf[1024];
-        snprintf(buf, 1024, "%s already defined as type", fnname);
-        yyerrorex(semanticerror, buf);
-    }
+    check_name_allready_defined(&functions, fnname, "%s already defined as function");
+    check_name_allready_defined(&globals, fnname, "%s already defined as global");
+    check_name_allready_defined(&types, fnname, "%s already defined as type");
+    check_name_allready_defined(&builtin_types, fnname, "%s already defined as type");
 
-    curtab = &locals;
     ret.fd = newfuncdecl(); 
     ret.fd->name = strdup(fnname);
     ret.fd->p = pl;
     ret.fd->ret = retty;
 
     fnannotations = annotations;
-    put(&functions, ret.fd->name, ret.fd);
+    ht_put(&functions, ret.fd->name, ret.fd);
 
     fCurrent = ht_lookup(&functions, fnname);
 
@@ -642,24 +684,9 @@ union node checkfunctionheader(const char *fnname, struct paramlist *pl, const s
     for (;tan; tan=tan->next) {
         tan->lineno = lineno;
         tan->fn = fno;
-        put(&params, strdup(tan->name), newtypeandname(tan->ty, tan->name));
-        if (ht_lookup(&functions, tan->name)) {
-            char buf[1024];
-            snprintf(buf, 1024, "%s already defined as function", tan->name);
-            yyerrorex(semanticerror, buf);
-        } else if (ht_lookup(&types, tan->name)) {
-            char buf[1024];
-            snprintf(buf, 1024, "%s already defined as type", tan->name);
-            yyerrorex(semanticerror, buf);
-        }
 
-        if( flagenabled(flag_shadowing) ){
-            if( ht_lookup(&globals, tan->name) ){
-                char buf[1024];
-                snprintf(buf, 1024, "Parmeter %s shadows global variable", tan->name);
-                yyerrorex(semanticerror, buf);
-            }
-        }
+        checkvartypedecl(tan);
+        ht_put(&initialized, tan->name, (void*)1);
 
     }
     retval = ret.fd->ret;
@@ -724,84 +751,24 @@ union node checkfunccall(const char *fnname, struct paramlist *pl)
     return ret;
 }
 
-static void checkvarname(struct typeandname *tan, bool isarray)
-{
-    const char *name = tan->name;
-    if (ht_lookup(&functions, name)) {
-        char buf[1024];
-        snprintf(buf, 1024, "Symbol %s already defined as function", name);
-        yyerrorex(semanticerror, buf);
-    } else if (ht_lookup(&types, name)) {
-        char buf[1024];
-        snprintf(buf, 1024, "Symbol %s already defined as type", name);
-        yyerrorex(semanticerror, buf);
-    }
-
-    struct typeandname *existing = ht_lookup(&locals, name);
-
-    if (!existing) {
-        char buf[1024];
-        existing = ht_lookup(&params, name);
-        if ( isarray && infunction && existing) {
-            snprintf(buf, 1024, "Symbol %s already defined as function parameter", name);
-            yyerrorex(semanticerror, buf);
-        }
-        if (!existing) {
-            existing = ht_lookup(&globals, name);
-            if ( isarray && infunction && existing) {
-                snprintf(buf, 1024, "Symbol %s already defined as global variable", name);
-                yyerrorex(semanticerror, buf);
-            }
-        }
-    }
-    if (existing) {
-        tan->lineno = existing->lineno;
-        tan->fn = existing->fn;
-    } else {
-        tan->lineno = lineno;
-        tan->fn = fno;
-    }
-}
-
-static void checkallshadowing(struct typeandname *tan){
-    struct typeandname *global = ht_lookup(&globals, tan->name);
-    char buf[1024];
-
-    if( global ){
-
-        // once a variable is shadowed with an incompatible type every usage
-        // of the shadowed variable in the script file (sic) cannot be used
-        // safely anymore. Usages of the shadowed variable in the script
-        // above the shadowing still work fine.
-        tan->lineno = lineno;
-        ht_put(&shadowed_variables, tan->name, tan);
-
-        if(flagenabled(flag_shadowing)){
-            snprintf(buf, 1024, "Local variable %s shadows global variable", tan->name);
-            yyerrorline(semanticerror, lineno, buf);
-        }
-    } else if( flagenabled(flag_shadowing) && ht_lookup(&params, tan->name)){
-        snprintf(buf, 1024, "Local variable %s shadows parameter", tan->name);
-        yyerrorline(semanticerror, lineno, buf);
-    }
-}
-
+// Checks a typeandname with respect to the shadow flag, puts its name into
+// the current scope (either globals or locals) and returns a node for bison.
 union node checkvartypedecl(struct typeandname *tan)
 {
     const char *name = tan->name;
     union node ret;
-    checkvarname(tan, false);
+    checkvarname(tan);
 
     ret.str = name;
-    put(curtab, name, tan);
+    check_name_allready_defined(&locals, name, "%s already defined");
+    store_variable(name, tan);
 
 
-    if(infunction ){
-        // always an error
-        checkwrongshadowing(tan, 0);
-
-        // flag driven
-        checkallshadowing(tan);
+    // flag driven
+    if(infunction && flagenabled(flag_shadowing)){
+      check_name_allready_defined(&globals, tan->name, "%s shadows global variable");
+      check_name_allready_defined(&types, tan->name, "%s shadows type");
+      check_name_allready_defined(&functions, tan->name, "%s shadows function");
     }
     return ret;
 }
@@ -810,27 +777,16 @@ union node checkarraydecl(struct typeandname *tan)
 {
     const char *name = tan->name;
     union node ret;
+    ret.str = name;
 
     if (getPrimitiveAncestor(tan->ty) == gCode)
         yyerrorex(semanticerror, "Code arrays are not allowed");
 
-    checkvarname(tan, true);
-
-    ret.str = name;
-    put(curtab, name, tan);
+    checkvarname(tan);
+    check_name_allready_defined(&locals, name, "%s already defined");
+    store_variable(name, tan);
 
     return ret;
-}
-
-void checkwrongshadowing(const struct typeandname *tan, int linemod){
-    struct typeandname *global;
-    char buf[1024];
-    if( (global = ht_lookup(&shadowed_variables, tan->name)) ){
-        if(! typeeq(getPrimitiveAncestor(global->ty), getPrimitiveAncestor(tan->ty))){
-            snprintf(buf, 1024, "Global variable %s is used after it was shadowed with an incompatible type in line %d", tan->name, global->lineno);
-            yyerrorline(semanticerror, lineno - linemod, buf);
-        }
-    }
 }
 
 void checkidlength(char *name)

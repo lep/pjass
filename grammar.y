@@ -110,11 +110,8 @@ funcdefns: /* empty */
 ;
 
 globdefs: /* empty */
-         | globals newline vardecls endglobals endglobalsmarker
-         | globals vardecls endglobals endglobalsmarker {yyerrorline(syntaxerror, lineno - 1, "Missing linebreak before global declaration");}
-;
-
-endglobalsmarker: /* empty */  {afterendglobals = 1;}
+         | globals newline vardecls endglobals
+         | globals vardecls endglobals {yyerrorline(syntaxerror, lineno - 1, "Missing linebreak before global declaration");}
 ;
 
 globals: GLOBALS { inglobals = 1; };
@@ -245,7 +242,6 @@ expr: intexpr      { $$.ty = gInteger; }
             snprintf(ebuf, 1024, "Index missing for array variable %s", $1.str);
             yyerrorex(semanticerror, ebuf);
           }
-          checkwrongshadowing(tan, 0);
           if( !tan->isarray && !ht_lookup(&initialized, $1.str) ){
             char buf[1024];
             
@@ -335,26 +331,14 @@ funcdecl: nativefuncdecl { $$.fd = $1.fd; }
 
 nativefuncdecl: NATIVE rid TAKES optparam_list RETURNS opttype
 {
-    if (ht_lookup(&locals, $2.str) || ht_lookup(&params, $2.str) || ht_lookup(&globals, $2.str)) {
-        char buf[1024];
-        snprintf(buf, 1024, "%s already defined as variable", $2.str);
-        yyerrorex(semanticerror, buf);
-    } else if (ht_lookup(&types, $2.str)) {
-        char buf[1024];
-        snprintf(buf, 1024, "%s already defined as type", $2.str);
-        yyerrorex(semanticerror, buf);
-    }
+    infunction = 1;
     if(encoutered_first_function){
         yyerrorex(semanticerror, "Native declared after functions");
     }
-    $$.fd = newfuncdecl(); 
-    $$.fd->name = strdup($2.str);
-    $$.fd->p = $4.pl;
-    $$.fd->ret = $6.ty;
+    $$ = checkfunctionheader($2.str, $4.pl, $6.ty);
     $$.fd->isconst = isconstant;
     $$.fd->isnative = true;
 
-    put(&functions, $$.fd->name, $$.fd);
 
     if( !strcmp("Filter", $$.fd->name) ){
         fFilter = $$.fd;
@@ -363,6 +347,11 @@ nativefuncdecl: NATIVE rid TAKES optparam_list RETURNS opttype
     }else if( !strcmp("StringHash", $$.fd->name) ){
         fStringHash = $$.fd;
     }
+    ht_clear(&locals);
+    ht_clear(&initialized);
+    infunction = 0;
+
+    fCurrent = NULL;
 }
 ;
 
@@ -386,19 +375,15 @@ funcdefncore: funcbegin localblock codeblock funcend {
             block_missing_error(msg, 1024);
             yyerrorex(syntaxerror, msg);
             
-            ht_clear(&params);
             ht_clear(&locals);
             ht_clear(&initialized);
-            curtab = &globals;
             fnannotations = pjass_flags;
         }
 ;
 
 funcend: ENDFUNCTION {
-        ht_clear(&params);
         ht_clear(&locals);
         ht_clear(&initialized);
-        curtab = &globals;
         inblock = 0;
         inconstant = 0;
         infunction = 0;
@@ -452,7 +437,6 @@ statement:
     }
     | SET rid EQUALS expr newline {
         const struct typeandname *tan = getVariable($2.str);
-        checkwrongshadowing(tan, -1);
         if (tan->isarray) {
             char ebuf[1024];
             snprintf(ebuf, 1024, "Index missing for array variable %s", $2.str);
@@ -474,9 +458,9 @@ statement:
     }
     | SET rid rid EQUALS expr newline {
         char ebuf[1024];
-        if(ht_lookup(&types, $2.str)){
+        if(ht_lookup(&types, $2.str) || ht_lookup(&builtin_types, $3.str) ){
             snprintf(ebuf, 1024, ">%s< %s is an error here. The type only needs to be stated at declartion time", $2.str, $3.str);
-        }else if(ht_lookup(&types, $3.str)){
+        }else if(ht_lookup(&types, $3.str) || ht_lookup(&builtin_types, $3.str) ){
             snprintf(ebuf, 1024, "%s >%s< is an error here. The type only needs to be stated at declartion time", $2.str, $3.str);
         }else{
             snprintf(ebuf, 1024, "Unexpected '%s'", $3.str);
@@ -683,8 +667,8 @@ vardecl: vartypedecl newline {
              if (tan->isarray) {
                yyerrorex(syntaxerror, "Arrays cannot be directly initialized");
              }
-             if(infunction && !ht_lookup(&initialized, tan->name)){
-               put(&initialized, tan->name, (void*)1);
+             if(infunction ){
+                ht_put(&initialized, tan->name, (void*)1);
              }
              canconvert($3.ty, tan->ty, -1);
              $$.ty = gNothing;
@@ -692,43 +676,32 @@ vardecl: vartypedecl newline {
         | error
 ;
 
+// TODO: add some tests for this
 typedef: TYPE rid EXTENDS type {
-  if (ht_lookup(&types, $2.str)) {
-     char buf[1024];
-     snprintf(buf, 1024, "Multiply defined type %s", $2.str);
-     yyerrorex(semanticerror, buf);
-  } else if (ht_lookup(&functions, $2.str)) {
-    char buf[1024];
-    snprintf(buf, 1024, "%s already defined as function", $2.str);
-    yyerrorex(semanticerror, buf);
-  }
-  else
-    put(&types, $2.str, newtypenode($2.str, $4.ty));
+    check_name_allready_defined(&functions, $2.str, "%s already defined as function");
+    check_name_allready_defined(&globals, $2.str, "%s already defined as global");
+    check_name_allready_defined(&builtin_types, $2.str, "%s already defined as type");
+    check_name_allready_defined(&types, $2.str, "%s already defined as type");
+    ht_put(&types, $2.str, newtypenode($2.str, $4.ty));
 }
 ;
 
 typeandname: type rid { $$.tan = newtypeandname($1.ty, $2.str); }
 ;
   
-type: primtype { $$.ty = $1.ty; }
-  | rid {
+type: rid {
     $$.ty = ht_lookup(&types, $1.str);
     if ($$.ty == NULL) {
-	char buf[1024];
-	snprintf(buf, 1024, "Undefined type %s", $1.str);
-	getsuggestions($1.str, buf, 1024, 1, &types);
-	yyerrorex(semanticerror, buf);
-	$$.ty = gAny;
+        $$.ty = ht_lookup(&builtin_types, $1.str);
+        if( $$.ty == NULL) {
+        	char buf[1024];
+        	snprintf(buf, 1024, "Undefined type %s", $1.str);
+        	getsuggestions($1.str, buf, 1024, 1, &types);
+        	yyerrorex(semanticerror, buf);
+        	$$.ty = gAny;
+        }
     }
 }
-;
-
-primtype: HANDLE  { $$.ty = ht_lookup(&types, yytext); }
- | INTEGER        { $$.ty = ht_lookup(&types, yytext); }
- | REAL           { $$.ty = ht_lookup(&types, yytext); }
- | BOOLEAN        { $$.ty = ht_lookup(&types, yytext); }
- | STRING         { $$.ty = ht_lookup(&types, yytext); }
- | CODE           { $$.ty = ht_lookup(&types, yytext); }
 ;
 
 newline: NEWLINE;
