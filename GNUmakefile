@@ -1,7 +1,5 @@
 CFLAGS += -MMD -g -w
 VERSION ?= $(shell git rev-parse --short HEAD || echo nix)
-FLEX ?= flex
-BISON ?= bison
 
 # when testing and releasing, we can't run both in parallel
 # but we also don't want to test when we're just making the zip
@@ -63,10 +61,10 @@ main.o: main.c | grammar.tab.h
 
 # see token.l options block
 %.yy.c %.yy.h: %.l
-	$(FLEX) $<
+	flex $<
 
 %.tab.c %.tab.h: %.y
-	$(BISON) -d $<
+	bison -d $<
 
 
 clean-build-files: ## Cleans all build files
