@@ -111,6 +111,7 @@ static void init()
     add_flag(&available_flags, &flags_helpstring, "checklongnames", (void*)flag_verylongnames, "Error on very long names");
     add_flag(&available_flags, &flags_helpstring, "nosyntaxerror", (void*)flag_syntaxerror, "Toggle syntax error reporting");
     add_flag(&available_flags, &flags_helpstring, "nosemanticerror", (void*)flag_semanticerror, "Toggle semantic error reporting");
+    add_flag(&available_flags, &flags_helpstring, "checknumberliterals", (void*)flag_checknumberliterals, "Error on overflowing number literals");
 
     add_flag(&available_flags, &flags_helpstring, "oldpatch", (void*)(flag_verylongnames | flag_nomodulo | flag_filter | flag_rb), "Combined options for older patches");
 

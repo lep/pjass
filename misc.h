@@ -71,6 +71,7 @@ enum {
     flag_checkstringhash = 1 << 7,
     flag_nomodulo = 1 << 8,
     flag_verylongnames = 1 << 9,
+    flag_checknumberliterals = 1 << 10,
 };
 
 enum {
@@ -153,5 +154,8 @@ void str_append(char *buf, const char *str, size_t buf_size);
 
 void checkidlength(char *name);
 void check_name_allready_defined(struct hashtable *ht, const char *name, const char *msg);
+
+void checkreallit(char *lit);
+void checkintlit(char *lit);
 
 #endif

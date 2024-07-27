@@ -309,8 +309,11 @@ stringexpr: STRINGLIT {
     }
 };
 
-realexpr: REALLIT { $$.ty = gReal; }
-;
+realexpr: REALLIT {
+    $$.ty = gReal;
+    if(flagenabled(flag_checknumberliterals))
+        checkreallit(yytext);
+};
 
 boolexpr: boollit { $$.ty = gBoolean; }
 ;
@@ -319,8 +322,11 @@ boollit: TTRUE
        | TFALSE
 ;
 
-intexpr:   INTLIT { $$.ty = gInteger; }
-         | UNITTYPEINT { $$.ty = gInteger; }
+intexpr: INTLIT {
+    $$.ty = gInteger;
+    if(flagenabled(flag_checknumberliterals))
+        checkintlit(yytext);
+} | UNITTYPEINT { $$.ty = gInteger; }
 ;
 
 

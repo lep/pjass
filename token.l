@@ -126,7 +126,7 @@ ID       [a-zA-Z]([a-zA-Z0-9_]*[a-zA-Z0-9])?
     return NEWLINE;
 }
 
-{DIGIT}+"."{DIGIT}+  return REALLIT;
+{DIGIT}+"."{DIGIT}+ return REALLIT;
 "."{DIGIT}+  return REALLIT;
 {DIGIT}+"." return REALLIT;
 "0"({OCTDIGIT}*("8"|"9"){OCTDIGIT}*)+ yyerrorline(syntaxerror, lineno, "Invalid digit in octal integer notation"); return INTLIT;

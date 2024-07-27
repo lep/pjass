@@ -807,3 +807,81 @@ void checkidlength(char *name)
         
     }
 }
+
+static bool validate_real_lit(char *lit)
+{
+  int32_t frac = 0, pow10 = 1;
+  int nfrac = 0;
+  int32_t result = 0;
+  while( *lit ){
+    char c = *lit++;
+    if( c == '.')
+      break;
+
+    if( __builtin_mul_overflow(result, 10, &result))
+      return false;
+
+    if( __builtin_add_overflow(result, c - '0', &result)) 
+      return false;
+  }
+    
+  while( *lit ){
+    char c = *lit++;
+    nfrac++;
+    if( __builtin_mul_overflow(frac, 10, &frac))
+      return false;
+
+    if( __builtin_add_overflow(frac, c - '0', &frac))
+      return false;
+
+    if( __builtin_mul_overflow(pow10, 10, &pow10)){
+      if( frac != 0)
+        return false;
+      if( nfrac == 32 )
+        return false;
+    }
+    
+  }
+  return true;
+}
+
+void checkreallit(char *lit){
+    if( ! validate_real_lit(lit) ){
+        char ebuf[2048];
+        snprintf(ebuf, 2048, "real literal parsing overflow (%s)", lit);
+        yyerrorex(warning, ebuf);
+    }
+}
+
+static bool validate_int_lit(char *lit, int base)
+{
+    long long int result = strtoll(lit, NULL, base);
+    return INT32_MIN <= result && result <= INT32_MAX;
+}
+
+
+void checkintlit(char *lit)
+{
+    bool ok = true;
+    if( *lit == '0'){
+        if( lit[1] == 'x' || lit[1] == 'X'){
+            // hex
+            ok = validate_int_lit(lit, 16);
+        }else{
+            // octal or just 0
+            ok = validate_int_lit(lit, 8);
+        }
+    }else if( *lit == '$'){
+        // hex
+        ok = validate_int_lit(lit+1, 16);
+    }else{
+        // decimal
+        ok = validate_int_lit(lit, 10);
+    }
+
+    if( ! ok) {
+        char ebuf[2048];
+        snprintf(ebuf, 2048, "integer literal parsing overflow (%s)", lit);
+        yyerrorex(warning, ebuf);
+    }
+}
