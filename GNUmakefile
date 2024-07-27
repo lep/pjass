@@ -84,7 +84,7 @@ clean-prof-files: ## Cleans all profiling files
 
 
 pjass.exe: CFLAGS=-O3 -march=native
-pjass.exe: CC=mingw32-gcc
+pjass.exe: CC=i686-w64-mingw32-gcc
 pjass.exe: $(SRC) main.c token.yy.c grammar.tab.c ## Builds a windows executable using mingw
 	find $^ | awk '{ print "#include \"" $$1 "\""}' | $(CC) $(CFLAGS) -x c -o $@ - -DVERSIONSTR="\"git-$(VERSION)\"" -DPJASS_AMALGATION
 
@@ -95,7 +95,7 @@ pjass-git-$(VERSION)-src.zip: main.c grammar.y token.l GNUmakefile readme.md AUT
 	zip -q -r pjass-git-$(VERSION)-src.zip $^ tests/should-check/ tests/should-fail/
 
 pjass-git-$(VERSION).zip: pjass.exe
-	mingw32-strip pjass.exe
+	i686-w64-mingw32-strip pjass.exe
 	upx --best --ultra-brute pjass.exe > /dev/null
 	zip -q pjass-git-$(VERSION).zip pjass.exe
 
