@@ -720,8 +720,13 @@ union node checkfunccall(const char *fnname, struct paramlist *pl)
             char ebuf[1024];
             int err = (int)ht_lookup(&bad_natives_in_globals, fd->name);
             if(err == CrashInGlobals){
-                snprintf(ebuf, 1024, "Call to %s in a globals block crashes the game", fd->name);
-                yyerrorex(runtimeerror, ebuf);
+                if( ! strcmp(fd->name, "CreateRegion")) {
+                    snprintf(ebuf, 1024, "Call to %s in a globals block crashes the game upon saving", fd->name);
+                    yyerrorex(runtimeerror, ebuf);
+                } else {
+                    snprintf(ebuf, 1024, "Call to %s in a globals block crashes the game", fd->name);
+                    yyerrorex(runtimeerror, ebuf);
+                }
             }else if(err == NullInGlobals){
                 snprintf(ebuf, 1024, "Call to %s in a globals block always returns null", fd->name);
                 yyerrorex(runtimeerror, ebuf);

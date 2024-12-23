@@ -124,6 +124,7 @@ static void init()
     ht_put(&bad_natives_in_globals, "CreateQuest", (void*)CrashInGlobals);
     ht_put(&bad_natives_in_globals, "CreateMultiboard", (void*)CrashInGlobals);
     ht_put(&bad_natives_in_globals, "CreateLeaderboard", (void*)CrashInGlobals);
+    ht_put(&bad_natives_in_globals, "CreateRegion", (void*)CrashInGlobals);
 }
 
 static void dofile(FILE *fp, const char *name)
