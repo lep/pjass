@@ -300,7 +300,7 @@ exprlist: expr         { $$.pl = newparamlist(); addParam($$.pl, newtypeandname(
 stringexpr: STRINGLIT {
     int len = strlen(stringlit_buff);
     if( len > 1023 ){
-        yyerrorex(semanticerror, "String literals over 1023 chars long crash the game upon saving.");
+        yyerrorex(semanticerror, "String literals over 1023 chars long crash the game upon loading a saved game.");
     }
     if(flagenabled(flag_checkstringhash)){
         $$.ty = ht_lookup(&string_literals, stringlit_buff);
