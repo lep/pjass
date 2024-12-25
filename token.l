@@ -135,17 +135,17 @@ ID       [a-zA-Z]([a-zA-Z0-9_]*[a-zA-Z0-9])?
 "if" if (!islinebreak) yyerrorline(syntaxerror, lineno, "Missing linebreak before if"); islinebreak=0; return IF;
 "not" return NOT;
 "then" return THEN;
-"type" if (!islinebreak) { char ebuf[1024]; sprintf(ebuf, "Missing linebreak before type declaration"); yyerrorline(syntaxerror, lineno, ebuf); } islinebreak=0; return TYPE;
+"type" if (!islinebreak) { char ebuf[1024]; snprintf(ebuf, 1024, "Missing linebreak before type declaration"); yyerrorline(syntaxerror, lineno, ebuf); } islinebreak=0; return TYPE;
 "extends" return EXTENDS;
-"globals" if (!islinebreak) { char ebuf[1024]; sprintf(ebuf, "Missing linebreak before globals block"); yyerrorline(syntaxerror, lineno, ebuf); } islinebreak=0; inblock=1; return GLOBALS;
+"globals" if (!islinebreak) { char ebuf[1024]; snprintf(ebuf, 1024, "Missing linebreak before globals block"); yyerrorline(syntaxerror, lineno, ebuf); } islinebreak=0; inblock=1; return GLOBALS;
 "endglobals" islinebreak=0; inblock=0; return ENDGLOBALS;
 "constant" isconstant = islinebreak; islinebreak=0; return CONSTANT;
-"native" if (!islinebreak && !isconstant) { char ebuf[1024]; sprintf(ebuf, "Missing linebreak before native declaration"); yyerrorline(syntaxerror, lineno, ebuf); } islinebreak=0; return NATIVE;
+"native" if (!islinebreak && !isconstant) { char ebuf[1024]; snprintf(ebuf, 1024, "Missing linebreak before native declaration"); yyerrorline(syntaxerror, lineno, ebuf); } islinebreak=0; return NATIVE;
 "takes" return TAKES;
 "returns" return RETURNS;
-"function" if (!islinebreak && !isconstant && !inblock) { char ebuf[1024]; sprintf(ebuf, "Missing linebreak before function declaration"); yyerrorline(syntaxerror, lineno, ebuf); } islinebreak=0; return FUNCTION;
+"function" if (!islinebreak && !isconstant && !inblock) { char ebuf[1024]; snprintf(ebuf, 1024, "Missing linebreak before function declaration"); yyerrorline(syntaxerror, lineno, ebuf); } islinebreak=0; return FUNCTION;
 "endfunction" islinebreak=0; return ENDFUNCTION;
-"local" if (!islinebreak) { char ebuf[1024]; sprintf(ebuf, "Missing linebreak before local declaration"); yyerrorline(syntaxerror, lineno, ebuf); } islinebreak=0; return LOCAL;
+"local" if (!islinebreak) { char ebuf[1024]; snprintf(ebuf, 1024, "Missing linebreak before local declaration"); yyerrorline(syntaxerror, lineno, ebuf); } islinebreak=0; return LOCAL;
 "array" return ARRAY;
 "set" if (!islinebreak) yyerrorline(syntaxerror, lineno, "Missing linebreak before assignment"); islinebreak=0; return SET;
 "call" if (!islinebreak) yyerrorline(syntaxerror, lineno, "Missing linebreak before function call"); islinebreak=0; return CALL;
@@ -193,10 +193,10 @@ ID       [a-zA-Z]([a-zA-Z0-9_]*[a-zA-Z0-9])?
 \r {
     lineno++;
     char ebuf[1024];
-    sprintf(ebuf, "MacOS style newline");
+    snprintf(ebuf, 1024, "MacOS style newline");
     yyerrorline(syntaxerror, lineno-1, ebuf);
 }
-.            { char ebuf[1024]; sprintf(ebuf, "Unrecognized character %s (ASCII %u)", yytext, (unsigned char)yytext[0] ); yyerrorline(syntaxerror, lineno, ebuf); }
+.            { char ebuf[1024]; snprintf(ebuf, 1024, "Unrecognized character %s (ASCII %u)", yytext, (unsigned char)yytext[0] ); yyerrorline(syntaxerror, lineno, ebuf); }
 
 %%
 
