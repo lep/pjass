@@ -185,8 +185,6 @@ ID       [a-zA-Z]([a-zA-Z0-9_]*[a-zA-Z0-9])?
 {ID}        islinebreak=0; return ID;
 
 
-"<"|">"|"!"|"["|"]"|"("|")"|"+"|"-"|"*"|"/"|"."  return TNULL;
-
 [ \t]+          /* eat up whitespace */
 \xEF\xBB\xBF    /* utf8 bom */
 
