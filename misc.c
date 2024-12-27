@@ -379,7 +379,7 @@ static bool canconvertbuf(char *buf, size_t buflen, const struct typenode *ufrom
         return true;
     from = getPrimitiveAncestor(from);
     to = getPrimitiveAncestor(to);
-    if (typeeq(from, gNull) && !typeeq(to, gInteger) && !typeeq(to, gReal) && !typeeq(to, gBoolean))
+    if (typeeq(from, gNull) && !typeeq(to, gBoolean))
         return true;
     if (typeeq(from, gInteger) && (typeeq(to, gReal) || typeeq(to, gInteger)))
         return true;
