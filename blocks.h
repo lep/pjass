@@ -2,7 +2,8 @@
 #define BLOCKS_H
 
 #include <stdbool.h>
-
+// MSVC needs stddef for size_t
+#include <stddef.h>
 
 enum block_type {
     Function = 0,

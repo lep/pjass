@@ -13,6 +13,7 @@
 #include <stdarg.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdbool.h>
 
 #include "hashtable.h"
 #include "tree.h"
@@ -25,6 +26,23 @@
 #define BUFSIZE (16384)
 
 #define MAX_IDENT_LENGTH (3958)
+
+#ifdef _MSC_VER
+#include <intrin.h>
+inline bool mul_overflow(int32_t a, int32_t b, int32_t *result) {
+    *result = a * b;
+    return (a != 0 && *result / a != b);
+}
+
+inline bool add_overflow(int32_t a, int32_t b, int32_t *result) {
+    *result = a + b;
+    return ((a > 0 && b > 0 && *result < 0) || (a < 0 && b < 0 && *result > 0));
+}
+#define strdup _strdup
+#else
+#define mul_overflow(a, b, result) __builtin_mul_overflow(a, b, result)
+#define add_overflow(a, b, result) __builtin_add_overflow(a, b, result)
+#endif
 
 /*
 For some reason flex produces the exact same #ifndef block in the .h and

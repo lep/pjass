@@ -139,13 +139,13 @@ void yyerror (const char *s)  /* Called by yyparse on error */
 }
 
 
+#ifndef min
 #define min(a, b) (((a) < (b)) ? (a) : (b))
+#endif
 
-int abs(int i){
-    if(i < 0)
-        return -i;
-    return i;
-}
+#ifndef abs
+#define abs(x) ((x) < 0 ? -(x) : (x))
+#endif
 
 void str_append(char *buf, const char *str, size_t buf_size){
     size_t str_len = strlen(str);
@@ -644,7 +644,12 @@ int updateflag(int cur, const char *txt, struct hashtable *flags){
 int updateannotation(int cur, char *txt, struct hashtable *flags){
     char sep[] = " \t\r\n";
     char *ann;
+#ifdef _MSC_VER
+    char *ctx;
+    for(ann = strtok_s(txt, sep, &ctx); ann; ann = strtok_s(NULL, sep, &ctx)){
+#else
     for(ann = strtok(txt, sep); ann; ann = strtok(NULL, sep)){
+#endif
         cur = updateflag(cur, ann, flags);
     }
     return cur;
@@ -823,23 +828,23 @@ static bool validate_real_lit(char *lit)
     if( c == '.')
       break;
 
-    if( __builtin_mul_overflow(result, 10, &result))
+    if( mul_overflow(result, 10, &result))
       return false;
 
-    if( __builtin_add_overflow(result, c - '0', &result)) 
+    if( add_overflow(result, c - '0', &result)) 
       return false;
   }
     
   while( *lit ){
     char c = *lit++;
     nfrac++;
-    if( __builtin_mul_overflow(frac, 10, &frac))
+    if( mul_overflow(frac, 10, &frac))
       return false;
 
-    if( __builtin_add_overflow(frac, c - '0', &frac))
+    if( add_overflow(frac, c - '0', &frac))
       return false;
 
-    if( __builtin_mul_overflow(pow10, 10, &pow10)){
+    if( mul_overflow(pow10, 10, &pow10)){
       if( frac != 0)
         return false;
       if( nfrac == 32 )
