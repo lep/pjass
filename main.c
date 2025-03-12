@@ -5,6 +5,7 @@
 #include "misc.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 
 #ifndef VERSIONSTR
 #define VERSIONSTR "1.0-git"
@@ -220,8 +221,13 @@ static void doparse(int argc, char **argv)
         }
 
         FILE *fp;
+#ifdef _MSC_VER
+        errno_t err = fopen_s(&fp, argv[i], "rb");
+        if (err != 0) {
+#else
         fp = fopen(argv[i], "rb");
         if (fp == NULL) {
+#endif
             printf("Error: Cannot open %s\n", argv[i]);
             haderrors++;
             continue;

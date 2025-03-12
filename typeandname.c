@@ -28,6 +28,10 @@
 #error "Please add a definition for some aligned malloc function"
 #endif
 
+#ifdef _MSC_VER
+#define strdup _strdup
+#endif
+
 struct typeandname *newtypeandname(const struct typenode *ty, const char *name)
 {
     struct typeandname *tan = calloc(sizeof(struct typeandname), 1);
