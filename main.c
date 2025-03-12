@@ -18,11 +18,11 @@ static struct typenode* addPrimitiveType(const char *name)
 }
 
 
-static const char **flags_in_order;
+static char **flags_in_order;
 static int count_flags_in_order;
 static int limit_flags_in_order;
 
-static void add_flag(struct hashtable *available_flags, struct hashtable *flags_helpstring, const char *name, void *data, const char *helptext)
+static void add_flag(struct hashtable *available_flags, struct hashtable *flags_helpstring, char *name, void *data, const char *helptext)
 {
     ht_put(available_flags, name, data);
     ht_put(flags_helpstring, name, (void*)helptext);
@@ -30,7 +30,7 @@ static void add_flag(struct hashtable *available_flags, struct hashtable *flags_
     if( count_flags_in_order+1 >= limit_flags_in_order )
     {
         limit_flags_in_order++;
-        const char **new_ptr = realloc(flags_in_order, sizeof(char*) * limit_flags_in_order);
+        char **new_ptr = realloc(flags_in_order, sizeof(char*) * limit_flags_in_order);
         if( new_ptr ){
             flags_in_order = new_ptr;
         }else{
