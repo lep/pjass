@@ -1,4 +1,5 @@
 *.o
+*.obj
 *.zip
 nppBackup
 grammar.tab.h
@@ -11,7 +12,18 @@ pjass
 *-analysis.txt
 *.sw*
 *.dll
+*.lib
+*.pdb
+*.idb
 tests/Blizzard.j
 tests/common.j
 tests/map-scripts/
 *.d
+
+#############
+### MSVC ####
+#############
+*.user
+msvc/Debug
+msvc/Release
+msvc/build
