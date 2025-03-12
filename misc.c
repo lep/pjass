@@ -621,13 +621,13 @@ void checkeqtest(const struct typenode *a, const struct typenode *b)
     }
 }
 
-int isflag(char *txt, struct hashtable *flags){
-    txt++; // ignore +/- at the start
-    void *flag = ht_lookup(flags, txt);
+int isflag(const char *txt, struct hashtable *flags){
+    // ignore +/- at the start
+    void *flag = ht_lookup(flags, txt + 1);
     return (int)flag;
 }
 
-int updateflag(int cur, char *txt, struct hashtable *flags){
+int updateflag(int cur, const char *txt, struct hashtable *flags){
     char sgn = txt[0];
     int flag = isflag(txt, flags);
 
@@ -794,7 +794,7 @@ union node checkarraydecl(struct typeandname *tan)
     return ret;
 }
 
-void checkidlength(char *name)
+void checkidlength(const char *name)
 {
     
     int len;

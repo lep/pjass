@@ -99,8 +99,8 @@ void checkcomparison(const struct typenode *a, const struct typenode *b);
 void checkcomparisonsimple(const struct typenode *a);
 void checkeqtest(const struct typenode *a, const struct typenode *b);
 
-int isflag(char *txt, struct hashtable *flags);
-int updateflag(int cur, char *txt, struct hashtable *flags);
+int isflag(const char *txt, struct hashtable *flags);
+int updateflag(int cur, const char *txt, struct hashtable *flags);
 int updateannotation(int cur, char *txt, struct hashtable *flags);
 bool flagenabled(int flag);
 
@@ -152,7 +152,7 @@ void checkarrayindex(const char *name, const struct typenode *ty, int lineno);
 
 void str_append(char *buf, const char *str, size_t buf_size);
 
-void checkidlength(char *name);
+void checkidlength(const char *name);
 void check_name_allready_defined(struct hashtable *ht, const char *name, const char *msg);
 
 void checkreallit(char *lit);
