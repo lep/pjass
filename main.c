@@ -198,6 +198,24 @@ static void printhelp()
     }
 }
 
+static void tryfile(const char *name)
+{
+    FILE *fp;
+#ifdef _MSC_VER
+    errno_t err = fopen_s(&fp, name, "rb");
+    if (err != 0) {
+#else
+    fp = fopen(name, "rb");
+    if (fp == NULL) {
+#endif
+        haderrors++;
+        return;
+    }
+    dofile(fp, name);
+    fclose(fp);
+    didparse = 1;
+}
+
 static void doparse(int argc, char **argv)
 {
     int i;
@@ -220,22 +238,7 @@ static void doparse(int argc, char **argv)
             continue;
         }
 
-        FILE *fp;
-#ifdef _MSC_VER
-        errno_t err = fopen_s(&fp, argv[i], "rb");
-        if (err != 0) {
-#else
-        fp = fopen(argv[i], "rb");
-        if (fp == NULL) {
-#endif
-            printf("Error: Cannot open %s\n", argv[i]);
-            haderrors++;
-            continue;
-        }
-
-        dofile(fp, argv[i]);
-        didparse = 1;
-        fclose(fp);
+        tryfile(argv[i]);
     }
     if (argc == 1) {
         didparse = 1;
