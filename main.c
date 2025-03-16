@@ -246,11 +246,8 @@ static void doparse(int argc, char **argv)
     }
 }
 
-int main(int argc, char **argv)
+static int ret()
 {
-    init();
-    doparse(argc, argv);
-
     if (!haderrors && didparse) {
         printf("Parse successful: %8d lines: %s\n", totlines, "<total>");
         if (ignorederrors) {
@@ -268,4 +265,11 @@ int main(int argc, char **argv)
         }
         return 1;
     }
+}
+
+int main(int argc, char **argv)
+{
+    init();
+    doparse(argc, argv);
+    return ret();
 }
