@@ -53,11 +53,11 @@ ID       [a-zA-Z]([a-zA-Z0-9_]*[a-zA-Z0-9])?
     BEGIN(xCOMMENT);
 }
 
-<xCOMMENT>[^\r\n]* { }
+<xCOMMENT>[^\n]* { }
 <xCOMMENT>{NEWLINE} { BEGIN(INITIAL); return NEWLINE; }
 <xCOMMENT><<EOF>> { BEGIN(INITIAL); return NEWLINE; }
 
-<xANNOTATION>[^\r\n]* { annotations = updateannotation(annotations, yytext, &available_flags); }
+<xANNOTATION>[^\n]* { annotations = updateannotation(annotations, yytext, &available_flags); }
 <xANNOTATION>{NEWLINE} { BEGIN(INITIAL); return NEWLINE; }
 <xANNOTATION><<EOF>> { BEGIN(INITIAL); return NEWLINE; }
 
