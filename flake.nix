@@ -1,6 +1,6 @@
 {
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     systems.url = "github:nix-systems/default";
   };
 
@@ -16,20 +16,12 @@
       packages = eachSystem (system:
         let
           pkgs = import nixpkgs { inherit system; };
-          mingw = pkgs.pkgsCross.mingw32;
-          drv-args = {
-            src = self;
-            nativeBuildInputs = [ pkgs.flex pkgs.bison ];
-            name = "pjass";
-            buildPhase = "make pjass";
-            installPhase = "install -Dt $out/bin pjass";
-          };
+          version = if self ? shortRev then self.shortRev else "nix-dirty";
         in {
-          pjass = pkgs.stdenv.mkDerivation drv-args;
-          pjass-mingw = mingw.stdenv.mkDerivation (drv-args // {
-            CFLAGS = "-O2";
-            installPhase = "install -Dt $out/bin pjass.exe";
-          });
+          default = pkgs.callPackage ./default.nix { inherit version; };
+          mingw = pkgs.pkgsCross.mingw32.callPackage ./default.nix {
+            inherit version;
+          };
         });
     };
 

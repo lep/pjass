@@ -1,4 +1,4 @@
-CFLAGS += -MMD -g -w
+CFLAGS ?= -MMD -g -w
 VERSION ?= $(shell git rev-parse --short HEAD || echo nix)
 
 # when testing and releasing, we can't run both in parallel
@@ -19,7 +19,7 @@ SRC := misc.c hashtable.c paramlist.c funcdecl.c typeandname.c blocks.c tree.c s
 OBJS := $(SRC:.c=.o)
 OBJS += main.o token.yy.o grammar.tab.o
 
-.PHONY: all release clean prof
+.PHONY: all release clean prof install
 .PHONY: clean-release-files clean-prof-files clean-build-files
 .PHONY: binary-release src-release
 .PHONY: help
@@ -131,3 +131,7 @@ map-scripts: $(MAP_SCRIPTS) ## Tests which are run with common.j and Blizzard.j
 print-test: pjass
 	@echo 'Testing... '
 
+install:
+	mkdir -p $(PREFIX)/bin
+	[ -f pjass ] && cp pjass $(PREFIX)/bin || true
+	[ -f pjass.exe ] && cp pjass.exe $(PREFIX)/bin || true
