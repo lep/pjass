@@ -6,4 +6,5 @@ stdenv.mkDerivation {
   checkTarget = "test";
   makeFlags = [ "CFLAGS=-O" "PREFIX=$(out)" "VERSION=${version}" ];
   nativeBuildInputs = [ flex bison ];
+  meta.mainProgram = "pjass";
 }
