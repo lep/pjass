@@ -39,6 +39,7 @@ void tree_put(struct tree *t, uint32_t key, void *value){
     while(true){
         if( key == cur->key ){
             cur->value = value;
+            free(new);
             return;
             
         }else if( key < cur->key ){

@@ -188,7 +188,7 @@ static int editdistance(const char *s, const char *t, int cutoff){
 
     int pcur;
     int ppcur;
-    int cur = 1;
+    int cur = 0;
     for(i = 0; i != a; i++){
         cur = (cur+1) % 3;
         pcur = cur -1;
@@ -203,25 +203,23 @@ static int editdistance(const char *s, const char *t, int cutoff){
         int j;
         for(j = 0; j != b; j++){
             int cost = (s[i] == t[j]) ? 0 : 1;
-
-            v[cur][j+1] = min(v[cur][j] + 1, min(v[pcur][j+1] + 1, v[pcur][j] + cost));
+            int deletion_cost = v[pcur][j+1] + 1;
+            int insertion_cost = v[cur][j] + 1;
+            int substitution_cost = v[pcur][j] + cost;
+            int swap_cost = INT_MAX;
 
             if(i > 0 && j > 0 && s[i] == t[j-1] && s[i-1] == t[j]){
-                v[cur][j+1] = min(v[cur][j+1], v[ppcur][j-1] + cost);
+                swap_cost = v[ppcur][j-1] + cost;
             }
+
+            v[cur][j+1] = min(min(insertion_cost, deletion_cost), min(substitution_cost, swap_cost));
 
             if(v[cur][j+1] < minDistance){
                 minDistance = v[cur][j+1];
             }
         }
-
-        if(minDistance > cutoff){
-            return cutoff + 1;
-        }
     }
-    pcur = cur -1;
-    if(pcur < 0) pcur += 3;
-    int d = v[pcur][b];
+    int d = v[cur][b];
     for(i = 0; i != 3; i++)
         free(v[i]);
     return d;
