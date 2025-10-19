@@ -96,17 +96,6 @@ static void checkvarname(struct typeandname *tan)
   
 }
 
-static void check_lawful_shadowing(struct hashtable *ht, const char *name, const char *msg)
-{
-  char buf[1024];
-  if( ht_lookup(ht, name )) {
-    snprintf(buf, 1024, msg, name);
-    yyerror(buf);
-  }
-  
-}
-
-
 void yyerrorline (enum errortype type, int line, const char *s)
 {
     if(flagenabled(flag_syntaxerror) && type == syntaxerror){
@@ -198,8 +187,6 @@ static int editdistance(const char *s, const char *t, int cutoff){
 
         v[cur][0] = i + 1;
 
-        int minDistance = INT_MAX;
-
         int j;
         for(j = 0; j != b; j++){
             int cost = (s[i] == t[j]) ? 0 : 1;
@@ -214,9 +201,6 @@ static int editdistance(const char *s, const char *t, int cutoff){
 
             v[cur][j+1] = min(min(insertion_cost, deletion_cost), min(substitution_cost, swap_cost));
 
-            if(v[cur][j+1] < minDistance){
-                minDistance = v[cur][j+1];
-            }
         }
     }
     int d = v[cur][b];

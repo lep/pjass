@@ -2,7 +2,7 @@
 
 #include "funcdecl.h"
 
-struct funcdecl *newfuncdecl()
+struct funcdecl *newfuncdecl(void)
 {
     struct funcdecl *fd = calloc(sizeof(struct funcdecl), 1);
     fd->name = NULL;
