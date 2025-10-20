@@ -61,7 +61,7 @@ static uint32_t hash(const uint8_t *k, uint32_t length, uint32_t initval)
 #undef mix
 
 uint32_t hashfunc(const uint8_t *key){
-    return hash(key, strlen(key), 0);
+    return hash(key, strlen((char*)key), 0);
 }
 
 uint32_t SStrHash2(uint8_t *key){

@@ -606,7 +606,7 @@ void checkeqtest(const struct typenode *a, const struct typenode *b)
 int isflag(const char *txt, struct hashtable *flags){
     // ignore +/- at the start
     void *flag = ht_lookup(flags, txt + 1);
-    return (int)flag;
+    return (uintptr_t)flag;
 }
 
 int updateflag(int cur, const char *txt, struct hashtable *flags){
@@ -705,7 +705,7 @@ union node checkfunccall(const char *fnname, struct paramlist *pl)
 
         if( inglobals){
             char ebuf[1024];
-            int err = (int)ht_lookup(&bad_natives_in_globals, fd->name);
+            int err = (uintptr_t)ht_lookup(&bad_natives_in_globals, fd->name);
             if(err == CrashInGlobals){
                 if( ! strcmp(fd->name, "CreateRegion")) {
                     snprintf(ebuf, 1024, "Call to %s in a globals block crashes the game upon saving", fd->name);
@@ -724,7 +724,7 @@ union node checkfunccall(const char *fnname, struct paramlist *pl)
             const struct typenode *a1 = pl->head->ty;
             if( ! typeeq(a1, gString) && isDerivedFrom(a1, gString) ){
                 //printf("Got call to StringHash with argument %s\n", a1->typename);
-                uint32_t strhash = SStrHash2(a1->typename);
+                uint32_t strhash = SStrHash2((uint8_t*)a1->typename);
                 char *name = tree_lookup(&stringlit_hashes, strhash);
                 if( name == NULL ){
                     tree_put(&stringlit_hashes, strhash, a1->typename);

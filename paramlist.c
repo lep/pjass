@@ -3,7 +3,7 @@
 #include "paramlist.h"
 
 
-struct paramlist *newparamlist()
+struct paramlist *newparamlist(void)
 {
     struct paramlist *tl = calloc(sizeof(struct paramlist), 1);
     tl->head = NULL;

@@ -306,7 +306,7 @@ stringexpr: STRINGLIT {
         $$.ty = ht_lookup(&string_literals, stringlit_buff);
         if( $$.ty == NULL ) {
             $$.ty = newtypenode(stringlit_buff, gString);
-            ht_put(&string_literals, $$.ty->typename, $$.ty);
+            ht_put(&string_literals, $$.ty->typename, (void*)$$.ty);
         }
     }else{
         $$.ty = gString;
