@@ -53,7 +53,13 @@ ID       [a-zA-Z]([a-zA-Z0-9_]*[a-zA-Z0-9])?
     BEGIN(xCOMMENT);
 }
 
-<xCOMMENT>[^\n]* { }
+<xCOMMENT>\0 {
+    yyerrorline(syntaxerror, lineno, "NUL not allowed in comment.");
+}
+<xCOMMENT>\xff {
+    yyerrorline(syntaxerror, lineno, "Byte \\xff not allowed in comment.");
+}
+<xCOMMENT>[^\n\0\xff]* { }
 <xCOMMENT>{NEWLINE} { BEGIN(INITIAL); return NEWLINE; }
 <xCOMMENT><<EOF>> { BEGIN(INITIAL); return NEWLINE; }
 
@@ -92,6 +98,14 @@ ID       [a-zA-Z]([a-zA-Z0-9_]*[a-zA-Z0-9])?
 
 <RAWCODE>\r?\n { lineno++; isconstant = 0; rawcodelen += strlen(yytext); }
 <RAWCODE>\r { lineno++; isconstant = 0; rawcodelen++; }
+<RAWCODE>\0 {
+    rawcodelen++;
+    yyerrorline(syntaxerror, lineno, "NUL not allowed in rawcode.");
+}
+<RAWCODE>\xff {
+    rawcodelen++;
+    yyerrorline(syntaxerror, lineno, "Byte \\xFF not allowed in rawcode.");
+}
 <RAWCODE>.  { rawcodelen++; }
 
 ["] {
@@ -115,6 +129,15 @@ ID       [a-zA-Z]([a-zA-Z0-9_]*[a-zA-Z0-9])?
     lineno++;
     isconstant = 0;
 }
+
+<INSTRING>\0 {
+    yyerrorline(syntaxerror, lineno, "NUL not allowed in string literal.");
+}
+
+<INSTRING>\xff {
+    yyerrorline(syntaxerror, lineno, "Byte \\xFF not allowed in string literal.");
+}
+
 <INSTRING>. { str_append(stringlit_buff, yytext, stringlit_buffsize); }
 
 
