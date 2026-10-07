@@ -203,7 +203,7 @@ static void printhelp()
 }
 
 static struct hashtable *const tables[] = {
-    &functions, &globals, &types, &locals, &uninitialized_globals, &shadowed_variables, &string_literals
+    &functions, &globals, &types, &locals, &uninitialized_globals
 };
 #define NTABLES (sizeof tables / sizeof *tables)
 
@@ -212,16 +212,13 @@ static struct {
     bool infunction;
     int inloop, annotations, fnannotations;
     const struct typenode *retval;
-    struct funcdecl *fCurrent, *fFilter, *fCondition, *fStringHash;
+    struct funcdecl *fCurrent, *fFilter, *fCondition;
 } saved_state;
 
 static void save_state()
 {
     size_t i;
-    if (flagenabled(flag_checkstringhash)) {
-        fprintf(stderr, "--each cannot be combined with +checkstringhash\n");
-        exit(1);
-    }
+    check_each_flags(pjass_flags | annotations | fnannotations);
     for (i = 0; i < NTABLES; i++) {
         ht_copy(&saved[i], tables[i]);
     }
@@ -233,7 +230,6 @@ static void save_state()
     saved_state.fCurrent = fCurrent;
     saved_state.fFilter = fFilter;
     saved_state.fCondition = fCondition;
-    saved_state.fStringHash = fStringHash;
 }
 
 static void restore_state()
@@ -253,25 +249,15 @@ static void restore_state()
     fCurrent = saved_state.fCurrent;
     fFilter = saved_state.fFilter;
     fCondition = saved_state.fCondition;
-    fStringHash = saved_state.fStringHash;
 }
 
 static void doparse(int argc, char **argv)
 {
     int i;
-    int each = 0;
     for (i = 1; i < argc; ++i) {
         if (strcmp(argv[i], "--each") == 0) {
+            each = true;
             save_state();
-            each = 1;
-            continue;
-        }
-        if (argv[i][0] == '-' && argv[i][1] == 0) {
-            dofile(stdin, "<stdin>");
-            didparse = 1;
-            if (each) {
-                restore_state();
-            }
             continue;
         }
         if (strcmp(argv[i], "-h") == 0) {
@@ -287,22 +273,26 @@ static void doparse(int argc, char **argv)
             continue;
         }
 
-        FILE *fp;
+        FILE *fp = stdin;
+        if (strcmp(argv[i], "-") != 0) {
 #ifdef _MSC_VER
-        errno_t err = fopen_s(&fp, argv[i], "rb");
-        if (err != 0) {
+            errno_t err = fopen_s(&fp, argv[i], "rb");
+            if (err != 0) {
 #else
-        fp = fopen(argv[i], "rb");
-        if (fp == NULL) {
+            fp = fopen(argv[i], "rb");
+            if (fp == NULL) {
 #endif
-            printf("Error: Cannot open %s\n", argv[i]);
-            haderrors++;
-            continue;
+                printf("Error: Cannot open %s\n", argv[i]);
+                haderrors++;
+                continue;
+            }
         }
 
-        dofile(fp, argv[i]);
+        dofile(fp, fp == stdin ? "<stdin>" : argv[i]);
         didparse = 1;
-        fclose(fp);
+        if (fp != stdin) {
+            fclose(fp);
+        }
         if (each) {
             restore_state();
         }

@@ -92,8 +92,9 @@ after the ones before `--each`:
 don't see each other's functions, globals or types, and an error in one
 doesn't change what is reported for the next. This saves parsing `common.j`
 and `Blizzard.j` again for every file when there are many files to check.
-`--each` can't be combined with `+checkstringhash`, which collects its hashes
-across all files.
+The exit status is nonzero if any file fails; the prelude and final totals are
+printed once. `--each` can't be combined with `+checkstringhash` (including
+source annotations), which collects its hashes across all files.
 
 # Building
 

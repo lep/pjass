@@ -15,6 +15,7 @@
 #include "typeandname.h"
 
 int pjass_flags;
+bool each;
 
 int fno;
 int lineno;
@@ -609,6 +610,13 @@ int isflag(const char *txt, struct hashtable *flags){
     return (uintptr_t)flag;
 }
 
+void check_each_flags(int flags){
+    if(each && (flags & flag_checkstringhash)){
+        fprintf(stderr, "--each cannot be combined with +checkstringhash\n");
+        exit(1);
+    }
+}
+
 int updateflag(int cur, const char *txt, struct hashtable *flags){
     char sgn = txt[0];
     int flag = isflag(txt, flags);
@@ -620,6 +628,7 @@ int updateflag(int cur, const char *txt, struct hashtable *flags){
             cur &= ~flag;
         }
     }
+    check_each_flags(cur);
     return cur;
 }
 

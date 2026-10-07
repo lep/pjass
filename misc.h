@@ -119,10 +119,12 @@ void checkeqtest(const struct typenode *a, const struct typenode *b);
 
 int isflag(const char *txt, struct hashtable *flags);
 int updateflag(int cur, const char *txt, struct hashtable *flags);
+void check_each_flags(int flags);
 int updateannotation(int cur, char *txt, struct hashtable *flags);
 bool flagenabled(int flag);
 
 extern int pjass_flags;
+extern bool each;
 
 extern int fno, lineno, totlines, islinebreak;
 extern bool isconstant, inconstant, infunction, inblock;
