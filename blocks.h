@@ -13,6 +13,7 @@ enum block_type {
 void block_push(int lineno, enum block_type type);
 bool block_pop(enum block_type type, char *buf, size_t len);
 void block_missing_error(char *msg, size_t len);
+void block_clear(void);
 
 #endif
 

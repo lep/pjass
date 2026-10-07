@@ -81,6 +81,20 @@ All of these options are **off** by default.
  `checknumberliterals` | When enabled pjass checks if any number literal overflows.
  `oldpatch`            | Enables `+rb`, `+filter`, `+nomodulooperator` and `+checklongnames` at once.
 
+## Checking many files separately
+
+Every file after `--each` is checked on its own, as if it were the only file
+after the ones before `--each`:
+
+    $ pjass common.j Blizzard.j --each war3map-1.j war3map-2.j
+
+`common.j` and `Blizzard.j` are parsed once. `war3map-1.j` and `war3map-2.j`
+don't see each other's functions, globals or types, and an error in one
+doesn't change what is reported for the next. This saves parsing `common.j`
+and `Blizzard.j` again for every file when there are many files to check.
+`--each` can't be combined with `+checkstringhash`, which collects its hashes
+across all files.
+
 # Building
 
 This uses flex and bison (atleast version 3.0), so install them first.

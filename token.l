@@ -215,3 +215,7 @@ ID       [a-zA-Z]([a-zA-Z0-9_]*[a-zA-Z0-9])?
 
 %%
 
+void lexer_reset(void)
+{
+    BEGIN(INITIAL);
+}

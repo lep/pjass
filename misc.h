@@ -139,6 +139,7 @@ extern int *showerrorlevel;
 extern char *yytext;
 extern const char *curfile;
 extern int yydebug;
+void lexer_reset(void);
 extern struct hashtable builtin_types, functions, globals, locals, params, types, initialized;
 extern struct hashtable bad_natives_in_globals;
 extern struct hashtable uninitialized_globals;

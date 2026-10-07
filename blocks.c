@@ -59,3 +59,8 @@ void block_missing_error(char *msg, size_t len){
     snprintf(msg, len, "Missing end%s for block opened in line %d.", names[blocks[size-1].type], blocks[size-1].lineno);
     size--;
 }
+
+
+void block_clear(void){
+    size = 0;
+}

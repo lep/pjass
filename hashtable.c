@@ -68,3 +68,14 @@ void ht_clear(struct hashtable *h) {
     memset(h->bucket, 0, h->size*sizeof(struct hashnode));
     h->count = 0;
 }
+
+void ht_copy(struct hashtable *dst, const struct hashtable *src)
+{
+    if (dst->size != src->size) {
+        free(dst->bucket);
+        dst->bucket = malloc(src->size * sizeof(struct hashnode));
+        dst->size = src->size;
+    }
+    memcpy(dst->bucket, src->bucket, src->size * sizeof(struct hashnode));
+    dst->count = src->count;
+}

@@ -37,7 +37,7 @@ help:
 pjass: $(OBJS) ## Builds pjass
 	$(CC) $(CFLAGS) $^ -o $@
 
-test: should-fail should-check map-scripts ## Runs all tests
+test: should-fail should-check map-scripts each ## Runs all tests
 
 release: src-release binary-release ## Builds a pjass release with src- and bin-zipballs
 
@@ -108,7 +108,7 @@ SHOULD_CHECK += $(wildcard tests/should-check/**/*.j)
 
 MAP_SCRIPTS := $(wildcard tests/map-scripts/*.j)
 
-.PHONY: test print-test should-check should-fail map-scripts
+.PHONY: test print-test should-check should-fail map-scripts each
 .PHONY: $(SHOULD_CHECK) $(SHOULD_FAIL) $(MAP_SCRIPTS)
 
 $(MAP_SCRIPTS): pjass print-test
@@ -125,6 +125,8 @@ $(SHOULD_FAIL): pjass print-test
 should-fail: $(SHOULD_FAIL) ## Tests that should fail
 should-check: $(SHOULD_CHECK) ## Tests that should check
 map-scripts: $(MAP_SCRIPTS) ## Tests which are run with common.j and Blizzard.j
+each: pjass print-test ## Tests that --each matches checking the files one by one
+	@./each.sh tests/each/*.j
 
 
 

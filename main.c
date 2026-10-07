@@ -3,6 +3,7 @@
 #include "grammar.tab.h"
 
 #include "misc.h"
+#include "blocks.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -138,10 +139,12 @@ static void dofile(FILE *fp, const char *name)
     encoutered_first_function = false;
     inglobals = false;
     int olderrs = haderrors;
-    yy_switch_to_buffer(yy_create_buffer(fp, BUFSIZE));
+    YY_BUFFER_STATE buf = yy_create_buffer(fp, BUFSIZE);
+    yy_switch_to_buffer(buf);
     curfile = name;
 
     while ( yyparse() ) ;
+    yy_delete_buffer(buf);
 
     if (olderrs == haderrors){
         printf("Parse successful: %8d lines: %s\n", lineno, curfile);
@@ -172,6 +175,7 @@ static void printhelp()
         "pjass accepts some flags:\n"
         "%-20s print this help message and exit\n"
         "%-20s print pjass version and exit\n"
+        "%-20s check each of the following files on its own, after the files before it\n"
         "\n"
         "But pjass also allows to toggle some flags with either + or - in front of them.\n"
         "Once a flag is activated it will stay on until disabled and then it will stay disabled\n"
@@ -183,7 +187,7 @@ static void printhelp()
         "Which would check all three files with shadow enabled and only file2 with rb enabled.\n"
         "Below you can see a list of all available options. They are all off by default.\n"
         "\n"
-        , "-h", "-v"
+        , "-h", "-v", "--each"
     );
 
     int i;
@@ -198,13 +202,76 @@ static void printhelp()
     }
 }
 
+static struct hashtable *const tables[] = {
+    &functions, &globals, &types, &locals, &uninitialized_globals, &shadowed_variables, &string_literals
+};
+#define NTABLES (sizeof tables / sizeof *tables)
+
+static struct hashtable saved[NTABLES];
+static struct {
+    bool infunction;
+    int inloop, annotations, fnannotations;
+    const struct typenode *retval;
+    struct funcdecl *fCurrent, *fFilter, *fCondition, *fStringHash;
+} saved_state;
+
+static void save_state()
+{
+    size_t i;
+    if (flagenabled(flag_checkstringhash)) {
+        fprintf(stderr, "--each cannot be combined with +checkstringhash\n");
+        exit(1);
+    }
+    for (i = 0; i < NTABLES; i++) {
+        ht_copy(&saved[i], tables[i]);
+    }
+    saved_state.infunction = infunction;
+    saved_state.inloop = inloop;
+    saved_state.annotations = annotations;
+    saved_state.fnannotations = fnannotations;
+    saved_state.retval = retval;
+    saved_state.fCurrent = fCurrent;
+    saved_state.fFilter = fFilter;
+    saved_state.fCondition = fCondition;
+    saved_state.fStringHash = fStringHash;
+}
+
+static void restore_state()
+{
+    size_t i;
+    for (i = 0; i < NTABLES; i++) {
+        ht_copy(tables[i], &saved[i]);
+    }
+    ht_clear(&initialized);
+    block_clear();
+    lexer_reset();
+    infunction = saved_state.infunction;
+    inloop = saved_state.inloop;
+    annotations = saved_state.annotations;
+    fnannotations = saved_state.fnannotations;
+    retval = saved_state.retval;
+    fCurrent = saved_state.fCurrent;
+    fFilter = saved_state.fFilter;
+    fCondition = saved_state.fCondition;
+    fStringHash = saved_state.fStringHash;
+}
+
 static void doparse(int argc, char **argv)
 {
     int i;
+    int each = 0;
     for (i = 1; i < argc; ++i) {
+        if (strcmp(argv[i], "--each") == 0) {
+            save_state();
+            each = 1;
+            continue;
+        }
         if (argv[i][0] == '-' && argv[i][1] == 0) {
             dofile(stdin, "<stdin>");
             didparse = 1;
+            if (each) {
+                restore_state();
+            }
             continue;
         }
         if (strcmp(argv[i], "-h") == 0) {
@@ -236,6 +303,9 @@ static void doparse(int argc, char **argv)
         dofile(fp, argv[i]);
         didparse = 1;
         fclose(fp);
+        if (each) {
+            restore_state();
+        }
     }
     if (argc == 1) {
         didparse = 1;
