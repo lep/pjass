@@ -79,6 +79,7 @@ All of these options are **off** by default.
  `nomodulooperator`    | When enabled pjass reports any usage of the modulo (`%`) operator.
  `checklongnames`      | When enabled pjass checks if any name is longer than 3958 characters.
  `checknumberliterals` | When enabled pjass checks if any number literal overflows.
+ `checkstringlength`   | When enabled pjass reports string literals over 1023 characters, which can crash Warcraft III when loading an engine saved game. Maps that do not use engine save/load can leave this check disabled.
  `oldpatch`            | Enables `+rb`, `+filter`, `+nomodulooperator` and `+checklongnames` at once.
 
 ## Checking file groups separately

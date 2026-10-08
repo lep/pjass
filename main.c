@@ -114,6 +114,7 @@ static void init()
     add_flag(&available_flags, &flags_helpstring, "nosyntaxerror", (void*)flag_syntaxerror, "Toggle syntax error reporting");
     add_flag(&available_flags, &flags_helpstring, "nosemanticerror", (void*)flag_semanticerror, "Toggle semantic error reporting");
     add_flag(&available_flags, &flags_helpstring, "checknumberliterals", (void*)flag_checknumberliterals, "Error on overflowing number literals");
+    add_flag(&available_flags, &flags_helpstring, "checkstringlength", (void*)flag_checkstringlength, "Error on string literals over 1023 chars (saved-game compatibility)");
 
     add_flag(&available_flags, &flags_helpstring, "oldpatch", (void*)(flag_verylongnames | flag_nomodulo | flag_filter | flag_rb), "Combined options for older patches");
 

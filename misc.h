@@ -90,6 +90,7 @@ enum {
     flag_nomodulo = 1 << 8,
     flag_verylongnames = 1 << 9,
     flag_checknumberliterals = 1 << 10,
+    flag_checkstringlength = 1 << 11,
 };
 
 enum {
