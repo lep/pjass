@@ -125,7 +125,7 @@ $(SHOULD_FAIL): pjass print-test
 should-fail: $(SHOULD_FAIL) ## Tests that should fail
 should-check: $(SHOULD_CHECK) ## Tests that should check
 map-scripts: $(MAP_SCRIPTS) ## Tests which are run with common.j and Blizzard.j
-each: pjass print-test ## Tests that --each matches checking the files one by one
+each: pjass print-test ## Tests that --each isolates groups and shares declarations within them
 	@./each.sh tests/each/[a-z]-*.j
 
 

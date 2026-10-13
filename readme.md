@@ -81,17 +81,22 @@ All of these options are **off** by default.
  `checknumberliterals` | When enabled pjass checks if any number literal overflows.
  `oldpatch`            | Enables `+rb`, `+filter`, `+nomodulooperator` and `+checklongnames` at once.
 
-## Checking many files separately
+## Checking file groups separately
 
-Every file after `--each` is checked on its own, as if it were the only file
-after the ones before `--each`:
+The first `--each` saves the state left by the files before it. Each subsequent
+`--each` restores that state to start a new group:
 
-    $ pjass common.j Blizzard.j --each war3map-1.j war3map-2.j
+    $ pjass common.j Blizzard.j --each a1.j a2.j --each b1.j b2.j
 
-`common.j` and `Blizzard.j` are parsed once. `war3map-1.j` and `war3map-2.j`
-don't see each other's functions, globals or types, and an error in one
-doesn't change what is reported for the next. This saves parsing `common.j`
-and `Blizzard.j` again for every file when there are many files to check.
+`common.j` and `Blizzard.j` are parsed once. Files within a group are parsed
+in order as usual: `a2.j` can use functions, globals and types from `a1.j`,
+and `b2.j` can use those from `b1.j`. The `b` group cannot see declarations
+from the `a` group, and parser state from errors in one group is reset at the
+next `--each`. To check individual scripts separately, put `--each` before
+each one:
+
+    $ pjass common.j Blizzard.j --each war3map-1.j --each war3map-2.j
+
 The exit status is nonzero if any file fails; the prelude and final totals are
 printed once. `--each` can't be combined with `+checkstringhash` (including
 source annotations), which collects its hashes across all files.
