@@ -175,7 +175,7 @@ static void printhelp()
         "pjass accepts some flags:\n"
         "%-20s print this help message and exit\n"
         "%-20s print pjass version and exit\n"
-        "%-20s check each of the following files on its own, after the files before it\n"
+        "%-20s start a new file group using the state before the first --each\n"
         "\n"
         "But pjass also allows to toggle some flags with either + or - in front of them.\n"
         "Once a flag is activated it will stay on until disabled and then it will stay disabled\n"
@@ -256,8 +256,12 @@ static void doparse(int argc, char **argv)
     int i;
     for (i = 1; i < argc; ++i) {
         if (strcmp(argv[i], "--each") == 0) {
-            each = true;
-            save_state();
+            if (each) {
+                restore_state();
+            } else {
+                each = true;
+                save_state();
+            }
             continue;
         }
         if (strcmp(argv[i], "-h") == 0) {
@@ -292,9 +296,6 @@ static void doparse(int argc, char **argv)
         didparse = 1;
         if (fp != stdin) {
             fclose(fp);
-        }
-        if (each) {
-            restore_state();
         }
     }
     if (argc == 1) {
